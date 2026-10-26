@@ -43,26 +43,26 @@ document.addEventListener('DOMContentLoaded',function(){var h=document.querySele
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600&family=Lora:wght@500;600;700&family=Unbounded:wght@600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600&family=Unbounded:wght@600&display=swap">
 <style>
 /* Layout: photos and model settings on the left, tags on the right; on phones it stacks photos → settings → tags */
 :root{
-  --bg:#F7F3E8; --panel:#FFFDF7; --ink:#0A1630; --muted:#4A5368; --line:#E2DAC4;
-  --accent:#8A6A1F; --accent-ink:#FFFFFF; --good:#16794A; --good-bg:#E2F3E9; --warn:#9A4A00; --warn-bg:#FCEEDB; --bad:#B4232C;
-  --ok:var(--good); --code:#F3EEDF;
-  --chip:#F1E7CC; --chip-ink:#6B5013; --chip-custom:#FCEEDB; --chip-custom-ink:#9A4A00; --chip-off:#EFEADD; --chip-off-ink:#8E8A7C; --chip-warn:#FCE4E6;
-  --f-display:"Lora","Familjen Grotesk",system-ui,sans-serif;
+  --bg:#F2F1F6; --panel:#FFFFFF; --ink:#18161F; --muted:#686577; --line:#DDDAE6;
+  --accent:#5B3DF5; --accent-ink:#FFFFFF; --good:#16794A; --good-bg:#E2F3E9; --warn:#9A4A00; --warn-bg:#FCEEDB; --bad:#B4232C;
+  --ok:var(--good); --code:#F2F1F6;
+  --chip:#ECE8FF; --chip-ink:#3B23B8; --chip-custom:#FCEEDB; --chip-custom-ink:#9A4A00; --chip-off:#EEEDF2; --chip-off-ink:#9D9AAE; --chip-warn:#FCE4E6;
+  --f-display:"Unbounded","Familjen Grotesk",system-ui,sans-serif;
   --f-body:"Familjen Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
   --f-mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#0A1630; --panel:#111F3D; --ink:#F7F3E8; --muted:#C9C5B9; --line:#24365A;
-  --accent:#C8A24A; --accent-ink:#0A1630; --good:#5BD69A; --good-bg:#16302A; --warn:#F5B94A; --warn-bg:#3A2A12; --bad:#FF7A82;
-  --code:#060E20; --chip:#233457; --chip-ink:#E8D29A; --chip-custom:#3A2A12; --chip-custom-ink:#F5B94A; --chip-off:#1A2742; --chip-off-ink:#6E7488; --chip-warn:#3A1C20; color-scheme:dark}}
+  --bg:#121118; --panel:#1B1A23; --ink:#EEEDF4; --muted:#9D9AAE; --line:#2F2D3B;
+  --accent:#9C88FF; --accent-ink:#141020; --good:#5BD69A; --good-bg:#16302A; --warn:#F5B94A; --warn-bg:#3A2A12; --bad:#FF7A82;
+  --code:#121118; --chip:#2A2445; --chip-ink:#D3CBFF; --chip-custom:#3A2A12; --chip-custom-ink:#F5B94A; --chip-off:#24232D; --chip-off-ink:#6E6B7D; --chip-warn:#3A1C20; color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#0A1630; --panel:#111F3D; --ink:#F7F3E8; --muted:#C9C5B9; --line:#24365A;
-  --accent:#C8A24A; --accent-ink:#0A1630; --good:#5BD69A; --good-bg:#16302A; --warn:#F5B94A; --warn-bg:#3A2A12; --bad:#FF7A82;
-  --code:#060E20; --chip:#233457; --chip-ink:#E8D29A; --chip-custom:#3A2A12; --chip-custom-ink:#F5B94A; --chip-off:#1A2742; --chip-off-ink:#6E7488; --chip-warn:#3A1C20; color-scheme:dark}
+  --bg:#121118; --panel:#1B1A23; --ink:#EEEDF4; --muted:#9D9AAE; --line:#2F2D3B;
+  --accent:#9C88FF; --accent-ink:#141020; --good:#5BD69A; --good-bg:#16302A; --warn:#F5B94A; --warn-bg:#3A2A12; --bad:#FF7A82;
+  --code:#121118; --chip:#2A2445; --chip-ink:#D3CBFF; --chip-custom:#3A2A12; --chip-custom-ink:#F5B94A; --chip-off:#24232D; --chip-off-ink:#6E6B7D; --chip-warn:#3A1C20; color-scheme:dark}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body);padding-inline:16px;padding-block:18px 48px}
 [hidden]{display:none!important}
@@ -235,14 +235,6 @@ pre.out{font-family:var(--f-mono)}
   kbd { font: 12px ui-monospace, monospace; background: var(--code); padding: 1px 5px; border-radius: 4px; border: 1px solid var(--line); }
   @media (prefers-reduced-motion: reduce) { .drop { transition: none; } }
 
-/* wide screens: the whole width, a bigger photo column */
-@media (min-width:1440px){
-  body{padding-inline:20px;padding-block:14px 24px}
-  .top{max-width:none;margin-bottom:12px}
-  main{max-width:none;grid-template-columns:440px minmax(0,1fr)}
-  #photos{position:sticky;top:14px;max-height:calc(100vh - 28px);overflow:auto;overscroll-behavior:contain}
-  .catalog{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
-}
 @media (max-width:900px){
   body{padding-inline:12px}
   .top p{display:none}
@@ -1050,7 +1042,7 @@ self.OTI_CORE = (() => {
   const VIDEO_SCHEMA = {
     type: "object", additionalProperties: false, required: ["takes", "tips"],
     properties: {
-      takes: { type: "array", minItems: 3, maxItems: 3, items: { type: "object", additionalProperties: false, required: ["title", "prompt", "camera", "why"],
+      takes: { type: "array", items: { type: "object", additionalProperties: false, required: ["title", "prompt", "camera", "why"],
         properties: { title: { type: "string" }, prompt: { type: "string" }, camera: { type: "array", items: { type: "string" } }, why: { type: "string" } } } },
       tips: { type: "array", items: { type: "string" } }
     }

@@ -832,6 +832,7 @@ Reads the outfit in a photo or a piece of anime art and turns it into tags and p
 
 ### Your outfits
 - **Catalog:** every read is kept with a thumbnail and where it came from. Name it, add labels and notes, star it, mark it "to try" or "done", and search everything. Export and import it to move it between devices.
+- **Video prompts:** three ready-to-paste image-to-video prompts for MiniMax Hailuo (subtle, showcase, dynamic), with camera moves in Hailuo's [brackets], sized to 6 or 10 seconds, plus tips for that picture.
 - **Three new outfits:** three fresh takes on any outfit (a restyle, a different genre, a different season), or your own direction like "make it winter".
 - **Remix:** delete or add tags, swap in a garment from another saved outfit, add or remove pieces, and save it as a copy.
 - **Check tags:** fixes common misspellings and, on the website, shows how often each tag is used on Danbooru.

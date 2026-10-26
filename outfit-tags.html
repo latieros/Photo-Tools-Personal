@@ -103,6 +103,10 @@ pre.out{font-family:var(--f-mono)}
   }
   .drop.over { border-color: var(--accent); background: var(--chip); }
   .drop img { max-width: 100%; max-height: 380px; border-radius: 8px; display: block; }
+  .bigpic { margin: 0; }
+  .bigpic img { display: block; width: 100%; max-height: 62vh; object-fit: contain; border-radius: 10px; background: var(--chip); cursor: zoom-in; }
+  .bigpic.full img { max-height: none; cursor: zoom-out; }
+  .bigpic figcaption { margin-top: 4px; }
   .drop input[type=file] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 0; }
   .drop .pick { display: inline-block; margin-top: 10px; padding: 8px 14px; border-radius: 8px; background: var(--accent); color: var(--accent-ink); font-weight: 600; pointer-events: none; }
   .qcount { font-size: 12px; text-transform: none; letter-spacing: 0; font-weight: normal; }
@@ -203,6 +207,11 @@ pre.out{font-family:var(--f-mono)}
   .current .tiny { margin-bottom: 6px; }
   .vcard { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-top: 8px; }
   .vcard h4 { margin: 0 0 2px; font-size: 14px; }
+  .ideasH { margin: 6px 0 0; font-size: 14px; }
+  .ideasH .meta { font-weight: 400; color: var(--muted); font-size: 12.5px; }
+  .vcard .vprompt { margin: 6px 0; font-size: 13.5px; line-height: 1.55; white-space: pre-wrap; background: var(--chip); border-radius: 8px; padding: 8px 10px; }
+  .vcard .vprompt b { color: var(--accent); font-weight: 600; }
+  .vtips { margin: 8px 0 0; padding-left: 18px; font-size: 13px; color: var(--muted); } .vtips li { margin: 2px 0; }
   .vcard .vdesc { margin: 2px 0 6px; font-size: 13.5px; line-height: 1.5; color: var(--ink); max-width: 70ch; }
   .vtags { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0; }
   .catalog { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
@@ -253,7 +262,7 @@ pre.out{font-family:var(--f-mono)}
   <nav class="tabs" id="tabs" aria-label="Sections">
     <button type="button" data-tab="tags" class="on" aria-pressed="true">Tags</button>
     <button type="button" data-tab="map" aria-pressed="false">Map</button>
-    <button type="button" data-tab="ideas" aria-pressed="false">New outfits</button>
+    <button type="button" data-tab="ideas" aria-pressed="false">Ideas</button>
     <button type="button" data-tab="catalog" aria-pressed="false">Catalog <span class="count" id="catCount"></span></button>
     <button type="button" data-tab="settings" aria-pressed="false">Settings</button>
   </nav>
@@ -266,6 +275,10 @@ pre.out{font-family:var(--f-mono)}
       <input type="file" id="file" multiple accept="image/jpeg,image/png,image/webp,image/gif,image/*" title="Choose images">
     </label>
     <div class="queue" id="queue"></div>
+    <figure class="bigpic" id="bigpic" hidden>
+      <img id="bigImg" alt="The outfit photo" title="Click to toggle the full size">
+      <figcaption class="tiny" id="bigName"></figcaption>
+    </figure>
     <div class="row tight"><button class="small" id="pickBtn" type="button">Choose images…</button><button class="small" id="clearQueue" type="button" hidden>Clear queue</button><span class="hint" id="imgInfo"></span></div>
     <details>
       <summary>Phone fallback: paste an image here</summary>
@@ -371,13 +384,22 @@ pre.out{font-family:var(--f-mono)}
     </div>
 
     <div class="tab" data-tab="ideas" hidden>
-      <div class="tiny" id="ideasEmpty" style="text-align:center;padding:40px 0">Read or open an outfit first, then design new ones from it here.</div>
-      <div id="ideasWrap" hidden>
+      <div class="tiny" id="ideasEmpty" style="text-align:center;padding:40px 0">Read or open an outfit first, then design new outfits and video prompts from it here.</div>
+      <div id="ideasWrap" hidden class="stack">
+        <h3 class="ideasH">New outfits</h3>
         <div class="row">
           <div><label for="variantDir">Direction (optional)</label><input type="text" id="variantDir" placeholder="e.g. make it winter, more gothic, idol stage outfit, keep the colors"></div>
           <div style="flex:0 1 auto"><button class="small primary" id="variantsBtn">Design 3 variants</button></div>
         </div>
         <div id="variantsOut"></div>
+        <h3 class="ideasH">Video prompts <span class="meta">for MiniMax Hailuo</span></h3>
+        <p class="tiny" style="margin:0">Three ways to bring this picture to life as an image-to-video clip, written for Hailuo: motion only (the picture is the first frame), one main action, camera moves in [brackets].</p>
+        <div class="row">
+          <div><label for="videoDir">What should happen (optional)</label><input type="text" id="videoDir" placeholder="e.g. she turns to the camera and smiles, wind, walks toward us, rain starts"></div>
+          <div style="flex:0 0 auto"><label for="videoLen">Length</label><select id="videoLen"><option value="6">6 s</option><option value="10">10 s</option></select></div>
+          <div style="flex:0 1 auto;align-self:flex-end"><button class="small primary" id="videoBtn">Write 3 video prompts</button></div>
+        </div>
+        <div id="videoOut"></div>
       </div>
     </div>
 
@@ -1024,6 +1046,38 @@ self.OTI_CORE = (() => {
     const prose = composeProse(res, excluded);
     return { prose, caption: prose.split(/(?<=\.)\s/)[0], composed: true, stale: false };
   }
+  // Image-to-video prompts for MiniMax Hailuo: the picture is the first frame, so the prompt carries motion only.
+  const VIDEO_SCHEMA = {
+    type: "object", additionalProperties: false, required: ["takes", "tips"],
+    properties: {
+      takes: { type: "array", minItems: 3, maxItems: 3, items: { type: "object", additionalProperties: false, required: ["title", "prompt", "camera", "why"],
+        properties: { title: { type: "string" }, prompt: { type: "string" }, camera: { type: "array", items: { type: "string" } }, why: { type: "string" } } } },
+      tips: { type: "array", items: { type: "string" } }
+    }
+  };
+  const HAILUO_CAMERA = ["Push in", "Pull out", "Pan left", "Pan right", "Tilt up", "Tilt down", "Zoom in", "Zoom out", "Truck left", "Truck right", "Pedestal up", "Pedestal down", "Tracking shot", "Static shot", "Shake"];
+  function videoPrompt(res, direction, seconds) {
+    const outfit = res.outfit.map(o => ({ item: o.item, material: o.material, tags: o.tags.slice(0, 4) }));
+    const scene = res.scene || {};
+    return [
+      "You write image-to-video prompts for MiniMax Hailuo (Director / 2.3 / H3). The attached picture will be the FIRST FRAME of a " + seconds + "-second clip; this outfit breakdown describes it.",
+      "Write THREE takes, each a complete prompt ready to paste:",
+      "- 'Subtle': the picture barely comes alive: breathing, a blink, hair and fabric stirring, a slow camera drift. Safest for keeping the face and outfit identical.",
+      "- 'Showcase': the character presents the outfit: a turn, a step, a pose change or a hand gesture that shows the garments, with a camera move that follows.",
+      "- 'Dynamic': a clear action with energy (wind, walking toward the camera, a spin, weather or light changing), still one main action.",
+      direction ? "- The user wants this to happen; build all three around it in rising intensity: " + direction : "",
+      "Rules for every prompt:",
+      "- Motion only. Do NOT re-describe what the picture already shows (colors, clothes, background); name things only to say how they move.",
+      "- Lead with the subject's one main action, then secondary motion drawn from the actual garments (how " + (outfit.map(o => o.item).filter(Boolean).slice(0, 4).join(", ") || "the clothes") + " would move: swaying, fluttering, swinging, catching light), then environment motion (" + ((scene.background_tags || []).slice(0, 3).join(", ") || "background") + ") and light.",
+      "- Camera moves go in square brackets at the point they happen, using only these commands: " + HAILUO_CAMERA.map(c => "[" + c + "]").join(", ") + ". One or two per take; pair every camera move with an action so it does not become a generic zoom. Big moves on faces cause identity drift: keep face-close moves slow.",
+      "- Keep identity stable: end each prompt with a short clause that the character, outfit and colors stay exactly as in the image.",
+      "- " + seconds + " seconds: fit the amount of action to the time (6 s: one beat; 10 s: a beat and a follow-through). No scene cuts, no new characters, no text or captions, no morphing between outfits.",
+      "- Plain, concrete English, present tense, 40-110 words per prompt. Mention speed words (slowly, gently, quickly).",
+      "- camera: the bracket commands used in that take, in order. why: ONE sentence on when to pick this take.",
+      "- tips: 3 to 5 short tips specific to THIS picture (e.g. long skirt swings, so keep spins slow; backlit hair flares when the camera pushes in; the framing leaves room for a tilt up).",
+      "", "Outfit breakdown JSON:", JSON.stringify({ subject: res.subject, outfit, style_tags: res.style_tags, framing_tags: res.framing_tags, scene: { lighting: scene.lighting_tags || [], colors: scene.color_tags || [], aesthetic: scene.aesthetic_tags || [] } })
+    ].filter(Boolean).join("\n");
+  }
   const SENTENCE_SCHEMA = { type: "object", additionalProperties: false, required: ["caption", "prose"], properties: { caption: { type: "string" }, prose: { type: "string" } } };
   function sentencePrompt(res, excluded) {
     const keep = (t) => !(excluded && excluded.has(t));
@@ -1148,7 +1202,7 @@ self.OTI_CORE = (() => {
     return out;
   }
 
-  return { ITEM_SCHEMA, IMAGE_ITEM_SCHEMA, REGION_SCHEMA, SCENE_GROUPS, IDENTITY_SCHEMA, unverifiedIdentity, focusParts, region, previews, annotations, SCHEMA, VARIANTS_SCHEMA, SENTENCE_SCHEMA, swapName, verifyIdentity, contextLines, RULES, PRESETS, NON_OUTFIT, interpretPrompt, variantsPrompt, sentencePrompt, normalizeResult, orderedTags, presetOf, emph, tagSig, sentencesFor, composeProse, formatPrompt };
+  return { ITEM_SCHEMA, IMAGE_ITEM_SCHEMA, REGION_SCHEMA, SCENE_GROUPS, IDENTITY_SCHEMA, unverifiedIdentity, focusParts, region, previews, annotations, SCHEMA, VARIANTS_SCHEMA, VIDEO_SCHEMA, HAILUO_CAMERA, videoPrompt, SENTENCE_SCHEMA, swapName, verifyIdentity, contextLines, RULES, PRESETS, NON_OUTFIT, interpretPrompt, variantsPrompt, sentencePrompt, normalizeResult, orderedTags, presetOf, emph, tagSig, sentencesFor, composeProse, formatPrompt };
 })();
 
 </script>
@@ -1290,7 +1344,7 @@ window.OTI = (() => {
   function select(item) {
     if (selected && selected !== item) selected.excluded = excluded;   // exclusions stay with their outfit
     selected = item; image = item ? item.image : null;
-    variants = []; $("variantsOut").innerHTML = ""; remix = false; lookup = new Map();
+    variants = []; $("variantsOut").innerHTML = ""; video = null; $("videoOut").innerHTML = ""; remix = false; lookup = new Map();
     if (item && item.result) { result = item.result; excluded = item.excluded || new Set(); current = catalog.find(e => e.id === item.entryId) || null; headerFor = undefined; render(); }
     else { result = null; excluded = new Set(); current = null; showPending(item); }
     renderQueue();
@@ -1298,9 +1352,23 @@ window.OTI = (() => {
   function showPending(item) {
     $("out").hidden = true; $("outputControls").hidden = true; $("empty").hidden = false;
     $("mapWrap").hidden = true; $("mapEmpty").hidden = false; $("ideasWrap").hidden = true; $("ideasEmpty").hidden = false;
+    showPicture();
     if (!item) { $("empty").textContent = "Results will show up here as grouped, toggleable tags."; return; }
-    const msg = item.status === "reading" ? "Reading this outfit…" : item.status === "failed" ? "Failed: " + item.error : `Not read yet. Click “${runLabel()}”.`;
-    $("empty").innerHTML = `<img src="${item.image.dataUrl}" alt="" style="max-height:260px;max-width:100%;border-radius:8px;display:block;margin:0 auto 8px"><span>${esc(msg)}</span>`;
+    $("empty").textContent = item.status === "reading" ? "Reading this outfit…" : item.status === "failed" ? "Failed: " + item.error : `Not read yet. Click “${runLabel()}”.`;
+  }
+  // The photo panel shows the picture being worked on at a readable size: the selected queue photo, else the opened outfit's kept picture.
+  let pictureFor = null;
+  async function picture() {
+    if (selected && selected.image) return selected.image.preview || selected.image.dataUrl;
+    if (current) return await previews().get(current.id);
+    return null;
+  }
+  async function showPicture() {
+    const key = selected || current || null; pictureFor = key;
+    const pic = await picture(); if (pictureFor !== key) return;          // something else was picked meanwhile
+    $("bigpic").hidden = !pic; if (!pic) return;
+    if ($("bigImg").src !== pic) $("bigImg").src = pic;
+    $("bigName").textContent = selected ? selected.name : current ? current.name + (current.sourceName && current.sourceName.replace(/\.[^.]+$/, "") !== current.name ? " · " + current.sourceName : "") : "";
   }
   function removeItem(item) {
     if (item.status === "reading") { setStatus("Wait for this outfit to finish reading.", "warn"); return; }
@@ -1404,6 +1472,45 @@ window.OTI = (() => {
       const b4 = btn("Copy description", () => copy(words, "Variant description copied."));
       row.append(b1, b2, b3, b4); card.appendChild(row); out.appendChild(card);
     });
+  }
+
+  // ======================= video prompts (MiniMax Hailuo) =======================
+  let video = null;   // { seconds, direction, takes: [{title, prompt, camera, why}], tips }
+  // The picture as the model should receive it: the queued photo, else the kept 768px copy of a saved outfit.
+  async function modelImage() {
+    if (selected && selected.image && selected.result === result) return selected.image;
+    const pic = await picture(); if (!pic) return null;
+    const blob = await (await fetch(pic)).blob();
+    return { dataUrl: pic, mediaType: blob.type || "image/jpeg", base64: pic.split(",")[1], blob, w: 0, h: 0, name: current?.name || "outfit" };
+  }
+  async function makeVideo() {
+    if (!result) return;
+    if (!(await P().ready())) { setStatus(P().unavailableMessage || "The model provider is not available.", "bad"); return; }
+    const seconds = Number($("videoLen").value) || 6, direction = $("videoDir").value.trim();
+    $("videoBtn").disabled = true; $("videoOut").innerHTML = '<p class="tiny">Writing three video prompts… (15–40 s)</p>';
+    try {
+      const img = await modelImage();
+      const r = await P().interpret({ image: img, prompt: C.videoPrompt(result, direction, seconds) + (img ? "" : "\n(No picture is attached this time; work from the breakdown alone.)"), schema: C.VIDEO_SCHEMA, fresh: true });
+      const takes = (r.json.takes || []).slice(0, 3).map(t => ({ title: t.title || "Take", prompt: (t.prompt || "").trim(), camera: Array.isArray(t.camera) ? t.camera : [], why: t.why || "" }));
+      video = { seconds, direction, takes, tips: Array.isArray(r.json.tips) ? r.json.tips.slice(0, 5) : [], ts: Date.now() };
+      if (current) { current.video = clone(video); saveCatalog(); }   // keeps the prompts with the outfit
+      renderVideo();
+    } catch (e) { console.error(e); $("videoOut").innerHTML = `<p class="tiny" style="color:var(--bad)">${esc(P().errorMessage ? P().errorMessage(e) : (e.message || e.code || "failed"))}</p>`; }
+    finally { $("videoBtn").disabled = false; }
+  }
+  function renderVideo() {
+    const out = $("videoOut"); out.innerHTML = "";
+    if (!video || !video.takes.length) return;
+    const head = document.createElement("p"); head.className = "tiny"; head.textContent = `${video.seconds} s clips${video.direction ? " · " + video.direction : ""}. Paste one into Hailuo's image-to-video with this picture as the first frame.`; out.appendChild(head);
+    video.takes.forEach(t => {
+      const card = document.createElement("div"); card.className = "vcard";
+      const html = esc(t.prompt).replace(/\[([^\]]{1,40})\]/g, "<b>[$1]</b>");   // the camera commands stand out
+      card.innerHTML = `<h4>${esc(t.title)}</h4><div class="vprompt">${html}</div><div class="tiny">${esc(t.why)}${t.camera.length ? " · camera: " + esc(t.camera.join(" → ")) : ""}</div>`;
+      const row = document.createElement("div"); row.className = "row";
+      row.append(btn("Copy prompt", () => copy(t.prompt, `Copied the “${t.title}” video prompt.`)));
+      card.appendChild(row); out.appendChild(card);
+    });
+    if (video.tips.length) { const ul = document.createElement("ul"); ul.className = "vtips"; video.tips.forEach(x => { const li = document.createElement("li"); li.textContent = x; ul.appendChild(li); }); out.appendChild(ul); }
   }
 
   // ======================= tag validation =======================
@@ -1553,6 +1660,7 @@ window.OTI = (() => {
     $("empty").hidden = true; $("out").hidden = false; $("outputControls").hidden = false;
     const f = formatted(result); $("prompt").textContent = f.prompt; renderSentenceNote(f); $("desc").textContent = result.description;
     $("remixBar").classList.toggle("on", remix); $("remixBtn").textContent = remix ? "Done remixing" : "Remix";
+    showPicture();
     const g = $("groups"); g.innerHTML = "";
     const addGroup = (title, meta, list, conf, onDelete, extra) => {
       if (!list.length && !remix) return;
@@ -1712,7 +1820,7 @@ window.OTI = (() => {
     catalog.push(e); while (catalog.length > 150) { const v = catalog.findIndex(x => !x.fav); if (v < 0) break; catalog.splice(v, 1); }
     saveCatalog(); return e;
   }
-  function openEntry(e) { if (selected) { selected.excluded = excluded; selected = null; renderQueue(); } current = e; headerFor = undefined; result = clone(e.result); excluded = new Set(C.unverifiedIdentity(result)); remix = false; lookup = new Map(); variants = []; $("variantsOut").innerHTML = ""; if (tab === "catalog" || tab === "settings") showTab("tags"); render(); setStatus(`Opened “${e.name}”.`, "ok"); }
+  function openEntry(e) { if (selected) { selected.excluded = excluded; selected = null; renderQueue(); } current = e; headerFor = undefined; result = clone(e.result); excluded = new Set(C.unverifiedIdentity(result)); remix = false; lookup = new Map(); variants = []; $("variantsOut").innerHTML = ""; video = e.video ? clone(e.video) : null; renderVideo(); if (tab === "catalog" || tab === "settings") showTab("tags"); render(); setStatus(`Opened “${e.name}”.`, "ok"); }
   let headerFor = undefined; // which entry the header inputs were last filled from
   function renderCurrentHeader() {
     const h = $("currentHeader"); h.hidden = false;
@@ -1812,6 +1920,8 @@ window.OTI = (() => {
     $("copyJson").addEventListener("click", () => copy(JSON.stringify(exportObj(), null, 2), "JSON copied."));
     $("dlJson").addEventListener("click", () => download((current?.name || "outfit").replace(/[^\w.-]+/g, "_") + ".tags.json", JSON.stringify(exportObj(), null, 2)));
     $("variantsBtn").addEventListener("click", makeVariants);
+    $("videoBtn").addEventListener("click", makeVideo);
+    $("bigImg").addEventListener("click", () => $("bigpic").classList.toggle("full"));
     $("checkBtn").addEventListener("click", checkTags);
     $("remixBtn").addEventListener("click", () => { remix = !remix; render(); if (remix) setStatus("Remix mode: × deletes tags, add tags per group, swap garments from the catalog, then save.", "ok"); });
     if (P().download === undefined && P().hideDownload) $("dlJson").hidden = true;

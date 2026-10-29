@@ -2,7 +2,7 @@
 
 A small set of personal browser tools for dressing up photos, making short videos and cleaning up photo and video files.
 
-**Open it:** https://lopxfi.github.io/Photo-Tools-Personal/
+**Open it:** https://latieros.github.io/Photo-Tools-Personal/
 
 - **Everything runs in your browser.** Photos, videos and sounds never leave your device, and nothing is uploaded anywhere. The one exception is [Outfit Tags](#outfit-tags), which sends the photo you pick to an AI model so it can read the outfit.
 - **Your work is kept automatically.** Each tool saves its work in the browser (videos and photos included), so you can close the page or switch tools and pick up where you left off.
@@ -837,7 +837,7 @@ Reads the outfit in a photo or a piece of anime art and turns it into tags and p
 - **Remix:** delete or add tags, swap in a garment from another saved outfit, add or remove pieces, and save it as a copy.
 - **Check tags:** fixes common misspellings and, on the website, shows how often each tag is used on Danbooru.
 
-With the extension installed, this page and the extension share one catalog (and the page can use the extension's API key), so an outfit read from the right-click menu shows up here and the other way round. Before that, each keeps its own. A Chrome and Brave extension that reads any image from the right-click menu lives in the [Outfit-Idenitfy](https://github.com/lopxfi/Outfit-Idenitfy) repository. This page is built from that repository's code with its `build_phototools.py`.
+With the extension installed, this page and the extension share one catalog (and the page can use the extension's API key), so an outfit read from the right-click menu shows up here and the other way round. Before that, each keeps its own. A Chrome and Brave extension that reads any image from the right-click menu lives in the [Outfit-Idenitfy](https://github.com/latieros/Outfit-Idenitfy) repository. This page is built from that repository's code with its `build_phototools.py`.
 
 ---
 

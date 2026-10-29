@@ -1,7 +1,7 @@
 # Photo Tools: notes for Claude
 
 A personal suite of browser-only photo/video tools, published with GitHub Pages at
-https://lopxfi.github.io/Photo-Tools-Personal/ (owner renamed from `latieros` to `lopxfi` in Oct 2026).
+https://latieros.github.io/Photo-Tools-Personal/ (the GitHub owner name is `latieros`).
 
 ## How the repo is laid out
 - The top-level files **are** the site. There is no source folder and no build step: edit the `.html` pages directly.

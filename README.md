@@ -489,7 +489,9 @@ Changes one photo into a second one. Good for before and after.
 
 Lays one photo over another and opens a window in the top one, so the photo underneath shows through.
 
-- **Openings:** Paper tear, Torn hole, Torn in half, Peeled corner, Glasses, Magnifier, Keyhole, Window blinds, Jigsaw piece, Scratch patch, Brush stroke, Heart, Star, Circle, and Words (the photo shows through the letters of a word you type).
+- **Openings:** Paper tear, Torn hole, Torn in half, Peeled corner, Glasses, Magnifier, Keyhole, Window blinds, Jigsaw piece, Scratch patch, Brush stroke, Heart, Star, Circle, Words, and Your own picture.
+- **Words:** the photo shows through the letters. Type up to four lines, pick from 26 fonts (the chunky ones from Caption Maker, fetched the first time you pick them), and set all capitals, slanted, and the space between letters.
+- **Your own picture:** choose a PNG and its see-through parts become the opening. **Closed-in clear parts** opens only what the picture surrounds (the lenses of a pair of glasses, the middle of a frame) and keeps the empty space round it shut; **All clear parts** opens every see-through part; **The solid shape** uses the picture as a stencil; **The dark parts** is for black shapes on white with nothing see-through. The picture itself can be shown on top or hidden, and it moves, sizes and turns like any other opening.
 - **Moving it:** drag on the photo to move the opening, scroll or pinch to change its size, and turn it to any angle. A peeled corner is dragged instead: pull it as far as you like in any direction.
 - **Torn paper:** how ragged the tear is, how much bare paper shows round it, the paper color, and **Tear it differently** for a new rip.
 - **Glasses:** round, square, heart or star lenses, frame color and thickness, and shine on the glass.

@@ -183,9 +183,10 @@ canvas#cv.dragging{cursor:grabbing}
 }
 
 input[type=color]{width:40px;height:32px;border:1px solid var(--line);border-radius:8px;background:var(--bg);padding:3px;flex:none}
-.field input[type=text]{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);min-width:0}
+.field input[type=text],.field select,.field textarea{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);min-width:0;width:100%}
+.field textarea{resize:vertical;min-height:64px}
 .dot{width:28px;height:28px;padding:0;border-radius:50%;flex:none}
-@media (max-width:900px){.field input[type=text]{font-size:16px}}
+@media (max-width:900px){.field input[type=text],.field select,.field textarea{font-size:16px}}
 </style>
 
 </head>
@@ -310,11 +311,11 @@ const MOVES=false,LOOKS_ONLY=true;
 const LOOKS={tear:{name:'Paper tear',v:{kind:'tear'}},hole:{name:'Torn hole',v:{kind:'hole'}},split:{name:'Torn in half',v:{kind:'split'}},glasses:{name:'Glasses',v:{kind:'glasses'}},
   mag:{name:'Magnifier',v:{kind:'mag'}},key:{name:'Keyhole',v:{kind:'key'}},heart:{name:'Heart',v:{kind:'heart'}},star:{name:'Star',v:{kind:'star'}},circle:{name:'Circle',v:{kind:'circle'}},
   brush:{name:'Brush stroke',v:{kind:'brush'}},word:{name:'Words',v:{kind:'word'}},
-  peel:{name:'Peeled corner',v:{kind:'peel'}},blinds:{name:'Window blinds',v:{kind:'blinds'}},jigsaw:{name:'Jigsaw piece',v:{kind:'jigsaw'}},scratch:{name:'Scratch patch',v:{kind:'scratch'}}};
+  peel:{name:'Peeled corner',v:{kind:'peel'}},blinds:{name:'Window blinds',v:{kind:'blinds'}},jigsaw:{name:'Jigsaw piece',v:{kind:'jigsaw'}},scratch:{name:'Scratch patch',v:{kind:'scratch'}},own:{name:'Your own picture',v:{kind:'own'}}};
 const TORN=['tear','hole','split'],LINED=['key','heart','star','circle','word','jigsaw'];
 /* a peeled corner is set by where its tip has been pulled to; these are the starting tips for each corner */
 const TIPS={tr:[.66,.32],tl:[.34,.32],br:[.66,.68],bl:[.34,.68]},CORNERS={tr:[1,0],tl:[0,0],br:[1,1],bl:[0,1]};
-const DEF=()=>({v:1,look:'tear',kind:'tear',seed:4,fx:.5,fy:.5,size:.42,rot:-6,tall:.45,wide:.5,edge:.45,rag:.6,shadow:.6,paper:'#f4efe6',lens:'round',frame:'#151515',thick:.4,glare:.5,line:'#ffffff',lw:.3,word:'LOOK',corner:'tr',drag:'hole',bz:1,bx:0,by:0,fmt:'jpg'});
+const DEF=()=>({v:1,look:'tear',kind:'tear',seed:4,fx:.5,fy:.5,size:.42,rot:-6,tall:.45,wide:.5,edge:.45,rag:.6,shadow:.6,paper:'#f4efe6',lens:'round',frame:'#151515',thick:.4,glare:.5,line:'#ffffff',lw:.3,word:'LOOK',font:'unbounded',caps:true,slant:false,track:0,pmode:'inside',pshow:true,corner:'tr',drag:'hole',bz:1,bx:0,by:0,fmt:'jpg'});
 /* picking a kind keeps your settings, but starts it level (a paper tear starts a little crooked) */
 function applyLook(v){if(v.kind!==S.kind){S.rot=v.kind==='tear'?-6:v.kind==='brush'||v.kind==='scratch'?-8:0;[S.fx,S.fy]=v.kind==='peel'?TIPS[S.corner]||TIPS.tr:[.5,.5];if(v.kind==='peel')S.drag='hole';}S.kind=v.kind;}
 
@@ -324,8 +325,8 @@ const secondPic=()=>P2||(sampleB||(sampleB=sampleHills()));
 async function loadSecond(blob,name,quiet){let im=null;try{im=await createImageBitmap(blob);}catch(e){}
   if(!im||!im.width){if(!quiet)toast('That file couldn’t be opened as a picture. Try JPG or PNG.');return;}
   P2=im;BLOB2=blob;NAME2=name||'photo';if(!quiet){S.bx=S.by=0;outCache=null;renderOpts();changed();}}
-function extraState(){return{blob2:BLOB2,name2:NAME2};}
-async function extraRestore(x){if(x&&x.blob2)await loadSecond(x.blob2,x.name2,true);}
+function extraState(){return{blob2:BLOB2,name2:NAME2,blob3:BLOB3,name3:NAME3};}
+async function extraRestore(x){if(x&&x.blob2)await loadSecond(x.blob2,x.name2,true);if(x&&x.blob3)await loadShape(x.blob3,x.name3,true);}
 function swapPhotos(){if(!P2||SAMPLE||!BLOB){toast('Choose both of your own photos first, then you can swap them.');return;}
   [IMG,P2]=[P2,IMG];[BLOB,BLOB2]=[BLOB2,BLOB];[NAME,NAME2]=[NAME2,NAME];$('thumb').src=URL.createObjectURL(BLOB);$('pName').textContent=NAME;$('pInfo').textContent=`${IMG.width} × ${IMG.height} pixels`;
   S.bx=S.by=0;outCache=null;renderOpts();render();save();}
@@ -378,11 +379,57 @@ function peelGeo(W,H){const[cu,cv2]=CORNERS[S.corner]||CORNERS.tr,C=[cu*W,cv2*H]
   return{open,flap:open.map(p=>{const s2=sd(p);return[p[0]-2*s2*n[0],p[1]-2*s2*n[1]];}),fold,M,T,n};}
 const polyPath=(q,pts)=>{q.beginPath();pts.forEach((p,i)=>q[i?'lineTo':'moveTo'](p[0],p[1]));q.closePath();};
 const shadeHex=(col,k)=>{const f=v=>Math.round(clamp(k>0?v+(255-v)*k:v*(1+k),0,255)),[r,g,b]=rgb(col);return`rgb(${f(r)},${f(g)},${f(b)})`;};
-const FONT='600 100px "Unbounded","Arial Black",Impact,sans-serif';
-function wordSetup(q){const t=(S.word||'').trim().toUpperCase()||'LOOK';q.font=FONT;q.textAlign='center';q.textBaseline='middle';const f=2.6/Math.max(60,q.measureText(t).width);q.scale(f,f);return t;}
+/* fonts for the Words opening, the chunky ones from Caption Maker: [id, name, Google Fonts family, css, weight] */
+const WORD_FONTS=[['unbounded','Unbounded','','"Unbounded","Arial Black",sans-serif',600],['anton','Anton','Anton','"Anton",Impact,sans-serif',400],['bebas','Bebas Neue','Bebas Neue','"Bebas Neue",Impact,sans-serif',400],
+  ['archivo','Archivo Black','Archivo Black','"Archivo Black","Arial Black",sans-serif',400],['bowlby','Bowlby One','Bowlby One','"Bowlby One","Arial Black",sans-serif',400],['montserrat','Montserrat','Montserrat:wght@900','"Montserrat","Arial Black",sans-serif',900],
+  ['bungee','Bungee','Bungee','"Bungee","Arial Black",sans-serif',400],['blackops','Black Ops One','Black Ops One','"Black Ops One",Impact,sans-serif',400],['russo','Russo One','Russo One','"Russo One","Arial Black",sans-serif',400],
+  ['luckiest','Luckiest Guy','Luckiest Guy','"Luckiest Guy","Comic Sans MS",cursive',400],['bangers','Bangers','Bangers','"Bangers",Impact,cursive',400],['fredoka','Fredoka','Fredoka:wght@700','"Fredoka","Arial Rounded MT Bold",sans-serif',700],
+  ['shrikhand','Shrikhand','Shrikhand','"Shrikhand",Georgia,serif',400],['abril','Abril Fatface','Abril Fatface','"Abril Fatface",Georgia,serif',400],['playfair','Playfair Display','Playfair Display:wght@700','"Playfair Display",Georgia,serif',700],
+  ['dmserif','DM Serif Display','DM Serif Display','"DM Serif Display",Georgia,serif',400],['cinzel','Cinzel','Cinzel:wght@700','"Cinzel",Georgia,serif',700],['fraktur','UnifrakturMaguntia','UnifrakturMaguntia','"UnifrakturMaguntia",Georgia,serif',400],
+  ['marker','Permanent Marker','Permanent Marker','"Permanent Marker","Comic Sans MS",cursive',400],['rocksalt','Rock Salt','Rock Salt','"Rock Salt","Comic Sans MS",cursive',400],['pacifico','Pacifico','Pacifico','"Pacifico",cursive',400],['lobster','Lobster','Lobster','"Lobster",cursive',400],
+  ['monoton','Monoton','Monoton','"Monoton",Impact,cursive',400],['press','Press Start 2P','Press Start 2P','"Press Start 2P",monospace',400],['creepster','Creepster','Creepster','"Creepster",Impact,cursive',400],['impact','Impact','','Impact,"Arial Black",sans-serif',400]];
+const WFONT={};WORD_FONTS.forEach(([id,name,gf,css,w])=>WFONT[id]={id,name,gf,css,w});
+const wfont=()=>WFONT[S.font]||WFONT.unbounded,fontStr=()=>`${wfont().w} 100px ${wfont().css}`;
+/* a web font's stylesheet is fetched the first time it's picked, then the photo is drawn again once it has arrived */
+const GF_LOADED=new Set();
+function needFont(){const f=wfont();if(f.gf&&!GF_LOADED.has(f.gf)){GF_LOADED.add(f.gf);document.head.append(h('link',{rel:'stylesheet',href:'https://fonts.googleapis.com/css2?family='+f.gf.replace(/ /g,'+')+'&display=swap'}));}
+  if(document.fonts&&document.fonts.load){const go=()=>document.fonts.load(fontStr(),wordLines().join('')).then(()=>{if(IMG)schedule();}).catch(()=>{});go();setTimeout(go,700);}}
+function wordLines(){let t=String(S.word||'').replace(/\r/g,'');if(S.caps)t=t.toUpperCase();const ls=t.split('\n').map(x=>x.trim()).filter(Boolean).slice(0,4);return ls.length?ls:['LOOK'];}
+/* draws the word (up to four lines), filled or as an outline, fitted to the opening's width */
+function wordDraw(q,stroke,lw){const ls=wordLines();q.save();q.font=fontStr();q.textAlign='center';q.textBaseline='middle';try{q.letterSpacing=Math.round(S.track*45)+'px';}catch(e){}
+  const wmax=Math.max(60,...ls.map(l=>q.measureText(l).width)),k=2.6/wmax,lh=112;q.scale(k,k);if(S.slant)q.transform(1,0,-.22,1,0,0);
+  ls.forEach((l,i)=>{const y=(i-(ls.length-1)/2)*lh;if(stroke){q.lineWidth=lw;q.strokeText(l,0,y);}else q.fillText(l,0,y);});q.restore();}
+
+/* ================= your own picture as the opening ================= */
+let P3=null,BLOB3=null,NAME3='',P3clear=true;const maskCache={};
+async function loadShape(blob,name,quiet){let im=null;try{im=await createImageBitmap(blob);}catch(e){im=await new Promise(res=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>res(null);i.src=URL.createObjectURL(blob);});}
+  if(!im||!im.width){if(!quiet)toast('That file couldn’t be opened as a picture. Try a PNG.');return;}
+  P3=im;BLOB3=blob;NAME3=name||'picture';for(const k in maskCache)delete maskCache[k];ownMask('clear');
+  if(!quiet){if(!P3clear&&(S.pmode==='inside'||S.pmode==='clear')){S.pmode='dark';S.pshow=false;toast('That picture has no see-through parts, so its dark parts are used as the opening. You can change that below.');}
+    S.kind=S.look='own';outCache=null;renderOpts();changed();}}
+/* The opening made from your picture, as a canvas whose solid pixels are the hole:
+   inside = see-through parts closed in by the picture (the lenses of a pair of glasses, not the space round them),
+   clear = every see-through part, solid = the picture's own shape, dark = its dark parts (for black-on-white drawings). */
+function ownMask(mode){if(maskCache[mode])return maskCache[mode];const k=Math.min(1,1000/Math.max(P3.width,P3.height)),w=Math.max(1,Math.round(P3.width*k)),hh=Math.max(1,Math.round(P3.height*k));
+  const c=mkCanvas(w,hh),g=c.getContext('2d',{willReadFrequently:true});g.drawImage(P3,0,0,w,hh);const id=g.getImageData(0,0,w,hh),d=id.data,n=w*hh,out=new Uint8Array(n);
+  let minA=255;for(let i=0;i<n;i++)if(d[i*4+3]<minA)minA=d[i*4+3];P3clear=minA<200;
+  if(mode==='solid')for(let i=0;i<n;i++)out[i]=d[i*4+3];
+  else if(mode==='dark')for(let i=0;i<n;i++){const j=i*4,l=(d[j]*77+d[j+1]*150+d[j+2]*29)>>8;out[i]=clamp((150-l)*4,0,255)*d[j+3]/255;}
+  else{for(let i=0;i<n;i++)out[i]=255-d[i*4+3];
+    if(mode==='inside'){/* flood in from the border through the clear pixels: whatever that reaches is outside, not an opening */
+      const outside=new Uint8Array(n),st=new Int32Array(n);let sp=0;const push=i=>{if(!outside[i]&&d[i*4+3]<128){outside[i]=1;st[sp++]=i;}};
+      for(let x=0;x<w;x++){push(x);push((hh-1)*w+x);}for(let y=0;y<hh;y++){push(y*w);push(y*w+w-1);}
+      while(sp){const i=st[--sp],x=i%w;if(x>0)push(i-1);if(x<w-1)push(i+1);if(i>=w)push(i-w);if(i<n-w)push(i+w);}
+      /* widen the outside by two pixels so the soft outer edge of the picture doesn't leave a faint ring */
+      for(let pass=0;pass<2;pass++){const grow=[];for(let i=0;i<n;i++){if(outside[i])continue;const x=i%w;if((x>0&&outside[i-1])||(x<w-1&&outside[i+1])||(i>=w&&outside[i-w])||(i<n-w&&outside[i+w]))grow.push(i);}for(const i of grow)outside[i]=1;}
+      for(let i=0;i<n;i++)if(outside[i])out[i]=0;}}
+  for(let i=0;i<n;i++){const j=i*4;d[j]=d[j+1]=d[j+2]=0;d[j+3]=out[i];}g.putImageData(id,0,0);return maskCache[mode]=c;}
+/* your picture sits in a box two units across on its longer side */
+const ownBox=()=>{const m=Math.max(P3.width,P3.height),w=2*P3.width/m,hh=2*P3.height/m;return[-w/2,-hh/2,w,hh];};
 /* fills the opening in solid black on q, which is already moved, turned and sized to the opening */
 function fillShape(q,X,grow,alt){const k=S.kind;q.fillStyle='#000';q.strokeStyle='#000';
-  if(k==='word'){q.save();const t=wordSetup(q);q.fillText(t,0,0);q.restore();return;}
+  if(k==='word'){wordDraw(q,false);return;}
+  if(k==='own'){if(P3){q.imageSmoothingQuality='high';q.drawImage(ownMask(S.pmode),...ownBox());}else{q.beginPath();q.arc(0,0,1,0,TAU);q.fill();}return;}
   if(k==='brush'){const r=rnd((S.seed|0)*7+11),hh=S.tall*.5,n=36;q.lineCap='round';
     for(let i=0;i<n;i++){const y=-hh+(i/(n-1))*2*hh,x0=-1.25+r()*.4*S.rag,x1=1.25-r()*.5*S.rag;q.lineWidth=(2*hh/n)*(1.3+r()*.9);q.beginPath();q.moveTo(x0,y+(r()-.5)*.03);q.quadraticCurveTo((r()-.5)*.6,y+(r()-.5)*.07,x1,y+(r()-.5)*.03);q.stroke();}
     for(let i=0;i<18;i++){const y=(r()-.5)*2*hh*1.1,x0=r()<.5?-1.3-r()*.25:.9+r()*.3;q.lineWidth=.008+r()*.02;q.beginPath();q.moveTo(x0,y);q.lineTo(x0+.25+r()*.3,y+(r()-.5)*.03);q.stroke();}
@@ -423,7 +470,8 @@ function effect(W,H){
     g.strokeStyle='#26272c';g.lineWidth=.1;g.beginPath();g.arc(0,0,.8,0,TAU);g.stroke();g.strokeStyle='#a9afbb';g.lineWidth=.02;g.beginPath();g.arc(0,0,.83,0,TAU);g.stroke();
     if(S.glare>0){g.strokeStyle=`rgba(255,255,255,${.55*S.glare})`;g.lineWidth=.05;g.beginPath();g.arc(0,0,.62,Math.PI*1.1,Math.PI*1.45);g.stroke();}}
   else if(LINED.includes(k)&&S.lw>0){g.strokeStyle=S.line;
-    if(k==='word'){g.save();const t=wordSetup(g);g.lineWidth=S.lw*10;g.strokeText(t,0,0);g.restore();}else{g.lineWidth=S.lw*.09;shapePath(g,X,0,false);g.stroke();}}
+    if(k==='word')wordDraw(g,true,S.lw*10);else{g.lineWidth=S.lw*.09;shapePath(g,X,0,false);g.stroke();}}
+  if(k==='own'&&P3&&S.pshow){g.imageSmoothingQuality='high';g.drawImage(P3,...ownBox());}
   g.restore();
   /* the peeled corner folded back: the pale back of the photo, darker in the crease, with a shadow under it */
   if(peel&&peel.flap.length>2){const[mx,my]=peel.M,[tx,ty]=peel.T,gr=g.createLinearGradient(mx,my,tx,ty);
@@ -431,7 +479,6 @@ function effect(W,H){
     g.save();g.shadowColor=`rgba(0,0,0,${.25+.45*S.shadow})`;g.shadowBlur=u*(8+18*S.shadow);g.shadowOffsetX=peel.n[0]*u*8;g.shadowOffsetY=peel.n[1]*u*8;g.fillStyle=gr;polyPath(g,peel.flap);g.fill();g.restore();
     if(peel.fold.length===2){g.strokeStyle='rgba(255,255,255,.35)';g.lineWidth=Math.max(1,u*1.2);g.beginPath();g.moveTo(peel.fold[0][0],peel.fold[0][1]);g.lineTo(peel.fold[1][0],peel.fold[1][1]);g.stroke();}}
   return out;}
-if(document.fonts&&document.fonts.load)document.fonts.load(FONT).then(()=>{if(IMG)schedule();}).catch(()=>{});
 
 /* ================= settings panel ================= */
 function renderOpts(){
@@ -442,7 +489,20 @@ function renderOpts(){
     h('p',{class:'help'},'The photo at the top of this panel is the one on top. If the two are different shapes, the one underneath is cropped to fit.'));
   lookButtons();
   const k=S.kind,of=$('opF');of.innerHTML='';
-  if(k==='word'){const ti=h('input',{type:'text',id:'o-word',value:S.word,maxlength:18,autocomplete:'off'});ti.oninput=()=>{S.word=ti.value;changed();};of.append(h('div',{class:'field'},h('label',{for:'o-word'},'The word'),ti));}
+  if(k==='word'){needFont();
+    const ti=h('textarea',{id:'o-word',rows:2,maxlength:80,autocomplete:'off'});ti.value=S.word;ti.oninput=()=>{S.word=ti.value;changed();};
+    const fs=h('select',{id:'o-font'});WORD_FONTS.forEach(([id,name])=>{const o=h('option',{value:id},name);if(id===S.font)o.selected=true;fs.append(o);});fs.onchange=()=>{S.font=fs.value;needFont();changed();};
+    const cp=h('input',{type:'checkbox',id:'o-caps'});cp.checked=S.caps;cp.onchange=()=>{S.caps=cp.checked;changed();};
+    const sn=h('input',{type:'checkbox',id:'o-slant'});sn.checked=S.slant;sn.onchange=()=>{S.slant=sn.checked;changed();};
+    of.append(h('div',{class:'field'},h('label',{for:'o-word'},'The words'),ti,h('p',{class:'help'},'Press Enter for a new line, up to four. Thick fonts show the most photo.')),
+      h('div',{class:'field'},h('label',{for:'o-font'},'Font'),fs),h('label',{class:'chk'},cp,' All capitals'),h('label',{class:'chk'},sn,' Slanted'),...sl('track','Space between letters',null,v=>v<=0?'Normal':Math.round(v*100)+'%'));}
+  if(k==='own'){const pk3=h('input',{type:'file',id:'pick3',accept:'image/png,image/webp,image/svg+xml,image/gif,image/*'});pk3.onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)loadShape(f,f.name);};
+    of.append(h('div',{class:'field'},h('span',{class:'flabel'},'Your picture'),h('p',{class:'help'},P3?NAME3:'Choose a PNG with see-through parts, such as a frame, a pair of glasses or a cut-out shape. Until then it is a plain circle.'),
+      h('div',{class:'row'},h('label',{class:'btn'+(P3?'':' primary'),for:'pick3'},P3?'Choose a different picture':'Choose a PNG',pk3))));
+    if(P3){const sw=h('input',{type:'checkbox',id:'o-pshow'});sw.checked=S.pshow;sw.onchange=()=>{S.pshow=sw.checked;changed();};
+      of.append(segF('o-pmode','What becomes the opening',[['inside','Closed-in clear parts'],['clear','All clear parts'],['solid','The solid shape'],['dark','The dark parts']],S.pmode,v=>{S.pmode=v;S.pshow=v==='inside'||v==='clear';renderOpts();changed();}),
+        h('p',{class:'help'},{inside:'The see-through parts that your picture closes in, like the lenses of a pair of glasses or the middle of a frame. The empty space round the outside stays shut.',clear:'Every see-through part of your picture, including the space round its outside.',solid:'The shape of the picture itself becomes the opening, like a stencil.',dark:'The dark parts of the picture become the opening. For black shapes drawn on white, with nothing see-through.'}[S.pmode]),
+        h('label',{class:'chk'},sw,' Show the picture itself on top'));}}
   if(k==='glasses')of.append(segF('o-lens','Lenses',[['round','Round'],['square','Square'],['heart','Hearts'],['star','Stars']],S.lens,v=>{S.lens=v;renderOpts();changed();}));
   if(k==='peel')of.append(segF('o-corner','Which corner',[['tl','Top left'],['tr','Top right'],['bl','Bottom left'],['br','Bottom right']],S.corner,v=>{S.corner=v;[S.fx,S.fy]=TIPS[v];renderOpts();changed();}),
     h('p',{class:'help'},'Drag the corner on the photo to peel it as far as you like, in any direction.'));

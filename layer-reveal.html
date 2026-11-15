@@ -206,8 +206,9 @@ input[type=color]{width:40px;height:32px;border:1px solid var(--line);border-rad
       <div class="row"><label class="btn primary" for="pick">Choose photo<input type="file" id="pick" accept="image/*"></label></div>
     </div>
     <div class="grp" id="secF"></div>
+    <div class="grp" id="listF"></div>
     <div class="field">
-      <span class="flabel" id="look-l">Opening</span>
+      <span class="flabel" id="look-l">Kind of opening</span>
       <div class="seg" id="looks" role="group" aria-labelledby="look-l"></div>
     </div>
     <h4 class="fhead">Opening</h4>
@@ -315,9 +316,18 @@ const LOOKS={tear:{name:'Paper tear',v:{kind:'tear'}},hole:{name:'Torn hole',v:{
 const TORN=['tear','hole','split'],LINED=['key','heart','star','circle','word','jigsaw'];
 /* a peeled corner is set by where its tip has been pulled to; these are the starting tips for each corner */
 const TIPS={tr:[.66,.32],tl:[.34,.32],br:[.66,.68],bl:[.34,.68]},CORNERS={tr:[1,0],tl:[0,0],br:[1,1],bl:[0,1]};
-const DEF=()=>({v:1,look:'tear',kind:'tear',seed:4,fx:.5,fy:.5,size:.42,rot:-6,tall:.45,wide:.5,edge:.45,rag:.6,shadow:.6,paper:'#f4efe6',lens:'round',frame:'#151515',thick:.4,glare:.5,line:'#ffffff',lw:.3,word:'LOOK',font:'unbounded',caps:true,slant:false,track:0,pmode:'inside',pshow:true,corner:'tr',drag:'hole',bz:1,bx:0,by:0,fmt:'jpg'});
+/* every opening keeps its own settings; S.ops is the list, S.sel the one being edited, and O the one being drawn or edited */
+const MAXOPS=8;
+const OP=()=>({kind:'tear',seed:4,fx:.5,fy:.5,size:.42,rot:-6,tall:.45,wide:.5,edge:.45,rag:.6,shadow:.6,paper:'#f4efe6',lens:'round',frame:'#151515',thick:.4,glare:.5,line:'#ffffff',lw:.3,word:'LOOK',font:'unbounded',caps:true,slant:false,track:0,pmode:'inside',pshow:true,corner:'tr',pic:'',jrand:false});
+const OKEYS=Object.keys(OP());
+const DEF=()=>({v:2,look:'tear',ops:[OP()],sel:0,drag:'hole',bz:1,bx:0,by:0,fmt:'jpg'});
+let O=null;
+/* makes sure the list is sound (work saved before there was a list had one opening's settings loose in S) and points O at the picked one */
+function norm(){if(!Array.isArray(S.ops)||!S.ops.length){const o=OP();if(S.kind)for(const k of OKEYS)if(k in S)o[k]=S[k];S.ops=[o];}
+  if(S.ops.length>MAXOPS)S.ops.length=MAXOPS;const D=OP();for(const o of S.ops)for(const k of OKEYS)if(!(k in o))o[k]=D[k];
+  S.sel=clamp(S.sel|0,0,S.ops.length-1);O=S.ops[S.sel];S.look=O.kind;return O;}
 /* picking a kind keeps your settings, but starts it level (a paper tear starts a little crooked) */
-function applyLook(v){if(v.kind!==S.kind){S.rot=v.kind==='tear'?-6:v.kind==='brush'||v.kind==='scratch'?-8:0;[S.fx,S.fy]=v.kind==='peel'?TIPS[S.corner]||TIPS.tr:[.5,.5];if(v.kind==='peel')S.drag='hole';}S.kind=v.kind;}
+function applyLook(v){norm();if(v.kind!==O.kind){O.rot=v.kind==='tear'?-6:v.kind==='brush'||v.kind==='scratch'?-8:0;[O.fx,O.fy]=v.kind==='peel'?TIPS[O.corner]||TIPS.tr:[.5,.5];if(v.kind==='peel')S.drag='hole';}O.kind=v.kind;}
 
 /* ================= the photo underneath ================= */
 let P2=null,BLOB2=null,NAME2='',sampleB=null;
@@ -325,8 +335,10 @@ const secondPic=()=>P2||(sampleB||(sampleB=sampleHills()));
 async function loadSecond(blob,name,quiet){let im=null;try{im=await createImageBitmap(blob);}catch(e){}
   if(!im||!im.width){if(!quiet)toast('That file couldn’t be opened as a picture. Try JPG or PNG.');return;}
   P2=im;BLOB2=blob;NAME2=name||'photo';if(!quiet){S.bx=S.by=0;outCache=null;renderOpts();changed();}}
-function extraState(){return{blob2:BLOB2,name2:NAME2,blob3:BLOB3,name3:NAME3};}
-async function extraRestore(x){if(x&&x.blob2)await loadSecond(x.blob2,x.name2,true);if(x&&x.blob3)await loadShape(x.blob3,x.name3,true);}
+function extraState(){norm();return{blob2:BLOB2,name2:NAME2,pics:Object.entries(PICS).filter(([id])=>S.ops.some(o=>o.pic===id)).map(([id,r])=>({id,blob:r.blob,name:r.name}))};}
+async function extraRestore(x){if(!x)return;if(x.blob2)await loadSecond(x.blob2,x.name2,true);
+  for(const pc of x.pics||[])await loadShape(pc.blob,pc.name,true,pc.id);
+  if(x.blob3){await loadShape(x.blob3,x.name3,true,'p0');norm();S.ops.forEach(o=>{if(o.kind==='own'&&!o.pic)o.pic='p0';});}}
 function swapPhotos(){if(!P2||SAMPLE||!BLOB){toast('Choose both of your own photos first, then you can swap them.');return;}
   [IMG,P2]=[P2,IMG];[BLOB,BLOB2]=[BLOB2,BLOB];[NAME,NAME2]=[NAME2,NAME];$('thumb').src=URL.createObjectURL(BLOB);$('pName').textContent=NAME;$('pInfo').textContent=`${IMG.width} × ${IMG.height} pixels`;
   S.bx=S.by=0;outCache=null;renderOpts();render();save();}
@@ -340,18 +352,18 @@ function wob(seed,period){const hs=i=>{if(period)i=((i%period)+period)%period;le
   return x=>{const i=Math.floor(x),f=x-i,t=f*f*(3-2*f);return hs(i)*(1-t)+hs(i+1)*t;};}
 function heartPath(q,x,y,r){q.moveTo(x,y+r*.9);q.bezierCurveTo(x-r*1.5,y+r*.1,x-r*.9,y-r,x,y-r*.35);q.bezierCurveTo(x+r*.9,y-r,x+r*1.5,y+r*.1,x,y+r*.9);q.closePath();}
 function starPath(q,x,y,r){for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2?r*.45:r;q[i?'lineTo':'moveTo'](x+Math.cos(a)*rr,y+Math.sin(a)*rr);}q.closePath();}
-function lensPath(q,x){const st=S.lens;if(st==='heart')heartPath(q,x,-.02,.52);else if(st==='star')starPath(q,x,0,.58);
+function lensPath(q,x){const st=O.lens;if(st==='heart')heartPath(q,x,-.02,.52);else if(st==='star')starPath(q,x,0,.58);
   else if(st==='square'){const w=.5,hh=.4,r=.12;q.moveTo(x-w+r,-hh);q.lineTo(x+w-r,-hh);q.quadraticCurveTo(x+w,-hh,x+w,-hh+r);q.lineTo(x+w,hh-r);q.quadraticCurveTo(x+w,hh,x+w-r,hh);q.lineTo(x-w+r,hh);q.quadraticCurveTo(x-w,hh,x-w,hh-r);q.lineTo(x-w,-hh+r);q.quadraticCurveTo(x-w,-hh,x-w+r,-hh);q.closePath();}
   else{q.moveTo(x+.5,0);q.ellipse(x,0,.5,.45,0,0,TAU);q.closePath();}}
 /* The outline of the opening, in its own units (1 is the opening's size). grow pushes it outward and alt gives it a
    different ragged edge: together they make the strip of bare paper round a tear. X is how far "right across" reaches. */
-function shapePath(q,X,grow,alt){const k=S.kind,sd0=(S.seed|0)*7,sd=sd0+(alt?977:0),rg=S.rag;q.beginPath();
+function shapePath(q,X,grow,alt){const k=O.kind,sd0=(O.seed|0)*7,sd=sd0+(alt?977:0),rg=O.rag;q.beginPath();
   if(k==='tear'||k==='split'){/* the big waves are shared by the opening and its paper strip, so the strip follows the tear; only the fine tatters differ */
-    const lt=wob(sd0+1),lb=wob(sd0+4),b=wob(sd+2),c=wob(sd+3),hh=k==='tear'?S.tall*.5+grow:grow,st=.011;
+    const lt=wob(sd0+1),lb=wob(sd0+4),b=wob(sd+2),c=wob(sd+3),hh=k==='tear'?O.tall*.5+grow:grow,st=.011;
     const top=x=>-hh+rg*(.07*lt(x*2.5)+.03*b(x*8)+.016*c(x*29)),bot=x=>hh+rg*(.07*lb(x*2.5)+.03*c(x*8+40)+.016*b(x*29+40));
     q.moveTo(-X,top(-X));for(let x=-X;x<=X;x+=st)q.lineTo(x,top(x));
     if(k==='tear')for(let x=X;x>=-X;x-=st)q.lineTo(x,bot(x));else{q.lineTo(X,X);q.lineTo(-X,X);}q.closePath();}
-  else if(k==='hole'){const a=wob(sd0+5,8),b=wob(sd+6,24),c=wob(sd+7,90),sx=.6+S.wide*.8,sy=1.4-S.wide*.8;
+  else if(k==='hole'){const a=wob(sd0+5,8),b=wob(sd+6,24),c=wob(sd+7,90),sx=.6+O.wide*.8,sy=1.4-O.wide*.8;
     for(let i=0;i<=260;i++){const t=i/260,an=t*TAU,r=1+grow+rg*(.12*a(t*8)+.045*b(t*24)+.025*c(t*90));q[i?'lineTo':'moveTo'](Math.cos(an)*r*sx,Math.sin(an)*r*sy);}q.closePath();}
   else if(k==='circle'){q.arc(0,0,1,0,TAU);}
   else if(k==='mag'){q.arc(0,0,.8,0,TAU);}
@@ -361,16 +373,17 @@ function shapePath(q,X,grow,alt){const k=S.kind,sd0=(S.seed|0)*7,sd=sd0+(alt?977
   else if(k==='star')starPath(q,0,0,1.1);
   else if(k==='glasses'){lensPath(q,-.62);lensPath(q,.62);}
   else if(k==='blinds'){/* the gaps between slats, right across the photo: the further open, the wider each gap */
-    const pitch=.5,gap=pitch*(.08+S.tall*.84),n=Math.ceil(X/pitch);for(let i=-n;i<=n;i++)q.rect(-X,i*pitch-gap/2,2*X,gap);}
-  else if(k==='jigsaw'){/* a square with a knob on the top and bottom and a notch on each side */
-    const a=.7,P=[[-a,-a],[a,-a],[a,a],[-a,a]],sg=[1,-1,1,-1];q.moveTo(-a,-a);
-    for(let i=0;i<4;i++){const[ax,ay]=P[i],[bx,by]=P[(i+1)%4],dx=bx-ax,dy=by-ay,s=sg[i],pt=(tt,o)=>[ax+dx*tt+dy*o*s,ay+dy*tt-dx*o*s];
+    const pitch=.5,gap=pitch*(.08+O.tall*.84),n=Math.ceil(X/pitch);for(let i=-n;i<=n;i++)q.rect(-X,i*pitch-gap/2,2*X,gap);}
+  else if(k==='jigsaw'){/* a square with a knob on the top and bottom and a notch on each side, or shuffled */
+    const a=.7,P=[[-a,-a],[a,-a],[a,a],[-a,a]],sg=[1,-1,1,-1],r=O.jrand?rnd((O.seed|0)*7+31):null;q.moveTo(-a,-a);
+    for(let i=0;i<4;i++){const[ax,ay]=P[i],[bx,by]=P[(i+1)%4],dx=bx-ax,dy=by-ay,s=r?(r()<.5?1:-1):sg[i],c=r?.5+(r()-.5)*.22:.5,w=r?.85+r()*.4:1,hg=r?.8+r()*.45:1,pt=(tt,o)=>[ax+dx*tt+dy*o*s,ay+dy*tt-dx*o*s];
       const L=(tt,o)=>{const v=pt(tt,o);q.lineTo(v[0],v[1]);},B=(c1,c2,e)=>{const p1=pt(...c1),p2=pt(...c2),p3=pt(...e);q.bezierCurveTo(p1[0],p1[1],p2[0],p2[1],p3[0],p3[1]);};
-      L(.36,0);B([.42,.05],[.26,.24],[.5,.25]);B([.74,.24],[.58,.05],[.64,0]);L(1,0);}
+      /* shuffled, each side gets a knob or a notch, a little off-centre and a little bigger or smaller */
+      L(c-.14*w,0);B([c-.08*w,.05*hg],[c-.24*w,.24*hg],[c,.25*hg]);B([c+.24*w,.24*hg],[c+.08*w,.05*hg],[c+.14*w,0]);L(1,0);}
     q.closePath();}}
 /* a peeled corner: the fold runs halfway between the corner and where its tip has been pulled to. Returns the part of
    the photo that lifted (the opening), the same shape folded over (the flap), and the two ends of the fold. */
-function peelGeo(W,H){const[cu,cv2]=CORNERS[S.corner]||CORNERS.tr,C=[cu*W,cv2*H];let T=[S.fx*W,S.fy*H],len=Math.hypot(T[0]-C[0],T[1]-C[1]);
+function peelGeo(W,H){const[cu,cv2]=CORNERS[O.corner]||CORNERS.tr,C=[cu*W,cv2*H];let T=[O.fx*W,O.fy*H],len=Math.hypot(T[0]-C[0],T[1]-C[1]);
   if(len<6){T=[C[0]+(cu?-6:6),C[1]+(cv2?-6:6)];len=Math.hypot(T[0]-C[0],T[1]-C[1]);}
   const n=[(T[0]-C[0])/len,(T[1]-C[1])/len],M=[(C[0]+T[0])/2,(C[1]+T[1])/2],sd=p=>(p[0]-M[0])*n[0]+(p[1]-M[1])*n[1];
   const rect=[[0,0],[W,0],[W,H],[0,H]],open=[],fold=[];
@@ -389,30 +402,33 @@ const WORD_FONTS=[['unbounded','Unbounded','','"Unbounded","Arial Black",sans-se
   ['marker','Permanent Marker','Permanent Marker','"Permanent Marker","Comic Sans MS",cursive',400],['rocksalt','Rock Salt','Rock Salt','"Rock Salt","Comic Sans MS",cursive',400],['pacifico','Pacifico','Pacifico','"Pacifico",cursive',400],['lobster','Lobster','Lobster','"Lobster",cursive',400],
   ['monoton','Monoton','Monoton','"Monoton",Impact,cursive',400],['press','Press Start 2P','Press Start 2P','"Press Start 2P",monospace',400],['creepster','Creepster','Creepster','"Creepster",Impact,cursive',400],['impact','Impact','','Impact,"Arial Black",sans-serif',400]];
 const WFONT={};WORD_FONTS.forEach(([id,name,gf,css,w])=>WFONT[id]={id,name,gf,css,w});
-const wfont=()=>WFONT[S.font]||WFONT.unbounded,fontStr=()=>`${wfont().w} 100px ${wfont().css}`;
+const wfont=()=>WFONT[O.font]||WFONT.unbounded,fontStr=()=>`${wfont().w} 100px ${wfont().css}`;
 /* a web font's stylesheet is fetched the first time it's picked, then the photo is drawn again once it has arrived */
 const GF_LOADED=new Set();
-function needFont(){const f=wfont();if(f.gf&&!GF_LOADED.has(f.gf)){GF_LOADED.add(f.gf);document.head.append(h('link',{rel:'stylesheet',href:'https://fonts.googleapis.com/css2?family='+f.gf.replace(/ /g,'+')+'&display=swap'}));}
+function fontLink(){const f=wfont();if(f.gf&&!GF_LOADED.has(f.gf)){GF_LOADED.add(f.gf);document.head.append(h('link',{rel:'stylesheet',href:'https://fonts.googleapis.com/css2?family='+f.gf.replace(/ /g,'+')+'&display=swap'}));}}
+if(document.fonts&&document.fonts.addEventListener)document.fonts.addEventListener('loadingdone',()=>{if(IMG)schedule();});
+function needFont(){fontLink();
   if(document.fonts&&document.fonts.load){const go=()=>document.fonts.load(fontStr(),wordLines().join('')).then(()=>{if(IMG)schedule();}).catch(()=>{});go();setTimeout(go,700);}}
-function wordLines(){let t=String(S.word||'').replace(/\r/g,'');if(S.caps)t=t.toUpperCase();const ls=t.split('\n').map(x=>x.trim()).filter(Boolean).slice(0,4);return ls.length?ls:['LOOK'];}
+function wordLines(){let t=String(O.word||'').replace(/\r/g,'');if(O.caps)t=t.toUpperCase();const ls=t.split('\n').map(x=>x.trim()).filter(Boolean).slice(0,4);return ls.length?ls:['LOOK'];}
 /* draws the word (up to four lines), filled or as an outline, fitted to the opening's width */
-function wordDraw(q,stroke,lw){const ls=wordLines();q.save();q.font=fontStr();q.textAlign='center';q.textBaseline='middle';try{q.letterSpacing=Math.round(S.track*45)+'px';}catch(e){}
-  const wmax=Math.max(60,...ls.map(l=>q.measureText(l).width)),k=2.6/wmax,lh=112;q.scale(k,k);if(S.slant)q.transform(1,0,-.22,1,0,0);
+function wordDraw(q,stroke,lw){const ls=wordLines();q.save();q.font=fontStr();q.textAlign='center';q.textBaseline='middle';try{q.letterSpacing=Math.round(O.track*45)+'px';}catch(e){}
+  const wmax=Math.max(60,...ls.map(l=>q.measureText(l).width)),k=2.6/wmax,lh=112;q.scale(k,k);if(O.slant)q.transform(1,0,-.22,1,0,0);
   ls.forEach((l,i)=>{const y=(i-(ls.length-1)/2)*lh;if(stroke){q.lineWidth=lw;q.strokeText(l,0,y);}else q.fillText(l,0,y);});q.restore();}
 
 /* ================= your own picture as the opening ================= */
-let P3=null,BLOB3=null,NAME3='',P3clear=true;const maskCache={};
-async function loadShape(blob,name,quiet){let im=null;try{im=await createImageBitmap(blob);}catch(e){im=await new Promise(res=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>res(null);i.src=URL.createObjectURL(blob);});}
+/* the pictures you have added, by id; each opening that uses one remembers its id */
+const PICS={};const pic=()=>PICS[O.pic]||null;
+async function loadShape(blob,name,quiet,id){let im=null;try{im=await createImageBitmap(blob);}catch(e){im=await new Promise(res=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>res(null);i.src=URL.createObjectURL(blob);});}
   if(!im||!im.width){if(!quiet)toast('That file couldn’t be opened as a picture. Try a PNG.');return;}
-  P3=im;BLOB3=blob;NAME3=name||'picture';for(const k in maskCache)delete maskCache[k];ownMask('clear');
-  if(!quiet){if(!P3clear&&(S.pmode==='inside'||S.pmode==='clear')){S.pmode='dark';S.pshow=false;toast('That picture has no see-through parts, so its dark parts are used as the opening. You can change that below.');}
-    S.kind=S.look='own';outCache=null;renderOpts();changed();}}
+  const rec={im,blob,name:name||'picture',clear:true,masks:{}};id=id||rndCode(8);PICS[id]=rec;maskOf(rec,'clear');
+  if(!quiet){norm();O.pic=id;if(!rec.clear&&(O.pmode==='inside'||O.pmode==='clear')){O.pmode='dark';O.pshow=false;toast('That picture has no see-through parts, so its dark parts are used as the opening. You can change that below.');}
+    O.kind=S.look='own';outCache=null;renderOpts();changed();}}
 /* The opening made from your picture, as a canvas whose solid pixels are the hole:
    inside = see-through parts closed in by the picture (the lenses of a pair of glasses, not the space round them),
    clear = every see-through part, solid = the picture's own shape, dark = its dark parts (for black-on-white drawings). */
-function ownMask(mode){if(maskCache[mode])return maskCache[mode];const k=Math.min(1,1000/Math.max(P3.width,P3.height)),w=Math.max(1,Math.round(P3.width*k)),hh=Math.max(1,Math.round(P3.height*k));
+function maskOf(rec,mode){if(rec.masks[mode])return rec.masks[mode];const P3=rec.im,k=Math.min(1,1000/Math.max(P3.width,P3.height)),w=Math.max(1,Math.round(P3.width*k)),hh=Math.max(1,Math.round(P3.height*k));
   const c=mkCanvas(w,hh),g=c.getContext('2d',{willReadFrequently:true});g.drawImage(P3,0,0,w,hh);const id=g.getImageData(0,0,w,hh),d=id.data,n=w*hh,out=new Uint8Array(n);
-  let minA=255;for(let i=0;i<n;i++)if(d[i*4+3]<minA)minA=d[i*4+3];P3clear=minA<200;
+  let minA=255;for(let i=0;i<n;i++)if(d[i*4+3]<minA)minA=d[i*4+3];rec.clear=minA<200;
   if(mode==='solid')for(let i=0;i<n;i++)out[i]=d[i*4+3];
   else if(mode==='dark')for(let i=0;i<n;i++){const j=i*4,l=(d[j]*77+d[j+1]*150+d[j+2]*29)>>8;out[i]=clamp((150-l)*4,0,255)*d[j+3]/255;}
   else{for(let i=0;i<n;i++)out[i]=255-d[i*4+3];
@@ -423,103 +439,119 @@ function ownMask(mode){if(maskCache[mode])return maskCache[mode];const k=Math.mi
       /* widen the outside by two pixels so the soft outer edge of the picture doesn't leave a faint ring */
       for(let pass=0;pass<2;pass++){const grow=[];for(let i=0;i<n;i++){if(outside[i])continue;const x=i%w;if((x>0&&outside[i-1])||(x<w-1&&outside[i+1])||(i>=w&&outside[i-w])||(i<n-w&&outside[i+w]))grow.push(i);}for(const i of grow)outside[i]=1;}
       for(let i=0;i<n;i++)if(outside[i])out[i]=0;}}
-  for(let i=0;i<n;i++){const j=i*4;d[j]=d[j+1]=d[j+2]=0;d[j+3]=out[i];}g.putImageData(id,0,0);return maskCache[mode]=c;}
+  for(let i=0;i<n;i++){const j=i*4;d[j]=d[j+1]=d[j+2]=0;d[j+3]=out[i];}g.putImageData(id,0,0);return rec.masks[mode]=c;}
 /* your picture sits in a box two units across on its longer side */
-const ownBox=()=>{const m=Math.max(P3.width,P3.height),w=2*P3.width/m,hh=2*P3.height/m;return[-w/2,-hh/2,w,hh];};
+const ownBox=rec=>{const P3=rec.im,m=Math.max(P3.width,P3.height),w=2*P3.width/m,hh=2*P3.height/m;return[-w/2,-hh/2,w,hh];};
 /* fills the opening in solid black on q, which is already moved, turned and sized to the opening */
-function fillShape(q,X,grow,alt){const k=S.kind;q.fillStyle='#000';q.strokeStyle='#000';
+function fillShape(q,X,grow,alt){const k=O.kind;q.fillStyle='#000';q.strokeStyle='#000';
   if(k==='word'){wordDraw(q,false);return;}
-  if(k==='own'){if(P3){q.imageSmoothingQuality='high';q.drawImage(ownMask(S.pmode),...ownBox());}else{q.beginPath();q.arc(0,0,1,0,TAU);q.fill();}return;}
-  if(k==='brush'){const r=rnd((S.seed|0)*7+11),hh=S.tall*.5,n=36;q.lineCap='round';
-    for(let i=0;i<n;i++){const y=-hh+(i/(n-1))*2*hh,x0=-1.25+r()*.4*S.rag,x1=1.25-r()*.5*S.rag;q.lineWidth=(2*hh/n)*(1.3+r()*.9);q.beginPath();q.moveTo(x0,y+(r()-.5)*.03);q.quadraticCurveTo((r()-.5)*.6,y+(r()-.5)*.07,x1,y+(r()-.5)*.03);q.stroke();}
+  if(k==='own'){const pc=pic();if(pc){q.imageSmoothingQuality='high';q.drawImage(maskOf(pc,O.pmode),...ownBox(pc));}else{q.beginPath();q.arc(0,0,1,0,TAU);q.fill();}return;}
+  if(k==='brush'){const r=rnd((O.seed|0)*7+11),hh=O.tall*.5,n=36;q.lineCap='round';
+    for(let i=0;i<n;i++){const y=-hh+(i/(n-1))*2*hh,x0=-1.25+r()*.4*O.rag,x1=1.25-r()*.5*O.rag;q.lineWidth=(2*hh/n)*(1.3+r()*.9);q.beginPath();q.moveTo(x0,y+(r()-.5)*.03);q.quadraticCurveTo((r()-.5)*.6,y+(r()-.5)*.07,x1,y+(r()-.5)*.03);q.stroke();}
     for(let i=0;i<18;i++){const y=(r()-.5)*2*hh*1.1,x0=r()<.5?-1.3-r()*.25:.9+r()*.3;q.lineWidth=.008+r()*.02;q.beginPath();q.moveTo(x0,y);q.lineTo(x0+.25+r()*.3,y+(r()-.5)*.03);q.stroke();}
     return;}
   if(k==='scratch'){/* a coin scratched back and forth: three passes of zigzag, and crumbs round the edges */
-    const r=rnd((S.seed|0)*7+23),hh=S.tall*.5,w=1.1;q.lineCap='round';q.lineJoin='round';
+    const r=rnd((O.seed|0)*7+23),hh=O.tall*.5,w=1.1;q.lineCap='round';q.lineJoin='round';
     for(let pass=0;pass<3;pass++){q.lineWidth=(.2-pass*.05)*(.6+hh);q.beginPath();const n=9+pass*3;
-      for(let i=0;i<=n;i++){const x=-w+2*w*(i/n)+(r()-.5)*.3*S.rag,y=(i%2?hh:-hh)*(.75+r()*.35)+(r()-.5)*.05;q[i?'lineTo':'moveTo'](x,y);}q.stroke();}
+      for(let i=0;i<=n;i++){const x=-w+2*w*(i/n)+(r()-.5)*.3*O.rag,y=(i%2?hh:-hh)*(.75+r()*.35)+(r()-.5)*.05;q[i?'lineTo':'moveTo'](x,y);}q.stroke();}
     for(let i=0;i<80;i++){const x=(r()-.5)*2*(w+.25),y=(r()-.5)*2*(hh+.25);q.beginPath();q.arc(x,y,.004+r()*.014,0,TAU);q.fill();}
     return;}
   shapePath(q,X,grow,alt);q.fill();}
 
 /* ================= the effect ================= */
-function effect(W,H){
+function effect(W,H){norm();
   const out=mkCanvas(W,H),g=out.getContext('2d',{willReadFrequently:true});g.imageSmoothingQuality='high';g.drawImage(IMG,0,0,W,H);
-  const m=Math.min(W,H),s=Math.max(4,S.size*m),cx=S.fx*W,cy=S.fy*H,u=Math.sqrt(W*H)/1000,rot=S.rot*Math.PI/180,X=Math.hypot(W,H)/s*1.1+1;
+  const picked=O;for(const op of S.ops){O=op;if(op.kind==='word')fontLink();drawOpening(g,W,H);}O=picked;return out;}
+/* one opening, drawn onto the picture so far; O is the opening */
+function drawOpening(g,W,H){
+  const m=Math.min(W,H),s=Math.max(4,O.size*m),cx=O.fx*W,cy=O.fy*H,u=Math.sqrt(W*H)/1000,rot=O.rot*Math.PI/180,X=Math.hypot(W,H)/s*1.1+1;
   const place=q=>{q.translate(cx,cy);q.rotate(rot);q.scale(s,s);};
-  const peel=S.kind==='peel'?peelGeo(W,H):null;
+  const peel=O.kind==='peel'?peelGeo(W,H):null;
   const mask=(grow,alt)=>{const c=mkCanvas(W,H),q=c.getContext('2d');if(peel){polyPath(q,peel.open);q.fill();return c;}q.save();place(q);fillShape(q,X,grow,alt);q.restore();return c;};
   const M=mask(0,false);
   /* 1. torn kinds: a strip of bare paper round the opening, where the top sheet ripped */
-  if(TORN.includes(S.kind)&&S.edge>0){const R=mask(.015+S.edge*.13,true),q=R.getContext('2d');q.globalCompositeOperation='source-in';q.fillStyle=S.paper;q.fillRect(0,0,W,H);
+  if(TORN.includes(O.kind)&&O.edge>0){const R=mask(.015+O.edge*.13,true),q=R.getContext('2d');q.globalCompositeOperation='source-in';q.fillStyle=O.paper;q.fillRect(0,0,W,H);
     q.globalCompositeOperation='destination-out';q.drawImage(M,0,0);g.save();g.shadowColor='rgba(0,0,0,.3)';g.shadowBlur=u*4;g.drawImage(R,0,0);g.restore();R.width=R.height=0;}
   /* 2. the photo underneath, cut to the opening */
   const L=mkCanvas(W,H),lq=L.getContext('2d'),p=place2(W,H);lq.imageSmoothingQuality='high';lq.drawImage(p.P,p.x,p.y,p.dw,p.dh);lq.globalCompositeOperation='destination-in';lq.drawImage(M,0,0);g.drawImage(L,0,0);L.width=L.height=0;
   /* 3. the top sheet's shadow falling into the opening */
-  if(S.shadow>0){const I=mkCanvas(W,H),iq=I.getContext('2d');iq.fillRect(0,0,W,H);iq.globalCompositeOperation='destination-out';iq.drawImage(M,0,0);
-    const Sh=mkCanvas(W,H),sq=Sh.getContext('2d');sq.shadowColor=`rgba(0,0,0,${.9*S.shadow})`;sq.shadowBlur=u*(5+22*S.shadow);sq.shadowOffsetX=u*3;sq.shadowOffsetY=u*6;sq.drawImage(I,0,0);
+  if(O.shadow>0){const I=mkCanvas(W,H),iq=I.getContext('2d');iq.fillRect(0,0,W,H);iq.globalCompositeOperation='destination-out';iq.drawImage(M,0,0);
+    const Sh=mkCanvas(W,H),sq=Sh.getContext('2d');sq.shadowColor=`rgba(0,0,0,${.9*O.shadow})`;sq.shadowBlur=u*(5+22*O.shadow);sq.shadowOffsetX=u*3;sq.shadowOffsetY=u*6;sq.drawImage(I,0,0);
     sq.shadowColor='transparent';sq.globalCompositeOperation='destination-in';sq.drawImage(M,0,0);g.drawImage(Sh,0,0);I.width=I.height=Sh.width=Sh.height=0;}
   M.width=M.height=0;
   /* 4. what sits on top: frames, rims, outlines and shine */
-  g.save();place(g);g.lineJoin='round';g.lineCap='round';const k=S.kind;
+  g.save();place(g);g.lineJoin='round';g.lineCap='round';const k=O.kind;
   if(k==='glasses'){
-    if(S.glare>0){g.save();shapePath(g,X,0,false);g.clip();g.rotate(-.5);g.fillStyle=`rgba(255,255,255,${.3*S.glare})`;g.fillRect(-2,-.32,4,.13);g.fillRect(-2,-.1,4,.05);g.restore();}
-    g.strokeStyle=S.frame;g.lineWidth=.03+S.thick*.1;shapePath(g,X,0,false);g.stroke();
+    if(O.glare>0){g.save();shapePath(g,X,0,false);g.clip();g.rotate(-.5);g.fillStyle=`rgba(255,255,255,${.3*O.glare})`;g.fillRect(-2,-.32,4,.13);g.fillRect(-2,-.1,4,.05);g.restore();}
+    g.strokeStyle=O.frame;g.lineWidth=.03+O.thick*.1;shapePath(g,X,0,false);g.stroke();
     g.beginPath();g.moveTo(-.15,-.06);g.quadraticCurveTo(0,-.24,.15,-.06);g.moveTo(-1.12,-.12);g.lineTo(-1.5,-.2);g.moveTo(1.12,-.12);g.lineTo(1.5,-.2);g.stroke();}
   else if(k==='mag'){g.strokeStyle='#3a2a1e';g.lineWidth=.2;g.beginPath();g.moveTo(.64,.64);g.lineTo(1.4,1.4);g.stroke();g.strokeStyle='#6b4a33';g.lineWidth=.06;g.beginPath();g.moveTo(.7,.62);g.lineTo(1.38,1.3);g.stroke();
     g.strokeStyle='#26272c';g.lineWidth=.1;g.beginPath();g.arc(0,0,.8,0,TAU);g.stroke();g.strokeStyle='#a9afbb';g.lineWidth=.02;g.beginPath();g.arc(0,0,.83,0,TAU);g.stroke();
-    if(S.glare>0){g.strokeStyle=`rgba(255,255,255,${.55*S.glare})`;g.lineWidth=.05;g.beginPath();g.arc(0,0,.62,Math.PI*1.1,Math.PI*1.45);g.stroke();}}
-  else if(LINED.includes(k)&&S.lw>0){g.strokeStyle=S.line;
-    if(k==='word')wordDraw(g,true,S.lw*10);else{g.lineWidth=S.lw*.09;shapePath(g,X,0,false);g.stroke();}}
-  if(k==='own'&&P3&&S.pshow){g.imageSmoothingQuality='high';g.drawImage(P3,...ownBox());}
+    if(O.glare>0){g.strokeStyle=`rgba(255,255,255,${.55*O.glare})`;g.lineWidth=.05;g.beginPath();g.arc(0,0,.62,Math.PI*1.1,Math.PI*1.45);g.stroke();}}
+  else if(LINED.includes(k)&&O.lw>0){g.strokeStyle=O.line;
+    if(k==='word')wordDraw(g,true,O.lw*10);else{g.lineWidth=O.lw*.09;shapePath(g,X,0,false);g.stroke();}}
+  if(k==='own'&&pic()&&O.pshow){g.imageSmoothingQuality='high';g.drawImage(pic().im,...ownBox(pic()));}
   g.restore();
   /* the peeled corner folded back: the pale back of the photo, darker in the crease, with a shadow under it */
   if(peel&&peel.flap.length>2){const[mx,my]=peel.M,[tx,ty]=peel.T,gr=g.createLinearGradient(mx,my,tx,ty);
-    gr.addColorStop(0,shadeHex(S.paper,-.32));gr.addColorStop(.12,shadeHex(S.paper,.25));gr.addColorStop(.55,S.paper);gr.addColorStop(1,shadeHex(S.paper,-.14));
-    g.save();g.shadowColor=`rgba(0,0,0,${.25+.45*S.shadow})`;g.shadowBlur=u*(8+18*S.shadow);g.shadowOffsetX=peel.n[0]*u*8;g.shadowOffsetY=peel.n[1]*u*8;g.fillStyle=gr;polyPath(g,peel.flap);g.fill();g.restore();
-    if(peel.fold.length===2){g.strokeStyle='rgba(255,255,255,.35)';g.lineWidth=Math.max(1,u*1.2);g.beginPath();g.moveTo(peel.fold[0][0],peel.fold[0][1]);g.lineTo(peel.fold[1][0],peel.fold[1][1]);g.stroke();}}
-  return out;}
+    gr.addColorStop(0,shadeHex(O.paper,-.32));gr.addColorStop(.12,shadeHex(O.paper,.25));gr.addColorStop(.55,O.paper);gr.addColorStop(1,shadeHex(O.paper,-.14));
+    g.save();g.shadowColor=`rgba(0,0,0,${.25+.45*O.shadow})`;g.shadowBlur=u*(8+18*O.shadow);g.shadowOffsetX=peel.n[0]*u*8;g.shadowOffsetY=peel.n[1]*u*8;g.fillStyle=gr;polyPath(g,peel.flap);g.fill();g.restore();
+    if(peel.fold.length===2){g.strokeStyle='rgba(255,255,255,.35)';g.lineWidth=Math.max(1,u*1.2);g.beginPath();g.moveTo(peel.fold[0][0],peel.fold[0][1]);g.lineTo(peel.fold[1][0],peel.fold[1][1]);g.stroke();}}}
+/* while you drag, a small dashed ring marks which opening is picked */
+function overlay(g,W,H){norm();if(S.ops.length>1&&S.drag==='hole')dashRing(g,O.fx*W,O.fy*H,Math.max(10,W*.018),W);}
 
 /* ================= settings panel ================= */
-function renderOpts(){
+function osl(key,label,help,fmt){const o=O,f=rangeF('o-'+key,label,0,1,.01,o[key],fmt||pct,v=>{o[key]=v;changed();});return help?[f,h('p',{class:'help'},help)]:[f];}
+function pickOp(i){S.sel=i;norm();renderOpts();showRing();schedule();save();}
+function renderOpts(){norm();
+  const lf=$('listF');lf.innerHTML='';const chips=h('div',{class:'seg',role:'group','aria-labelledby':'ops-l'}),full=S.ops.length>=MAXOPS;
+  S.ops.forEach((o,i)=>chips.append(h('button',{type:'button','aria-pressed':String(i===S.sel),onclick:()=>pickOp(i)},`${i+1}. ${(LOOKS[o.kind]||LOOKS.circle).name}`)));
+  lf.append(h('div',{class:'field'},h('span',{class:'flabel',id:'ops-l'},'Your openings'),chips),
+    h('div',{class:'row'},h('button',{type:'button',disabled:full,onclick:()=>{const o={...OP(),kind:'circle',rot:0,size:.25,seed:(Math.random()*2147483647)|0,fx:.3+Math.random()*.4,fy:.3+Math.random()*.4};S.ops.push(o);pickOp(S.ops.length-1);}},'Add another'),
+      h('button',{type:'button',disabled:full,onclick:()=>{const o={...O,fx:clamp(O.fx+.08,0,1),fy:clamp(O.fy+.08,0,1)};S.ops.push(o);pickOp(S.ops.length-1);}},'Copy this one'),
+      h('button',{type:'button',disabled:S.sel===S.ops.length-1,onclick:()=>{const[o]=S.ops.splice(S.sel,1);S.ops.push(o);pickOp(S.ops.length-1);}},'Bring to the front'),
+      h('button',{type:'button',disabled:S.ops.length<2,onclick:()=>{S.ops.splice(S.sel,1);pickOp(Math.min(S.sel,S.ops.length-1));}},'Remove')),
+    h('p',{class:'help'},S.ops.length>1?'Everything below belongs to the opening picked here. Tapping an opening on the photo picks it too.':'Add more openings and give each its own kind, size, edge and shadow.'));
   const sf=$('secF');sf.innerHTML='';
   const pk=h('input',{type:'file',id:'pick2nd',accept:'image/*'});pk.onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)loadSecond(f,f.name);};
   sf.append(h('div',{class:'field'},h('span',{class:'flabel'},'Photo underneath'),h('p',{class:'help'},P2?NAME2:'A sample picture for now. Choose the photo that shows through the opening.'),
     h('div',{class:'row'},h('label',{class:'btn'+(P2?'':' primary'),for:'pick2nd'},P2?'Choose a different one':'Choose the photo underneath',pk),h('button',{type:'button',onclick:swapPhotos},'Swap the two photos'))),
     h('p',{class:'help'},'The photo at the top of this panel is the one on top. If the two are different shapes, the one underneath is cropped to fit.'));
   lookButtons();
-  const k=S.kind,of=$('opF');of.innerHTML='';
+  const k=O.kind,of=$('opF');of.innerHTML='';
   if(k==='word'){needFont();
-    const ti=h('textarea',{id:'o-word',rows:2,maxlength:80,autocomplete:'off'});ti.value=S.word;ti.oninput=()=>{S.word=ti.value;changed();};
-    const fs=h('select',{id:'o-font'});WORD_FONTS.forEach(([id,name])=>{const o=h('option',{value:id},name);if(id===S.font)o.selected=true;fs.append(o);});fs.onchange=()=>{S.font=fs.value;needFont();changed();};
-    const cp=h('input',{type:'checkbox',id:'o-caps'});cp.checked=S.caps;cp.onchange=()=>{S.caps=cp.checked;changed();};
-    const sn=h('input',{type:'checkbox',id:'o-slant'});sn.checked=S.slant;sn.onchange=()=>{S.slant=sn.checked;changed();};
+    const ti=h('textarea',{id:'o-word',rows:2,maxlength:80,autocomplete:'off'});ti.value=O.word;ti.oninput=()=>{O.word=ti.value;changed();};
+    const fs=h('select',{id:'o-font'});WORD_FONTS.forEach(([id,name])=>{const o=h('option',{value:id},name);if(id===O.font)o.selected=true;fs.append(o);});fs.onchange=()=>{O.font=fs.value;needFont();changed();};
+    const cp=h('input',{type:'checkbox',id:'o-caps'});cp.checked=O.caps;cp.onchange=()=>{O.caps=cp.checked;changed();};
+    const sn=h('input',{type:'checkbox',id:'o-slant'});sn.checked=O.slant;sn.onchange=()=>{O.slant=sn.checked;changed();};
     of.append(h('div',{class:'field'},h('label',{for:'o-word'},'The words'),ti,h('p',{class:'help'},'Press Enter for a new line, up to four. Thick fonts show the most photo.')),
-      h('div',{class:'field'},h('label',{for:'o-font'},'Font'),fs),h('label',{class:'chk'},cp,' All capitals'),h('label',{class:'chk'},sn,' Slanted'),...sl('track','Space between letters',null,v=>v<=0?'Normal':Math.round(v*100)+'%'));}
-  if(k==='own'){const pk3=h('input',{type:'file',id:'pick3',accept:'image/png,image/webp,image/svg+xml,image/gif,image/*'});pk3.onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)loadShape(f,f.name);};
-    of.append(h('div',{class:'field'},h('span',{class:'flabel'},'Your picture'),h('p',{class:'help'},P3?NAME3:'Choose a PNG with see-through parts, such as a frame, a pair of glasses or a cut-out shape. Until then it is a plain circle.'),
-      h('div',{class:'row'},h('label',{class:'btn'+(P3?'':' primary'),for:'pick3'},P3?'Choose a different picture':'Choose a PNG',pk3))));
-    if(P3){const sw=h('input',{type:'checkbox',id:'o-pshow'});sw.checked=S.pshow;sw.onchange=()=>{S.pshow=sw.checked;changed();};
-      of.append(segF('o-pmode','What becomes the opening',[['inside','Closed-in clear parts'],['clear','All clear parts'],['solid','The solid shape'],['dark','The dark parts']],S.pmode,v=>{S.pmode=v;S.pshow=v==='inside'||v==='clear';renderOpts();changed();}),
-        h('p',{class:'help'},{inside:'The see-through parts that your picture closes in, like the lenses of a pair of glasses or the middle of a frame. The empty space round the outside stays shut.',clear:'Every see-through part of your picture, including the space round its outside.',solid:'The shape of the picture itself becomes the opening, like a stencil.',dark:'The dark parts of the picture become the opening. For black shapes drawn on white, with nothing see-through.'}[S.pmode]),
+      h('div',{class:'field'},h('label',{for:'o-font'},'Font'),fs),h('label',{class:'chk'},cp,' All capitals'),h('label',{class:'chk'},sn,' Slanted'),...osl('track','Space between letters',null,v=>v<=0?'Normal':Math.round(v*100)+'%'));}
+  if(k==='jigsaw')of.append(h('div',{class:'row'},h('button',{type:'button',onclick:()=>{O.jrand=true;O.seed=(Math.random()*2147483647)|0;changed();}},'Shuffle the piece'),h('button',{type:'button',onclick:()=>{O.jrand=false;changed();}},'Classic piece')),
+    h('p',{class:'help'},'Shuffle gives every side a knob or a notch at random, so no two pieces match.'));
+  if(k==='own'){const pc=pic(),pk3=h('input',{type:'file',id:'pick3',accept:'image/png,image/webp,image/svg+xml,image/gif,image/*'});pk3.onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)loadShape(f,f.name);};
+    of.append(h('div',{class:'field'},h('span',{class:'flabel'},'Your picture'),h('p',{class:'help'},pc?pc.name:'Choose a PNG with see-through parts, such as a frame, a pair of glasses or a cut-out shape. Until then it is a plain circle.'),
+      h('div',{class:'row'},h('label',{class:'btn'+(pc?'':' primary'),for:'pick3'},pc?'Choose a different picture':'Choose a PNG',pk3))));
+    if(pc){const sw=h('input',{type:'checkbox',id:'o-pshow'});sw.checked=O.pshow;sw.onchange=()=>{O.pshow=sw.checked;changed();};
+      of.append(segF('o-pmode','What becomes the opening',[['inside','Closed-in clear parts'],['clear','All clear parts'],['solid','The solid shape'],['dark','The dark parts']],O.pmode,v=>{O.pmode=v;O.pshow=v==='inside'||v==='clear';renderOpts();changed();}),
+        h('p',{class:'help'},{inside:'The see-through parts that your picture closes in, like the lenses of a pair of glasses or the middle of a frame. The empty space round the outside stays shut.',clear:'Every see-through part of your picture, including the space round its outside.',solid:'The shape of the picture itself becomes the opening, like a stencil.',dark:'The dark parts of the picture become the opening. For black shapes drawn on white, with nothing see-through.'}[O.pmode]),
         h('label',{class:'chk'},sw,' Show the picture itself on top'));}}
-  if(k==='glasses')of.append(segF('o-lens','Lenses',[['round','Round'],['square','Square'],['heart','Hearts'],['star','Stars']],S.lens,v=>{S.lens=v;renderOpts();changed();}));
-  if(k==='peel')of.append(segF('o-corner','Which corner',[['tl','Top left'],['tr','Top right'],['bl','Bottom left'],['br','Bottom right']],S.corner,v=>{S.corner=v;[S.fx,S.fy]=TIPS[v];renderOpts();changed();}),
+  if(k==='glasses')of.append(segF('o-lens','Lenses',[['round','Round'],['square','Square'],['heart','Hearts'],['star','Stars']],O.lens,v=>{O.lens=v;renderOpts();changed();}));
+  if(k==='peel')of.append(segF('o-corner','Which corner',[['tl','Top left'],['tr','Top right'],['bl','Bottom left'],['br','Bottom right']],O.corner,v=>{O.corner=v;[O.fx,O.fy]=TIPS[v];renderOpts();changed();}),
     h('p',{class:'help'},'Drag the corner on the photo to peel it as far as you like, in any direction.'));
-  else of.append(rangeF('o-size',k==='blinds'?'Spacing of the slats':'Size',.06,1.5,.01,S.size,v=>Math.round(v*100)+'%',v=>{S.size=v;changed();}),
-    rangeF('o-rot','Turn',-180,180,1,S.rot,v=>v===0?'Straight':Math.abs(v)+'° '+(v>0?'clockwise':'the other way'),v=>{S.rot=v;changed();}));
-  if(k==='tear'||k==='brush'||k==='scratch'||k==='blinds')of.append(...sl('tall',k==='tear'?'Height of the tear':k==='blinds'?'How far open':k==='scratch'?'Height of the patch':'Height of the stroke',null,v=>Math.round(v*100)+'%'));
-  if(k==='hole')of.append(...sl('wide','Taller or wider',null,v=>v<.45?'Taller':v>.55?'Wider':'Even'));
-  if(TORN.includes(k)||k==='brush'||k==='scratch')of.append(h('div',{class:'row'},h('button',{type:'button',onclick:()=>{S.seed=(Math.random()*2147483647)|0;changed();}},k==='brush'?'Shuffle the stroke':k==='scratch'?'Scratch it differently':'Tear it differently')));
-  of.append(h('div',{class:'row'},h('button',{type:'button',onclick:()=>{[S.fx,S.fy]=k==='peel'?TIPS[S.corner]:[.5,.5];changed();}},k==='peel'?'Peel it back to the start':'Back to the middle')));
+  else of.append(rangeF('o-size',k==='blinds'?'Spacing of the slats':'Size',.06,1.5,.01,O.size,v=>Math.round(v*100)+'%',v=>{O.size=v;changed();}),
+    rangeF('o-rot','Turn',-180,180,1,O.rot,v=>v===0?'Straight':Math.abs(v)+'° '+(v>0?'clockwise':'the other way'),v=>{O.rot=v;changed();}));
+  if(k==='tear'||k==='brush'||k==='scratch'||k==='blinds')of.append(...osl('tall',k==='tear'?'Height of the tear':k==='blinds'?'How far open':k==='scratch'?'Height of the patch':'Height of the stroke',null,v=>Math.round(v*100)+'%'));
+  if(k==='hole')of.append(...osl('wide','Taller or wider',null,v=>v<.45?'Taller':v>.55?'Wider':'Even'));
+  if(TORN.includes(k)||k==='brush'||k==='scratch')of.append(h('div',{class:'row'},h('button',{type:'button',onclick:()=>{O.seed=(Math.random()*2147483647)|0;changed();}},k==='brush'?'Shuffle the stroke':k==='scratch'?'Scratch it differently':'Tear it differently')));
+  of.append(h('div',{class:'row'},h('button',{type:'button',onclick:()=>{[O.fx,O.fy]=k==='peel'?TIPS[O.corner]:[.5,.5];changed();}},k==='peel'?'Peel it back to the start':'Back to the middle')));
   const ef=$('edF');ef.innerHTML='';
-  if(TORN.includes(k))ef.append(...sl('rag','How ragged the tear is',null,v=>Math.round(v*100)+'%'),...sl('edge','Bare paper round the tear','The pale strip you get where paper rips.'),colorF('o-paper','Color of the paper',S.paper,v=>{S.paper=v;changed();}));
-  if(k==='brush'||k==='scratch')ef.append(...sl('rag',k==='scratch'?'How messy the scratching is':'How rough the ends are',null,v=>Math.round(v*100)+'%'));
-  if(k==='peel')ef.append(colorF('o-paper','Color of the back of the photo',S.paper,v=>{S.paper=v;changed();}));
-  if(k==='glasses')ef.append(colorF('o-frame','Color of the frames',S.frame,v=>{S.frame=v;changed();}),...sl('thick','Thickness of the frames',null,v=>Math.round(v*100)+'%'));
-  if(k==='glasses'||k==='mag')ef.append(...sl('glare','Shine on the glass'));
-  if(LINED.includes(k)){ef.append(...sl('lw','Outline'));if(S.lw>0)ef.append(colorF('o-line','Color of the outline',S.line,v=>{S.line=v;changed();}));}
-  ef.append(...sl('shadow','Shadow inside the opening','Makes the top photo look like a sheet lying over the one underneath.'));
+  if(TORN.includes(k))ef.append(...osl('rag','How ragged the tear is',null,v=>Math.round(v*100)+'%'),...osl('edge','Bare paper round the tear','The pale strip you get where paper rips.'),colorF('o-paper','Color of the paper',O.paper,v=>{O.paper=v;changed();}));
+  if(k==='brush'||k==='scratch')ef.append(...osl('rag',k==='scratch'?'How messy the scratching is':'How rough the ends are',null,v=>Math.round(v*100)+'%'));
+  if(k==='peel')ef.append(colorF('o-paper','Color of the back of the photo',O.paper,v=>{O.paper=v;changed();}));
+  if(k==='glasses')ef.append(colorF('o-frame','Color of the frames',O.frame,v=>{O.frame=v;changed();}),...osl('thick','Thickness of the frames',null,v=>Math.round(v*100)+'%'));
+  if(k==='glasses'||k==='mag')ef.append(...osl('glare','Shine on the glass'));
+  if(LINED.includes(k)){ef.append(...osl('lw','Outline'));if(O.lw>0)ef.append(colorF('o-line','Color of the outline',O.line,v=>{O.line=v;changed();}));}
+  ef.append(...osl('shadow','Shadow inside the opening','Makes the top photo look like a sheet lying over the one underneath.'));
   const bf=$('botF');bf.innerHTML='';
   bf.append(segF('o-drag','Dragging on the photo moves',[['hole','The opening'],['bottom','The photo underneath']],S.drag,v=>{S.drag=v;renderOpts();save();}),
     rangeF('o-bz','Zoom the photo underneath',1,4,.01,S.bz,v=>Math.round(v*100)+'%',v=>{S.bz=v;changed();}),
@@ -529,10 +561,14 @@ function renderOpts(){
   $('dragHelp').textContent=S.drag==='hole'?(k==='peel'?'Drag on the photo to pull the corner further or put it back.':'Drag on the photo to move the opening. Scroll or pinch to change its size.'):'Drag on the photo to slide the one underneath. Scroll or pinch to zoom it.';
   cv.classList.add('movable');
 }
-const DRAGGER={on:()=>true,grab:()=>({fx:S.fx,fy:S.fy,bx:S.bx,by:S.by}),
-  move(st,dx,dy){if(S.drag==='hole'){S.fx=clamp(st.fx+dx,-.2,1.2);S.fy=clamp(st.fy+dy,-.2,1.2);return;}
+const DRAGGER={on:()=>true,
+  grab(p){norm();if(S.drag==='hole'&&S.ops.length>1){const W=cv.width,H=cv.height,m=Math.min(W,H);let best=-1,bd=1e9;
+      S.ops.forEach((o,i)=>{const d=Math.hypot((p.x-o.fx)*W,(p.y-o.fy)*H),r=o.kind==='peel'?m*.14:Math.max(m*.07,o.size*m*(['tear','split','blinds'].includes(o.kind)?.35:1));if(d<r&&d<=bd){bd=d;best=i;}});
+      if(best>=0&&best!==S.sel){S.sel=best;norm();renderOpts();}}
+    return{fx:O.fx,fy:O.fy,bx:S.bx,by:S.by};},
+  move(st,dx,dy){if(S.drag==='hole'){O.fx=clamp(st.fx+dx,-.2,1.2);O.fy=clamp(st.fy+dy,-.2,1.2);return;}
     const W=cv.width,H=cv.height,p=place2(W,H);if(p.dw-W>1)S.bx=clamp(st.bx+2*dx*W/(p.dw-W),-1,1);if(p.dh-H>1)S.by=clamp(st.by+2*dy*H/(p.dh-H),-1,1);},
-  zoom:()=>S.drag==='hole'?S.size:S.bz,setZoom(v){if(S.drag==='hole')S.size=clamp(v,.06,1.5);else S.bz=clamp(v,1,4);}};
+  zoom:()=>S.drag==='hole'?O.size:S.bz,setZoom(v){if(S.drag==='hole')O.size=clamp(v,.06,1.5);else S.bz=clamp(v,1,4);}};
 function makeSample(){return sampleStreet();}
 
 /* ================= shared pieces ================= */

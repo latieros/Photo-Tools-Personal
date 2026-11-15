@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="en">
+<head>
+<title>Double Exposure</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#F7F3E8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A1630" media="(prefers-color-scheme: dark)">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Photo Tools">
+<script>try{if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')&&window.top===window.self)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}catch(e){}</script>
+<style id="pt-theme-css">
+/* light/dark switch, added next to each page's name; same on every page */
+:root header button.pt-theme{flex:none;display:inline-grid;place-items:center;width:34px;height:34px;min-width:0;padding:0;margin:0;border:1px solid var(--line);border-radius:50%;background:var(--panel);color:var(--ink);cursor:pointer;align-self:center;box-shadow:none;font:inherit;line-height:0}
+:root header button.pt-theme:hover{border-color:var(--accent);color:var(--accent);background:var(--panel)}
+:root header button.pt-theme:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+:root header button.pt-theme svg{width:18px;height:18px;display:block}
+header:not(.top){position:relative;padding-right:46px}
+header:not(.top)>button.pt-theme{position:absolute;top:0;right:0}
+</style>
+<script id="pt-theme-js">/* light or dark: dark unless you pick light with the switch; the choice is kept for every tool */
+(function(){var K='pt-theme',d=document.documentElement,C={light:'#F7F3E8',dark:'#0A1630'},
+SUN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>',
+MOON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.5 8.5 0 1 0 10.7 10.7z"/></svg>';
+var mem=null;function saved(){try{var v=localStorage.getItem(K);if(v==='light'||v==='dark')return v;}catch(e){}return mem;}
+function now(){return saved()||'dark';}
+function apply(){var cur=now();d.setAttribute('data-theme',cur);
+  document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.content=C[cur];});
+  var b=document.getElementById('ptTheme');if(b){var n=cur==='dark'?'light':'dark';b.setAttribute('aria-label','Switch to '+n+' mode');b.title='Switch to '+n+' mode';b.innerHTML=cur==='dark'?SUN:MOON;}}
+window.ptTheme={get:now,set:function(t){mem=t;try{localStorage.setItem(K,t);}catch(e){}apply();}};
+apply();
+addEventListener('storage',function(e){if(e.key===K)apply();});
+document.addEventListener('DOMContentLoaded',function(){var h=document.querySelector('header');if(!h||document.getElementById('ptTheme'))return;
+  var b=document.createElement('button');b.type='button';b.id='ptTheme';b.className='pt-theme';
+  b.addEventListener('click',function(){ptTheme.set(now()==='dark'?'light':'dark');});
+  var t=h.querySelector('h1');if(t&&h.classList.contains('top'))t.after(b);else h.prepend(b);apply();});
+})();</script>
+<style id="pt-switch-css">
+/* the All tools menu next to each tool's name; same on every tool page */
+:root nav.switch{position:relative;display:inline-block;width:auto;order:0;max-width:100%;padding:0;border:0;border-radius:0;background:none;overflow:visible;align-self:center}
+:root nav.switch .sw-btn{display:inline-flex;align-items:center;gap:9px;width:auto;min-width:0;margin:0;padding:9px 13px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);font:500 14px/1 var(--f-body,system-ui,sans-serif);cursor:pointer;box-shadow:none;white-space:nowrap}
+:root nav.switch .sw-btn:hover,:root nav.switch .sw-btn[aria-expanded="true"]{border-color:var(--accent);background:var(--panel);color:var(--ink)}
+:root nav.switch .sw-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+:root nav.switch .sw-chev{width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-2px) rotate(45deg);opacity:.7}
+:root nav.switch .sw-btn[aria-expanded="true"] .sw-chev{transform:translateY(2px) rotate(225deg)}
+:root nav.switch .sw-menu{position:absolute;z-index:70;top:calc(100% + 6px);left:0;display:grid;grid-template-columns:repeat(4,auto);gap:4px 16px;width:max-content;max-width:calc(100vw - 16px);max-height:min(72vh,600px);overflow:auto;overscroll-behavior:contain;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--panel);box-shadow:0 14px 40px rgba(0,0,0,.3);text-align:left}
+:root nav.switch .sw-menu[hidden]{display:none}
+:root nav.switch .sw-g{display:flex;flex-direction:column;gap:1px;min-width:0}
+:root nav.switch .sw-g>span{padding:6px 10px 7px;font:600 11px/1 var(--f-body,system-ui,sans-serif);text-transform:uppercase;letter-spacing:.1em;color:var(--accent)}
+:root nav.switch .sw-g a{display:block;padding:8px 10px;border-radius:7px;font:500 14px/1.15 var(--f-body,system-ui,sans-serif);text-decoration:none;white-space:nowrap}
+:root nav.switch .sw-g a:not([aria-current]):hover{background:rgba(128,128,128,.16)}
+@media (max-width:760px){
+  :root nav.switch .sw-menu{grid-template-columns:1fr 1fr;width:calc(100vw - 24px);gap:10px 8px}
+  :root nav.switch .sw-g a{padding:10px;white-space:normal}
+}
+</style>
+<script id="pt-switch-js">/* opens and closes the All tools menu, and keeps it on the screen */
+(function(){document.addEventListener('DOMContentLoaded',function(){var n=document.querySelector('nav.switch');if(!n)return;var b=n.querySelector('.sw-btn'),m=n.querySelector('.sw-menu');if(!b||!m)return;
+  function set(open){m.hidden=!open;b.setAttribute('aria-expanded',String(open));if(!open)return;
+    m.style.left='0px';var r=m.getBoundingClientRect(),w=document.documentElement.clientWidth,dx=0;if(r.right>w-8)dx=w-8-r.right;if(r.left+dx<8)dx=8-r.left;m.style.left=dx+'px';}
+  b.addEventListener('click',function(){set(m.hidden);});
+  document.addEventListener('click',function(e){if(!m.hidden&&!n.contains(e.target))set(false);});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!m.hidden){set(false);b.focus();}});
+  n.addEventListener('focusout',function(e){if(!m.hidden&&e.relatedTarget&&!n.contains(e.relatedTarget))set(false);});
+  addEventListener('pageshow',function(){set(false);});
+});})();</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&family=Lora:wght@500;600;700&family=Unbounded:wght@600&display=swap">
+<style>
+/* Layout: settings on the left, the glitched photo on the right with the save buttons under it; on phones the photo comes first */
+:root{
+  --bg:#F7F3E8; --panel:#FFFDF7; --ink:#0A1630; --muted:#4A5368; --line:#E2DAC4;
+  --accent:#8A6A1F; --accent-ink:#FFFFFF; --soft:#F1E7CC; --stage:#ECE5D2; --check:#E2DAC4;
+  --f-display:"Lora","Familjen Grotesk",system-ui,sans-serif;
+  --f-body:"Familjen Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0A1630; --panel:#111F3D; --ink:#F7F3E8; --muted:#C9C5B9; --line:#24365A;
+  --accent:#C8A24A; --accent-ink:#0A1630; --soft:#233457; --stage:#060E20; --check:#111F3D; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0A1630; --panel:#111F3D; --ink:#F7F3E8; --muted:#C9C5B9; --line:#24365A;
+  --accent:#C8A24A; --accent-ink:#0A1630; --soft:#233457; --stage:#060E20; --check:#111F3D; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body);padding-inline:16px;padding-block:18px 40px}
+[hidden]{display:none!important}
+.top{max-width:1400px;margin:0 auto 16px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px}
+.brand{font:600 22px/1.1 var(--f-display);letter-spacing:-.01em;margin:0}
+.brand span{color:var(--accent)}
+.top p{margin:0;color:var(--muted)}
+.spacer{flex:1}
+.switch{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:10px;background:var(--panel);align-self:center;max-width:100%;overflow-x:auto}
+.switch a{font:500 14px/1 var(--f-body);color:var(--muted);text-decoration:none;padding:8px 12px;border-radius:7px;white-space:nowrap}
+.switch a:hover{color:var(--ink)}
+.switch a[aria-current="page"]{background:var(--ink);color:var(--bg)}
+.switch a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.app{max-width:1400px;margin:0 auto;display:grid;grid-template-columns:330px minmax(0,1fr);grid-template-areas:"opts stage" "opts save";gap:16px;align-items:start}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
+.label{font:600 11px/1 var(--f-body);text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin:0}
+button,.btn{font:500 14px/1 var(--f-body);border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:9px 13px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;position:relative}
+button:hover,.btn:hover{border-color:var(--muted)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.primary:hover{border-color:var(--accent);filter:brightness(1.08)}
+.btn input{position:absolute;opacity:0;width:1px;height:1px}
+button:focus-visible,.btn:focus-within,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.row button,.row .btn{font-size:13px;padding:8px 11px}
+.opts{grid-area:opts;display:flex;flex-direction:column;gap:14px;position:sticky;top:16px;max-height:calc(100vh - 32px);overflow:auto}
+.grp{display:flex;flex-direction:column;gap:14px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field>label,.flabel{font-size:13px;font-weight:500;display:flex;justify-content:space-between;gap:8px}
+.rv{font-variant-numeric:tabular-nums;color:var(--muted);font-weight:400}
+.field input[type=range]{accent-color:var(--accent);width:100%}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{padding:7px 10px;font-size:13px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chk{display:inline-flex;align-items:center;gap:7px;font-size:13px;cursor:pointer}
+.chk input{accent-color:var(--accent);width:16px;height:16px;flex:none}
+.help{font-size:12px;color:var(--muted);margin:0}
+.fhead{font:600 13px/1.2 var(--f-display);margin:4px 0 -4px;padding-top:12px;border-top:1px solid var(--line)}
+.photo{display:flex;align-items:center;gap:10px}
+.photo .thumb{width:52px;height:52px;border-radius:8px;object-fit:cover;background:var(--bg);border:1px solid var(--line);flex:none}
+.photo .info{min-width:0;font-size:13px}
+.photo .info b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.sw{display:inline-flex;gap:2px;margin-left:2px}
+.sw i{display:block;width:8px;height:12px;border-radius:2px}
+.stage{grid-area:stage;display:flex;flex-direction:column;gap:8px;min-width:0}
+.canvas-wrap{position:relative;display:grid;place-items:center;padding:16px;border-radius:12px;min-height:300px;
+  background:var(--stage) conic-gradient(var(--check) 25%,transparent 0 50%,var(--check) 0 75%,transparent 0) 0 0/22px 22px}
+.canvas-wrap.drop{outline:3px dashed var(--accent);outline-offset:-8px}
+canvas#cv{display:block;max-width:100%;max-height:min(74vh,900px);width:auto;height:auto;touch-action:none;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.18)}
+canvas#cv.movable{cursor:grab}
+canvas#cv.dragging{cursor:grabbing}
+.cta{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.under{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.under .help{flex:1;min-width:200px}
+.save{grid-area:save;display:flex;flex-direction:column;gap:12px}
+.phead{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.status{min-height:1.2em;font-size:13px;color:var(--accent);margin:0}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;z-index:30;max-width:calc(100% - 32px);box-shadow:0 8px 24px rgba(0,0,0,.25)}
+@media (max-width:900px){
+  .app{grid-template-columns:minmax(0,1fr);grid-template-areas:"stage" "save" "opts"}
+  .opts{position:static;max-height:none}
+  .canvas-wrap{padding:10px;min-height:220px}
+  canvas#cv{max-height:62vh}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* phone touches */
+@media (max-width:900px){
+  body{padding-inline:12px}
+  .top p{display:none}
+  .seg button,.row button{padding:10px 12px;font-size:14px}
+  .field input[type=range]{height:30px}
+}
+/* folding sections (phones and wide screens) */
+.fsec{border-top:1px solid var(--line);margin:4px -16px 0;padding:0 16px}
+.fold{width:100%;justify-content:space-between;border:0;background:transparent;padding:14px 0;font:600 14px/1.2 var(--f-display);border-radius:0;color:var(--ink)}
+.fold .chev{width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .15s;margin-right:4px;flex:none}
+.fold[aria-expanded="true"] .chev{transform:rotate(45deg)}
+.foldbody{display:flex;flex-direction:column;gap:14px;padding-bottom:14px}
+/* wide screens: the whole width, settings on both sides of the picture */
+@media (min-width:1440px){
+  body{padding-inline:20px;padding-block:14px 24px}
+  .top,.app{max-width:none}
+  .top{margin-bottom:12px}
+  .app{grid-template-columns:380px minmax(0,1fr) 380px;grid-template-areas:"left stage opts" "left save opts";gap:16px 20px}
+  .pt-left{grid-area:left}
+  .opts,.pt-left{position:sticky;top:14px;max-height:calc(100vh - 28px);overflow:auto;overscroll-behavior:contain}
+  .stage{gap:10px}
+  .stage>.phead{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+  .stage>.phead .label{margin-right:4px}
+  .canvas-wrap{min-height:360px}
+  canvas#cv{max-height:calc(100vh - 250px)}
+}
+
+input[type=color]{width:40px;height:32px;border:1px solid var(--line);border-radius:8px;background:var(--bg);padding:3px;flex:none}
+.field input[type=text]{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);min-width:0}
+.dot{width:28px;height:28px;padding:0;border-radius:50%;flex:none}
+@media (max-width:900px){.field input[type=text]{font-size:16px}}
+</style>
+
+</head>
+<body>
+<header class="top">
+  <h1 class="brand">Double <span>Exposure</span></h1>
+  <nav class="switch" aria-label="Switch tool"><button type="button" class="sw-btn" aria-expanded="false" aria-haspopup="true">All tools<span class="sw-chev" aria-hidden="true"></span></button><div class="sw-menu" hidden><div class="sw-g" role="group" aria-label="Photos"><span aria-hidden="true">Photos</span><a href="photo-frame-studio.html">Photo Frame Studio</a><a href="photo-splitter.html">Photo Splitter</a><a href="watermark.html">Watermark</a><a href="metadata-scrubber.html">Metadata Scrubber</a><a href="background-remover.html">Background Remover</a><a href="outfit-tags.html">Outfit Tags</a></div><div class="sw-g" role="group" aria-label="Photo effects"><span aria-hidden="true">Photo effects</span><a href="glitch-filter.html">Glitch Filter</a><a href="double-exposure.html" aria-current="page">Double Exposure</a><a href="duotone.html">Duotone</a><a href="light-leaks.html">Light Leaks</a></div><div class="sw-g" role="group" aria-label="Words and comics"><span aria-hidden="true">Words and comics</span><a href="caption-maker.html">Caption Maker</a><a href="sfx-maker.html">SFX Maker</a><a href="effect-lines.html">Effect Lines</a><a href="panel-layouts.html">Panel Layouts</a><a href="bubble-maker.html">Bubble Maker</a><a href="motion-comic.html">Motion Comic</a><a href="visual-novel.html">Visual Novel</a></div><div class="sw-g" role="group" aria-label="Video"><span aria-hidden="true">Video</span><a href="video-layers.html">Video Layers</a><a href="chat-reel.html">Chat Reel</a><a href="delivery-reel.html">Delivery Reel</a></div></div></nav>
+  <p>Blend a second picture into the light or dark parts of a photo, like two shots on one piece of film.</p>
+</header>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<main class="app">
+  <section class="card opts" aria-label="Settings">
+    <div class="field">
+      <span class="flabel">Photo</span>
+      <div class="photo"><img class="thumb" id="thumb" alt=""><div class="info"><b id="pName">Sample picture</b><span class="help" id="pInfo">Choose yours, drop it here, or paste it.</span></div></div>
+      <div class="row"><label class="btn primary" for="pick">Choose photo<input type="file" id="pick" accept="image/*"></label></div>
+    </div>
+    <div class="field">
+      <span class="flabel" id="look-l">Look</span>
+      <div class="seg" id="looks" role="group" aria-labelledby="look-l"></div>
+    </div>
+    <div class="grp" id="secF"></div>
+    <h4 class="fhead">Blend</h4>
+    <div class="grp" id="blF"></div>
+    <h4 class="fhead">Placing the second picture</h4>
+    <div class="grp" id="plF"></div>
+    <h4 class="fhead">Color</h4>
+    <div class="grp" id="colF"></div>
+    <h4 class="fhead">Finish</h4>
+    <div class="grp" id="finF"></div>
+    <h4 class="fhead">Saving</h4>
+    <div class="grp" id="fmtF"></div>
+  </section>
+
+  <section class="stage" aria-label="Preview">
+    <div class="canvas-wrap" id="drop">
+      <canvas id="cv" width="1200" height="800" aria-label="Your photo blended with the second picture. Drag to move the second picture."></canvas>
+      <label class="btn primary cta" id="cta" for="pick2">Choose your photo<input type="file" id="pick2" accept="image/*"></label>
+    </div>
+    <div class="under">
+      <p class="help" id="dragHelp"></p>
+      <button type="button" id="compare" aria-pressed="false">See the original</button>
+    </div>
+  </section>
+
+  <section class="card save" aria-label="Saving">
+    <div class="phead">
+      <h2 class="label">Save it</h2>
+      <span class="spacer"></span>
+      <button type="button" id="shareBtn" hidden>Share</button>
+      <button type="button" id="copyBtn" hidden>Copy image</button>
+      <button type="button" id="saveBtn" class="primary">Save the photo</button>
+    </div>
+    <div class="row" id="sendRow" hidden>
+      <span class="help">Carry on in another tool:</span>
+      <button type="button" data-to="photo-frame-studio.html">Frame it</button>
+      <button type="button" data-to="caption-maker.html">Add words</button>
+      <button type="button" data-to="video-layers.html">Use in a video</button>
+    </div>
+    <p class="help" id="saveHelp"></p>
+    <p class="status" id="status" role="status"></p>
+  </section>
+</main>
+
+<script>
+
+/* ================= phones and wide screens: fold-out sections ================= */
+const phoneMQ=matchMedia('(max-width:900px)'),isPhone=()=>phoneMQ.matches;
+const openSecs=new Set();
+/* ================= wide screens: full width, settings on both sides of the picture, sections fold ================= */
+const wideMQ=matchMedia('(min-width:1440px)'),isWide=()=>wideMQ.matches;
+const ptMoves=[];
+function ptMove(el,parent,before){if(!el||!parent)return;ptMoves.push({el,p:el.parentNode,n:el.nextSibling});parent.insertBefore(el,before||null);}
+function ptUnmove(){while(ptMoves.length){const m=ptMoves.pop();m.p.insertBefore(m.el,m.n);}}
+/* everything in the settings panel before the section called firstRight moves to a second panel on the left */
+function ptSplit(panel,firstRight){if(!panel)return;let left=document.querySelector('.pt-left');
+  if(isWide()){if(!left){left=document.createElement('aside');left.className=panel.className+' pt-left';left.setAttribute('aria-label','Settings');left.id='';panel.before(left);}
+    for(const el of[...panel.children]){const f=el.querySelector&&(el.querySelector('.fold')||el.querySelector(':scope>h2'));if(f&&f.firstChild.textContent.trim()===firstRight)break;left.append(el);}}
+  else if(left){panel.prepend(...left.children);left.remove();}}
+/* o: {panel, key, open:[sections open the first time], firstRight, fold(panel), wide(), narrow()} */
+function ptWide(o){globalThis.ptKey=o.key||'';const p=o.panel;const apply=()=>{
+  if(isWide()&&!apply.loaded){apply.loaded=true;let v=null;try{v=JSON.parse(localStorage.getItem(o.key)||'null');}catch(e){}(Array.isArray(v)?v:o.open||[]).forEach(n=>openSecs.add(n));}
+  if(isWide()&&p&&!p.querySelector('.fsec'))(o.fold||(x=>foldSections(x,'h4.fhead')))(p);
+  ptUnmove();if(o.firstRight)ptSplit(p,o.firstRight);if(isWide()&&o.wide)o.wide();if(!isWide()&&o.narrow)o.narrow();};
+  apply();wideMQ.addEventListener('change',apply);return apply;}
+function keepOpen(){if(isWide()&&globalThis.ptKey)try{localStorage.setItem(globalThis.ptKey,JSON.stringify([...openSecs]));}catch(e){}}
+/* section headings (sel) fold their section away on a phone; tap one to open it */
+function foldSections(p,sel,stop){let body=null;
+  for(const el of[...p.children]){
+    if(el.matches(sel)){const name=el.textContent.trim(),open=openSecs.has(name);
+      const b=document.createElement('button');b.type='button';b.className='fold';b.setAttribute('aria-expanded',String(open));if(el.id)b.id=el.id;b.append(name);
+      const ch=document.createElement('span');ch.className='chev';ch.setAttribute('aria-hidden','true');ch.textContent='';b.append(ch);
+      body=document.createElement('div');body.className='foldbody';body.hidden=!open;const bd=body;
+      b.onclick=()=>{const o=bd.hidden;bd.hidden=!o;b.setAttribute('aria-expanded',String(o));if(o)openSecs.add(name);else openSecs.delete(name);keepOpen();};
+      const sec=document.createElement('div');sec.className='fsec';sec.append(b,body);el.replaceWith(sec);continue;}
+    if(body&&!(stop&&el.matches(stop)))body.append(el);}}
+
+if(isPhone())foldSections(document.querySelector('.opts'),'h4.fhead');
+ptWide({panel:document.querySelector('.opts'),key:'de-open',open:['Blend', 'Placing the second picture', 'Color', 'Finish', 'Saving'],firstRight:'Color',
+  wide(){const st=document.querySelector('.stage');ptMove(document.querySelector('.phead'),st,st.firstElementChild);}});
+
+/* ================= basics ================= */
+const $=id=>document.getElementById(id);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function h(tag,props,...kids){const e=document.createElement(tag);for(const[k,v]of Object.entries(props||{})){if(k==='class')e.className=v;else if(k==='text')e.textContent=v;else if(k==='style')e.style.cssText=v;else if(k.startsWith('on'))e[k]=v;else if(v===true)e.setAttribute(k,'');else if(v!==false&&v!=null)e.setAttribute(k,v);}
+  kids.flat().forEach(c=>{if(c!=null&&c!==false)e.append(c.nodeType?c:document.createTextNode(c));});return e;}
+function toast(msg){const t=$('toast');t.textContent=msg;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>{t.hidden=true;},4500);}
+function segF(id,label,opts,val,on){const g=h('div',{class:'seg',role:'group','aria-labelledby':id+'-l'});opts.forEach(([v,l])=>g.append(h('button',{type:'button','aria-pressed':String(v===val),onclick:()=>on(v)},l)));return h('div',{class:'field'},h('span',{class:'flabel',id:id+'-l'},label),g);}
+function rangeF(id,label,min,max,step,val,fmt,on){const out=h('output',{class:'rv',for:id},fmt(val)),inp=h('input',{type:'range',id,min,max,step,value:val});inp.oninput=()=>{out.textContent=fmt(+inp.value);on(+inp.value);};return h('div',{class:'field'},h('label',{for:id},label,out),inp);}
+const HAS_FILTER=(()=>{try{const g=document.createElement('canvas').getContext('2d');g.filter='blur(2px)';return g.filter==='blur(2px)';}catch(e){return false;}})();
+const cv=$('cv'),ctx=cv.getContext('2d');
+const mkCanvas=(w,hh)=>{const c=document.createElement('canvas');c.width=w;c.height=hh;return c;};
+
+/* ================= looks ================= */
+const LOOKS={
+  classic:{name:'Classic',v:{pic:'forest',mode:'screen',amt:.95,fade:'none',sat1:0,sat2:.25,con:.5,tint:'none',grain:.15}},
+  city:{name:'City lights',v:{pic:'city',mode:'screen',amt:1,fade:'none',sat1:.1,sat2:1,con:.45,tint:'cool',tintAmt:.25,grain:.15}},
+  sky:{name:'Head in the clouds',v:{pic:'clouds',mode:'multiply',amt:.9,fade:'none',sat1:.3,sat2:.9,con:.3,tint:'none',grain:.1}},
+  stars:{name:'Starry',v:{pic:'stars',mode:'screen',amt:1,fade:'none',sat1:0,sat2:1,con:.55,tint:'violet',tintAmt:.3,grain:.2}},
+  dream:{name:'Soft dream',v:{pic:'hills',mode:'lighten',amt:.75,fade:'bottom',soft:.6,sat1:.6,sat2:.7,con:.2,tint:'warm',tintAmt:.35,grain:.1}}};
+const PICS=[['city','City at night'],['forest','Forest'],['hills','Hills'],['clouds','Clouds'],['stars','Stars']];
+const MODES=[['screen','Into the dark parts'],['multiply','Into the light parts'],['lighten','Brightest of both'],['overlay','Rich mix'],['source-over','Plain fade']];
+const FADES=[['none','Nowhere'],['top','The top'],['bottom','The bottom'],['left','The left'],['right','The right'],['edges','The edges']];
+const TINTS={none:['None',null],warm:['Warm','#ff9d5c'],cool:['Cool','#4f8dff'],teal:['Teal','#1fb5a6'],rose:['Rose','#ff5c8a'],violet:['Violet','#8a5cff']};
+const DEF=()=>({v:1,look:'classic',...LOOKS.classic.v,soft:.5,tintAmt:.35,z:1.15,px:0,py:0,flip:false,fmt:'jpg'});
+/* a look keeps your own second picture if you have chosen one */
+function applyLook(v){const own=S.pic==='own'&&P2;Object.assign(S,v);if(own)S.pic='own';}
+
+/* ================= second pictures that come with the tool ================= */
+const picCache={};
+function genPic(kind){if(picCache[kind])return picCache[kind];const W=1400,H=1400,c=mkCanvas(W,H),g=c.getContext('2d'),r=rnd(kind.length*977+kind.charCodeAt(0));let gr;
+  if(kind==='forest'){gr=g.createLinearGradient(0,0,0,H);gr.addColorStop(0,'#f6f3ea');gr.addColorStop(1,'#cfd9d3');g.fillStyle=gr;g.fillRect(0,0,W,H);
+    [['#a9b9b1',.55,90,150],['#627f74',.72,120,230],['#22352f',.95,150,330]].forEach(([col,base,w,hh])=>{g.fillStyle=col;
+      for(let x=-w;x<W+w;x+=w*(.35+r()*.5)){const th=hh*(.6+r()*.9),b=H*base+r()*60,tw=w*(.7+r()*.5);
+        for(let k=0;k<5;k++){const y0=b-th+k*th*.17,y1=b-th+(k+1.6)*th*.19,ww=tw*(.25+k*.19);g.beginPath();g.moveTo(x,y0);g.lineTo(x+ww/2,y1);g.lineTo(x-ww/2,y1);g.closePath();g.fill();}
+        g.fillRect(x-tw*.04,b-th*.1,tw*.08,th*.2+200);}
+      g.fillRect(0,H*base+40,W,H);});}
+  else if(kind==='hills'){gr=g.createLinearGradient(0,0,0,H);gr.addColorStop(0,'#8a6fae');gr.addColorStop(.45,'#f7a98b');gr.addColorStop(.75,'#fde3c0');g.fillStyle=gr;g.fillRect(0,0,W,H);
+    g.fillStyle='#fff3d6';g.beginPath();g.arc(W*.68,H*.42,90,0,7);g.fill();
+    ['#b99cc4','#8f79b3','#5f5a96','#34406e','#161d3d'].forEach((col,i)=>{const base=H*(.5+i*.1),amp=110-i*8,f=.003+i*.0012,ph=r()*9;g.fillStyle=col;g.beginPath();g.moveTo(0,H);
+      for(let x=0;x<=W;x+=14)g.lineTo(x,base-amp*Math.sin(x*f+ph)-amp*.45*Math.sin(x*f*2.9+ph*2)-amp*.2*Math.sin(x*f*7.1+ph));g.lineTo(W,H);g.closePath();g.fill();});}
+  else if(kind==='clouds'){gr=g.createLinearGradient(0,0,0,H);gr.addColorStop(0,'#2f78d0');gr.addColorStop(1,'#c6e4fb');g.fillStyle=gr;g.fillRect(0,0,W,H);
+    for(let i=0;i<26;i++){const cx=r()*W,cy=r()*H,n=6+Math.floor(r()*8),sz=60+r()*120;
+      for(let k=0;k<n;k++){const x=cx+(r()-.5)*sz*4,y=cy+(r()-.5)*sz*.9,rad=sz*(.5+r());gr=g.createRadialGradient(x,y,0,x,y,rad);gr.addColorStop(0,'rgba(255,255,255,.85)');gr.addColorStop(.6,'rgba(255,255,255,.4)');gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.fillRect(x-rad,y-rad,rad*2,rad*2);}}}
+  else if(kind==='stars'){g.fillStyle='#05060f';g.fillRect(0,0,W,H);g.save();g.translate(W/2,H/2);g.rotate(-.6);g.scale(1,.28);
+    [['rgba(120,90,255,.5)',900],['rgba(70,160,255,.4)',620],['rgba(255,190,230,.45)',330]].forEach(([col,rad])=>{gr=g.createRadialGradient(0,0,0,0,0,rad);gr.addColorStop(0,col);gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.fillRect(-rad,-rad,rad*2,rad*2);});g.restore();
+    for(let i=0;i<2600;i++){const x=r()*W,y=r()*H,s=r()<.04?3+r()*3:1+r()*1.6;g.globalAlpha=.35+r()*.65;g.fillStyle=r()<.15?'#ffd9b0':r()<.3?'#bcd4ff':'#ffffff';g.beginPath();g.arc(x,y,s/2,0,7);g.fill();
+      if(s>3){gr=g.createRadialGradient(x,y,0,x,y,s*5);gr.addColorStop(0,'rgba(255,255,255,.5)');gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.fillRect(x-s*5,y-s*5,s*10,s*10);}}g.globalAlpha=1;}
+  else{gr=g.createLinearGradient(0,0,0,H);gr.addColorStop(0,'#04061a');gr.addColorStop(.7,'#1b1446');gr.addColorStop(1,'#5a2a6e');g.fillStyle=gr;g.fillRect(0,0,W,H);
+    for(let i=0;i<300;i++){g.globalAlpha=.3+r()*.6;g.fillStyle='#fff';g.fillRect(r()*W,r()*H*.6,2,2);}g.globalAlpha=1;
+    g.fillStyle='#fff1cf';g.beginPath();g.arc(W*.76,H*.2,70,0,7);g.fill();
+    for(let layer=0;layer<2;layer++)for(let x=-20;x<W;){const w=60+r()*110,hh=(layer?240:420)+r()*(layer?520:420);g.fillStyle=layer?'#070616':'#15123a';g.fillRect(x,H-hh,w,hh);
+      for(let y=H-hh+16;y<H-20;y+=26)for(let xx=x+10;xx<x+w-14;xx+=20)if(r()<(layer?.42:.3)){g.fillStyle=r()<.55?'#ffd27a':r()<.5?'#7fe7ff':'#ff8fd0';g.fillRect(xx,y,9,13);}x+=w+r()*14;}}
+  return picCache[kind]=c;}
+let P2=null,BLOB2=null,NAME2='';
+const secondPic=()=>S.pic==='own'&&P2?P2:genPic(S.pic==='own'?'city':S.pic);
+async function loadSecond(blob,name,quiet){let im=null;try{im=await createImageBitmap(blob);}catch(e){}
+  if(!im||!im.width){if(!quiet)toast('That file couldn’t be opened as a picture. Try JPG or PNG.');return;}
+  P2=im;BLOB2=blob;NAME2=name||'picture';if(!quiet){S.pic='own';S.px=S.py=0;outCache=null;renderOpts();changed();}}
+function extraState(){return{blob2:BLOB2,name2:NAME2};}
+async function extraRestore(x){if(x&&x.blob2)await loadSecond(x.blob2,x.name2,true);}
+
+/* ================= the effect ================= */
+/* where the second picture sits: it always covers the whole photo, then zoom and position move it about */
+function place2(W,H){const P=secondPic(),k=Math.max(W/P.width,H/P.height)*S.z,dw=P.width*k,dh=P.height*k;return{P,dw,dh,x:(W-dw)/2+S.px*(dw-W)/2,y:(H-dh)/2+S.py*(dh-H)/2};}
+function effect(W,H){
+  const c=mkCanvas(W,H),g=c.getContext('2d',{willReadFrequently:true});g.imageSmoothingQuality='high';g.drawImage(IMG,0,0,W,H);
+  tone(g,W,H,S.sat1,1+S.con*1.2);
+  /* the second picture on its own layer */
+  const L=mkCanvas(W,H),q=L.getContext('2d',{willReadFrequently:true}),p=place2(W,H);q.imageSmoothingQuality='high';
+  q.save();if(S.flip){q.translate(W,0);q.scale(-1,1);}q.drawImage(p.P,p.x,p.y,p.dw,p.dh);q.restore();
+  tone(q,W,H,S.sat2,1);
+  /* blend it into a copy of the photo, cut the copy down to where it should show, and lay that over the photo */
+  const T=mkCanvas(W,H),t=T.getContext('2d');t.drawImage(c,0,0);t.globalCompositeOperation=canBlend(S.mode)?S.mode:'source-over';t.drawImage(L,0,0);
+  if(S.fade!=='none'){const half=.05+S.soft*.4,a=clamp(.55-half,0,1),b=clamp(.55+half,0,1);let gr;
+    if(S.fade==='edges'){const R=Math.hypot(W,H)/2;gr=t.createRadialGradient(W/2,H/2,0,W/2,H/2,R);}
+    else gr=S.fade==='bottom'?t.createLinearGradient(0,0,0,H):S.fade==='top'?t.createLinearGradient(0,H,0,0):S.fade==='right'?t.createLinearGradient(0,0,W,0):t.createLinearGradient(W,0,0,0);
+    gr.addColorStop(0,'rgba(0,0,0,1)');gr.addColorStop(a,'rgba(0,0,0,1)');gr.addColorStop(b,'rgba(0,0,0,0)');gr.addColorStop(1,'rgba(0,0,0,0)');
+    t.globalCompositeOperation='destination-in';t.fillStyle=gr;t.fillRect(0,0,W,H);}
+  g.globalAlpha=clamp(S.amt,0,1);g.drawImage(T,0,0);g.globalAlpha=1;L.width=L.height=T.width=T.height=0;
+  /* a wash of one color over everything */
+  const tc=(TINTS[S.tint]||TINTS.none)[1];
+  if(tc&&S.tintAmt>0){const m=canBlend('color')?'color':canBlend('soft-light')?'soft-light':null;if(m){g.globalCompositeOperation=m;g.globalAlpha=S.tintAmt*(m==='color'?.8:1);g.fillStyle=tc;g.fillRect(0,0,W,H);g.globalCompositeOperation='source-over';g.globalAlpha=1;}}
+  grainOver(g,W,H,S.grain,41);
+  return c;}
+
+/* ================= settings panel ================= */
+function renderOpts(){
+  lookButtons();
+  const sf=$('secF');sf.innerHTML='';
+  const pk=h('input',{type:'file',id:'pick2nd',accept:'image/*'});pk.onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)loadSecond(f,f.name);};
+  sf.append(segF('o-pic','Second picture',[...PICS,...(P2?[['own','Your own']]:[])],S.pic==='own'&&!P2?'city':S.pic,v=>{S.pic=v;S.px=S.py=0;ownLook();renderOpts();changed();}),
+    h('div',{class:'row'},h('label',{class:'btn',for:'pick2nd'},P2?'Choose a different one of yours':'Use one of your own pictures',pk)),
+    h('p',{class:'help'},'Trees, skylines, clouds, flowers and textures all work well as the second picture.'));
+  const bf=$('blF');bf.innerHTML='';
+  bf.append(segF('o-mode','Where it shows',MODES,S.mode,v=>{S.mode=v;ownLook();renderOpts();changed();}),
+    h('p',{class:'help'},{screen:'The second picture fills the dark parts of your photo, such as a person against a bright sky. Bright parts stay bright.',multiply:'The second picture fills the light parts of your photo, such as the sky behind someone. Dark parts stay dark.',lighten:'Wherever one picture is brighter than the other, the brighter one shows.',overlay:'The second picture adds its light and shade to your photo, keeping the photo easy to read.','source-over':'A plain see-through mix of the two pictures.'}[S.mode]),
+    ...sl('amt','How much of it shows'),segF('o-fade','Let it fade out toward',FADES,S.fade,v=>{S.fade=v;ownLook();renderOpts();changed();}));
+  if(S.fade!=='none')bf.append(...sl('soft','How soft the fade is'));
+  const pf=$('plF');pf.innerHTML='';
+  const fl=h('input',{type:'checkbox',id:'o-flip'});fl.checked=S.flip;fl.onchange=()=>{S.flip=fl.checked;changed();};
+  pf.append(rangeF('o-z','Zoom',1,4,.01,S.z,v=>Math.round(v*100)+'%',v=>{S.z=v;changed();}),h('label',{class:'chk'},fl,' Flip it left to right'),
+    h('div',{class:'row'},h('button',{type:'button',onclick:()=>{S.z=1.15;S.px=S.py=0;renderOpts();changed();}},'Back to the middle')));
+  const cf=$('colF');cf.innerHTML='';
+  cf.append(...sl('sat1','Color in your photo','Classic double exposures start from a black and white photo.',v=>v<=0?'Black and white':Math.round(v*100)+'%'),
+    ...sl('sat2','Color in the second picture',null,v=>v<=0?'Black and white':Math.round(v*100)+'%'),
+    ...sl('con','Stronger lights and darks in your photo','Deep darks and a bright background give the cleanest result.'),
+    segF('o-tint','Color wash over everything',Object.entries(TINTS).map(([k,t])=>[k,t[0]]),S.tint,v=>{S.tint=v;ownLook();renderOpts();changed();}));
+  if(S.tint!=='none')cf.append(...sl('tintAmt','How strong the wash is'));
+  const ff=$('finF');ff.innerHTML='';ff.append(...sl('grain','Grain'));
+  $('fmtF').replaceChildren(...fmtField());
+  $('dragHelp').textContent='Drag on the photo to move the second picture. Scroll or pinch to zoom it.';
+  cv.classList.add('movable');
+}
+const DRAGGER={on:()=>true,grab:()=>({px:S.px,py:S.py}),
+  move(st,dx,dy){const W=cv.width,H=cv.height,p=place2(W,H);if(S.flip)dx=-dx;
+    if(p.dw-W>1)S.px=clamp(st.px+2*dx*W/(p.dw-W),-1,1);if(p.dh-H>1)S.py=clamp(st.py+2*dy*H/(p.dh-H),-1,1);},
+  zoom:()=>S.z,setZoom(v){S.z=clamp(v,1,4);}};
+
+/* a plain portrait shape to try the blend on before you choose a photo */
+function makeSample(){const W=1200,H=1500,c=mkCanvas(W,H),g=c.getContext('2d');
+  let gr=g.createLinearGradient(0,0,0,H);gr.addColorStop(0,'#f5f1e8');gr.addColorStop(1,'#d8dde6');g.fillStyle=gr;g.fillRect(0,0,W,H);
+  gr=g.createLinearGradient(0,300,0,H);gr.addColorStop(0,'#2b303c');gr.addColorStop(1,'#0c0e14');g.fillStyle=gr;
+  g.beginPath();g.ellipse(W/2,560,215,265,0,0,7);g.fill();
+  g.beginPath();g.moveTo(W/2-95,760);g.lineTo(W/2+95,760);g.lineTo(W/2+120,960);g.lineTo(W/2-120,960);g.closePath();g.fill();
+  g.beginPath();g.moveTo(60,H);g.bezierCurveTo(90,1050,330,950,W/2,930);g.bezierCurveTo(870,950,1110,1050,1140,H);g.closePath();g.fill();
+  return c;}
+
+/* ================= shared pieces ================= */
+let S=DEF(),IMG=null,BLOB=null,NAME='',SAMPLE=true;
+const iw=()=>IMG.width,ih=()=>IMG.height;
+/* the same seed always gives the same numbers, so the preview and the saved photo match */
+function rnd(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function rgb(hex){const n=parseInt(String(hex).replace('#',''),16)||0;return[(n>>16)&255,(n>>8)&255,n&255];}
+/* more or less color (0 is black and white, 1 is as it was) and stronger or weaker contrast, pixel by pixel */
+function tone(g,W,H,sat,con){if(sat===1&&con===1)return;const id=g.getImageData(0,0,W,H),d=id.data;
+  for(let i=0;i<d.length;i+=4){const r=d[i],gg=d[i+1],b=d[i+2],l=.299*r+.587*gg+.114*b;d[i]=(l+(r-l)*sat-128)*con+128;d[i+1]=(l+(gg-l)*sat-128)*con+128;d[i+2]=(l+(b-l)*sat-128)*con+128;}
+  g.putImageData(id,0,0);}
+function grainOver(g,W,H,amt,seed){if(!(amt>0))return;const u=Math.sqrt(W*H)/1000,n=mkCanvas(160,160),q=n.getContext('2d'),nd=q.createImageData(160,160),r=rnd(seed*29+6);
+  for(let i=0;i<nd.data.length;i+=4){const v=Math.floor(r()*256);nd.data[i]=nd.data[i+1]=nd.data[i+2]=v;nd.data[i+3]=255;}q.putImageData(nd,0,0);
+  const k=Math.max(1,Math.round(u));g.save();g.imageSmoothingEnabled=false;g.globalCompositeOperation='overlay';g.globalAlpha=amt*.5;g.scale(k,k);g.fillStyle=g.createPattern(n,'repeat');g.fillRect(0,0,Math.ceil(W/k),Math.ceil(H/k));g.restore();}
+function dashRing(g,x,y,R,W){const lw=Math.max(2,W/400);g.save();g.setLineDash([lw*5,lw*4]);g.lineWidth=lw;
+  g.strokeStyle='rgba(0,0,0,.6)';g.beginPath();g.arc(x,y,R,0,Math.PI*2);g.stroke();g.lineDashOffset=lw*4.5;g.strokeStyle='rgba(255,255,255,.9)';g.beginPath();g.arc(x,y,R,0,Math.PI*2);g.stroke();g.restore();}
+const canBlend=m=>{try{const g=mkCanvas(1,1).getContext('2d');g.globalCompositeOperation=m;return g.globalCompositeOperation===m;}catch(e){return false;}};
+
+/* ================= preview ================= */
+let PV=null,showOrig=false,raf=0,ringOn=false,ringT=0;
+function pvSize(){const m=1200,k=Math.min(1,m/Math.max(iw(),ih()));return[Math.max(1,Math.round(iw()*k)),Math.max(1,Math.round(ih()*k))];}
+function render(){if(!IMG)return;const[W,H]=pvSize();if(PV)PV.width=PV.height=0;PV=effect(W,H);paint();}
+function paint(){if(!PV)return;const W=PV.width,H=PV.height;if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H;}
+  if(showOrig){ctx.imageSmoothingQuality='high';ctx.drawImage(IMG,0,0,W,H);return;}
+  ctx.drawImage(PV,0,0);if(ringOn&&typeof overlay==='function')overlay(ctx,W,H);}
+/* the dashed marker shows while you move it and for a moment after, then gets out of the way */
+function showRing(){ringOn=true;clearTimeout(ringT);ringT=setTimeout(()=>{ringOn=false;paint();},1600);}
+function schedule(){if(raf)return;raf=requestAnimationFrame(()=>{raf=0;render();});}
+function changed(){schedule();save();}
+$('compare').onclick=()=>{showOrig=!showOrig;$('compare').setAttribute('aria-pressed',String(showOrig));$('compare').textContent=showOrig?'See the effect':'See the original';paint();};
+
+/* ================= settings helpers ================= */
+const pct=v=>v<=0?'Off':Math.round(v*100)+'%';
+function ownLook(){if(S.look!=='own'){S.look='own';markLook();}}
+function markLook(){[...$('looks').children].forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.k===S.look)));}
+function sl(key,label,help,fmt){const f=rangeF('o-'+key,label,0,1,.01,S[key],fmt||pct,v=>{S[key]=v;ownLook();changed();});return help?[f,h('p',{class:'help'},help)]:[f];}
+function lookButtons(){const lk=$('looks');lk.innerHTML='';
+  for(const[k,L]of Object.entries(LOOKS))lk.append(h('button',{type:'button','data-k':k,'aria-pressed':String(S.look===k),onclick:()=>{if(typeof applyLook==='function')applyLook(L.v);else Object.assign(S,L.v);S.look=k;renderOpts();changed();}},L.name));
+  lk.append(h('button',{type:'button','data-k':'own','aria-pressed':String(S.look==='own'),onclick:()=>{S.look='own';markLook();save();}},'Your own'));}
+function fmtField(){return[segF('o-f','Save as',[['jpg','JPG'],['png','PNG']],S.fmt,v=>{S.fmt=v;renderOpts();save();}),
+  h('p',{class:'help'},S.fmt==='jpg'?'JPG is small and works everywhere.':'PNG keeps every detail perfectly sharp but the file is much bigger.')];}
+function colorF(id,label,val,on){const ci=h('input',{type:'color',id,value:String(val).toLowerCase()});ci.oninput=()=>on(ci.value);return h('div',{class:'row'},ci,h('label',{for:id,style:'font-size:13px'},label));}
+
+/* ================= drag on the photo, scroll or pinch ================= */
+const ptrs=new Map();let drag=null;
+const canDrag=()=>!!IMG&&!showOrig&&typeof DRAGGER==='object'&&!!DRAGGER&&DRAGGER.on();
+function cpt(e){const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width,y:(e.clientY-r.top)/r.height};}
+cv.addEventListener('pointerdown',e=>{if(!canDrag())return;cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,cpt(e));
+  if(ptrs.size===1){const p=cpt(e);drag={p,st:DRAGGER.grab(p)};}
+  else if(ptrs.size===2){const[a,b]=[...ptrs.values()];drag={pinch:Math.hypot(a.x-b.x,a.y-b.y)||.001,z:DRAGGER.zoom()};}
+  cv.classList.add('dragging');showRing();schedule();e.preventDefault();});
+cv.addEventListener('pointermove',e=>{if(!ptrs.has(e.pointerId)||!drag)return;ptrs.set(e.pointerId,cpt(e));
+  if(drag.pinch&&ptrs.size>=2){const[a,b]=[...ptrs.values()];DRAGGER.setZoom(drag.z*Math.hypot(a.x-b.x,a.y-b.y)/drag.pinch);}
+  else if(!drag.pinch){const p=cpt(e);DRAGGER.move(drag.st,p.x-drag.p.x,p.y-drag.p.y);}
+  showRing();schedule();});
+const endPtr=e=>{ptrs.delete(e.pointerId);if(!ptrs.size){if(drag){drag=null;renderOpts();save();}cv.classList.remove('dragging');}else if(ptrs.size===1){const[p]=[...ptrs.values()];drag={p,st:DRAGGER.grab(p)};}};
+cv.addEventListener('pointerup',endPtr);cv.addEventListener('pointercancel',endPtr);
+cv.addEventListener('wheel',e=>{if(!canDrag())return;e.preventDefault();DRAGGER.setZoom(DRAGGER.zoom()*Math.exp(-e.deltaY*.0015));showRing();changed();clearTimeout(cv.wt);cv.wt=setTimeout(renderOpts,250);},{passive:false});
+
+/* ================= leaving nothing behind in what you save ================= */
+/* random short codes for file names, so names don't carry your original file name or the time */
+const rndCode=(n=6)=>{const a='abcdefghjkmnpqrstuvwxyz23456789',u=new Uint8Array(n);crypto.getRandomValues(u);return[...u].map(x=>a[x%a.length]).join('');};
+/* JPG: keep the picture, drop everything else the browser adds (its color profile, notes) */
+async function cleanJpeg(blob){try{const b=new Uint8Array(await blob.arrayBuffer());if(b[0]!==0xFF||b[1]!==0xD8)return blob;const parts=[b.subarray(0,2)];let p=2;
+  while(p+4<=b.length&&b[p]===0xFF){const m=b[p+1];if(m===0xDA){parts.push(b.subarray(p));return new Blob(parts,{type:'image/jpeg'});}
+    const n=(b[p+2]<<8)|b[p+3];if(!((m>=0xE1&&m<=0xEF)||m===0xFE))parts.push(b.subarray(p,p+2+n));p+=2+n;}
+  return blob;}catch(e){return blob;}}
+
+/* ================= saving ================= */
+let NAMECODE=rndCode(),outCache=null;
+const sig=()=>JSON.stringify([S,NAME,iw(),ih(),SAMPLE]);
+/* the saved photo is as big as the one you chose, up to 5000 pixels on its long side */
+function outSize(){const k=Math.min(1,5000/Math.max(iw(),ih()));return[Math.max(1,Math.round(iw()*k)),Math.max(1,Math.round(ih()*k))];}
+async function makeFile(){const s=sig();if(outCache&&outCache.sig===s)return outCache.file;
+  const[W,H]=outSize();let c;try{c=effect(W,H);}catch(e){throw new Error('the photo is too big for this browser');}
+  const png=S.fmt==='png',type=png?'image/png':'image/jpeg';let blob=await new Promise(r=>c.toBlob(r,type,.93));c.width=c.height=0;
+  if(!blob)throw new Error('the photo is too big for this browser');if(!png)blob=await cleanJpeg(blob);
+  const file=new File([blob],`double-${NAMECODE}.${png?'png':'jpg'}`,{type});outCache={sig:s,file};return file;}
+let topLevel=false;try{topLevel=window.top===window.self;}catch(e){}
+let DL=null;try{if(window.claude&&typeof window.claude.use==='function')window.claude.use('downloads').then(d=>{DL=d||null;syncSave();}).catch(()=>{});}catch(e){}
+const canSave=()=>!!DL||topLevel;
+async function saveFile(blob,filename){
+  if(DL){try{await DL.save({filename,data:blob});return'Saved.';}catch(err){const c=err&&err.code;if(c==='declined')return'Not saved.';if(c==='rate_limited')return'A save prompt is already open.';if(c==='too_large')return'That file is too big to save here. Try JPG.';
+    if(!topLevel)return'Saving isn’t available here.';}}
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;document.body.append(a);a.click();a.remove();return'Saved to your downloads.';}
+const say=m=>{$('status').textContent=m;};
+let busy=false;
+async function withFile(fn){if(busy)return;busy=true;say('Making the full-size photo…');await new Promise(r=>setTimeout(r,30));try{await fn(await makeFile());}catch(err){say('That didn’t work: '+(err&&err.message||err)+'.');}finally{busy=false;}}
+$('saveBtn').onclick=()=>withFile(async f=>{say(await saveFile(f,f.name));});
+$('shareBtn').onclick=()=>withFile(async f=>{try{await navigator.share({files:[f],title:'Double Exposure'});say('Shared.');}catch(err){say(err&&err.name==='AbortError'?'':'Sharing didn’t work here. Save the photo instead.');}});
+$('copyBtn').onclick=async()=>{say('Copying…');try{const[W,H]=outSize(),c=effect(W,H);
+  await navigator.clipboard.write([new ClipboardItem({'image/png':new Promise(r=>c.toBlob(r,'image/png'))})]);say('Copied. Paste it wherever you like.');}catch(e){say('Copying didn’t work here. Save the photo instead.');}};
+function syncSave(){
+  let share=false;try{share=topLevel&&!!navigator.canShare&&navigator.canShare({files:[new File([new Blob(['x'],{type:'image/jpeg'})],'a.jpg',{type:'image/jpeg'})]});}catch(e){}
+  $('shareBtn').hidden=!share;$('saveBtn').hidden=!canSave();$('copyBtn').hidden=!(topLevel&&navigator.clipboard&&window.ClipboardItem);$('sendRow').hidden=!HANDOFF.ok();
+  $('saveHelp').textContent=canSave()?'The saved photo is full size and looks the same as the preview. It gets a random name, and nothing about the original file is kept in it.':'Saving isn’t available here. Open the Photo Tools website or app to save the photo.';}
+
+/* ================= the photo ================= */
+async function loadBlob(blob,name,keep){
+  let im=null;try{im=await createImageBitmap(blob);}catch(e){im=await new Promise(res=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>res(null);i.src=URL.createObjectURL(blob);});}
+  if(!im||!im.width){toast('That file couldn’t be opened as a picture. Try JPG or PNG.');return false;}
+  IMG=im;BLOB=blob;NAME=name||'photo';SAMPLE=false;if(typeof onPhoto==='function')onPhoto();outCache=null;if(!keep)NAMECODE=rndCode();
+  $('thumb').src=URL.createObjectURL(blob);$('pName').textContent=NAME;$('pInfo').textContent=`${im.width} × ${im.height} pixels`;$('cta').hidden=true;
+  renderOpts();render();if(!keep)save();return true;}
+function addFile(f){if(!f)return;if(!/^image\//.test(f.type)&&!/\.(png|jpe?g|webp|gif|avif|bmp)$/i.test(f.name)){toast('That isn’t a picture.');return;}loadBlob(f,f.name);}
+['pick','pick2'].forEach(id=>$(id).onchange=e=>{addFile(e.target.files[0]);e.target.value='';});
+const dropEl=$('drop');
+['dragenter','dragover'].forEach(ev=>dropEl.addEventListener(ev,e=>{e.preventDefault();dropEl.classList.add('drop');}));
+['dragleave','drop'].forEach(ev=>dropEl.addEventListener(ev,e=>{e.preventDefault();dropEl.classList.remove('drop');}));
+dropEl.addEventListener('drop',e=>{if(e.dataTransfer&&e.dataTransfer.files.length)addFile(e.dataTransfer.files[0]);});
+document.addEventListener('paste',e=>{const f=[...(e.clipboardData&&e.clipboardData.files)||[]].find(x=>/^image\//.test(x.type));if(f)addFile(f);});
+/* a made-up night street to try the filter on before you choose a photo */
+function sampleStreet(){const W=1500,H=1000,c=mkCanvas(W,H),g=c.getContext('2d'),r=rnd(7);
+  let gr=g.createLinearGradient(0,0,0,H);gr.addColorStop(0,'#0B1030');gr.addColorStop(.55,'#3A1E5C');gr.addColorStop(.8,'#B5476E');gr.addColorStop(1,'#F29B5E');g.fillStyle=gr;g.fillRect(0,0,W,H);
+  g.fillStyle='#FFD9A0';g.beginPath();g.arc(750,640,150,0,Math.PI*2);g.fill();
+  for(let i=0;i<26;i++){const w=50+r()*90,x=i*60-20+r()*20,hh=160+r()*420;g.fillStyle=i%2?'#141033':'#1E1746';g.fillRect(x,H-hh,w,hh);
+    for(let y=H-hh+14;y<H-20;y+=22)for(let xx=x+8;xx<x+w-10;xx+=16)if(r()<.35){g.fillStyle=r()<.5?'#FFD27A':'#7FE7FF';g.fillRect(xx,y,7,10);}}
+  g.fillStyle='#0A0820';g.fillRect(0,H-60,W,60);return c;}
+
+/* ================= keeping your work ================= */
+const DB={db:null,
+  open(){if(DB.opening)return DB.opening;return DB.opening=new Promise(res=>{try{const r=indexedDB.open('double-exposure',1);r.onupgradeneeded=()=>r.result.createObjectStore('state');
+    r.onsuccess=()=>{DB.db=r.result;res(r.result);};r.onerror=r.onblocked=()=>res(null);}catch(e){res(null);}});},
+  async tx(mode,fn){const db=DB.db||await DB.open();if(!db)return null;return new Promise(res=>{try{const t=db.transaction('state',mode),st=t.objectStore('state');const q=fn(st);t.oncomplete=()=>res(q&&'result' in q?q.result:true);t.onerror=t.onabort=()=>res(null);}catch(e){res(null);}});}};
+let restored=false,saveT=0;
+function writeState(){if(!restored)return Promise.resolve();return DB.tx('readwrite',s=>s.put({S,blob:SAMPLE?null:BLOB,name:NAME,extra:typeof extraState==='function'?extraState():null,savedAt:Date.now()},'current'));}
+function save(){clearTimeout(saveT);saveT=setTimeout(writeState,500);}
+function flushAutosave(){clearTimeout(saveT);return writeState();}
+async function restore(){try{const st=await DB.tx('readonly',s=>s.get('current'));
+  if(st&&st.S){S={...DEF(),...st.S};if(st.extra&&typeof extraRestore==='function')await extraRestore(st.extra);if(st.blob)await loadBlob(st.blob,st.name,true);}}catch(e){}
+  restored=true;renderOpts();render();}
+
+/* ================= passing files between tools, and from your gallery's Share menu (installed app only) ================= */
+const HANDOFF={name:'pt-handoff',
+  ok(){try{return window.top===window.self&&'caches' in window;}catch(e){return false;}},
+  async put(files){const c=await caches.open(this.name);for(const k of await c.keys())await c.delete(k);let i=0;
+    for(const f of files)await c.put(new Request(`handoff/${Date.now()}-${i++}`),new Response(f,{headers:{'content-type':f.type||'application/octet-stream','x-name':encodeURIComponent(f.name||'file')}}));},
+  async take(){if(!this.ok()||!/[?&]handoff\b/.test(location.search))return[];const out=[];
+    try{const c=await caches.open(this.name);for(const k of await c.keys()){const r=await c.match(k);if(r){const b=await r.blob();out.push(new File([b],decodeURIComponent(r.headers.get('x-name')||'file'),{type:b.type||r.headers.get('content-type')||''}));}await c.delete(k);}}catch(e){}
+    try{history.replaceState(null,'',location.pathname+location.hash);}catch(e){}return out;},
+  async send(files,page){try{await this.put(files);}catch(e){toast('Couldn’t pass it along. Save it and add it there instead.');return;}
+    try{await Promise.race([flushAutosave(),new Promise(r=>setTimeout(r,1500))]);}catch(e){}location.href=page+'?handoff=1';}};
+async function handoffIn(){const fs=(await HANDOFF.take()).filter(f=>/^image\//.test(f.type));if(!fs.length)return;await loadBlob(fs[0],fs[0].name);
+  toast(fs.length>1?'Opened the first photo. This works on one photo at a time.':'Your photo is in. Pick a look, then save it.');}
+document.querySelectorAll('#sendRow button').forEach(b=>b.onclick=()=>withFile(async f=>{say('');await HANDOFF.send([f],b.dataset.to);}));
+
+/* ================= switching tools ================= */
+(function(){
+  const ART={'photo-frame-studio.html':'https://claude.ai/artifact/BTFF4oB7m8EHQMWNwCo2Uw','photo-splitter.html':'https://claude.ai/artifact/ENVcKXEpCdopL6rRfj1fT9','chat-reel.html':'https://claude.ai/artifact/Tzehgnj1qjBYtpZ6oxKAhG','metadata-scrubber.html':'https://claude.ai/artifact/8kwiNFdeFAR3uZ8NTzKVnX','watermark.html':'https://claude.ai/artifact/KY6NSnRSjL5vHT5tjTEZeu','glitch-filter.html':'https://claude.ai/artifact/6BsRKvUZd7igd3rSDzzSTu','double-exposure.html':'https://claude.ai/artifact/RA4aWcy5aKKU527QE8vrFS','duotone.html':'https://claude.ai/artifact/LzJns4RqNHN6K98Pm8QpXX','light-leaks.html':'https://claude.ai/artifact/8hBfKBtiuFV1HJUqDeXJo1','caption-maker.html':'https://claude.ai/artifact/5E6VdnrgfSVCytQtsQUNVc','background-remover.html':'https://claude.ai/artifact/FzXZ8jMRnT8kFRFXS4G3wF','video-layers.html':'https://claude.ai/artifact/HMnHFrAaDUyaiSg7H8uxwN','delivery-reel.html':'https://claude.ai/artifact/4XzpUcdVZdRCviwGjyvTNQ','visual-novel.html':'https://claude.ai/artifact/GUKwPgmd3o8tZarDH4ygRx','motion-comic.html':'https://claude.ai/artifact/QA3g3sR3Jy4etrFoq8rNBD','outfit-tags.html':'https://claude.ai/artifact/3GUgfTcEMSDbgj5TMVuARd','sfx-maker.html':'https://claude.ai/artifact/REzZEE49rDGsJvLMiHU94S','effect-lines.html':'https://claude.ai/artifact/VjVk1Y38uReCEXRQm4Pkmo','panel-layouts.html':'https://claude.ai/artifact/RW5tZaV6fYwPoei7bXPpkh','bubble-maker.html':'https://claude.ai/artifact/QFhAdXvekc5mfPs9ynJyKX'};
+  document.querySelectorAll('.switch a').forEach(a=>{
+    if(a.getAttribute('aria-current')){a.addEventListener('click',e=>e.preventDefault());return;}
+    if(!topLevel){const u=ART[a.getAttribute('href')];if(u&&u.startsWith('https:')){a.href=u;a.target='_blank';a.rel='noopener';}return;}
+    a.addEventListener('click',async e=>{if(e.metaKey||e.ctrlKey||e.shiftKey||e.altKey||e.button)return;e.preventDefault();try{await Promise.race([flushAutosave(),new Promise(r=>setTimeout(r,1500))]);}catch(err){}location.href=a.href;});
+  });
+  addEventListener('pagehide',()=>{try{flushAutosave();}catch(e){}});
+})();
+
+/* ================= boot ================= */
+IMG=makeSample();NAME='Sample picture';$('thumb').src=IMG.toDataURL('image/jpeg',.7);
+syncSave();renderOpts();render();
+restore().then(handoffIn);
+</script>
+
+</body>
+</html>

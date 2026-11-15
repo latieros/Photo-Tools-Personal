@@ -64,6 +64,13 @@ def check():
     ref = blocks.get('index.html')
     for p, b in blocks.items():
         if b and ref and b != ref: problems.append(f'{p}: light/dark switch block differs from index.html')
+    # the All tools menu is run by one shared block; every tool page must carry the same copy
+    switch_re = re.compile(r'<style id="pt-switch-css">.*?<script id="pt-switch-js">.*?</script>', re.S)
+    sblocks = {t: (switch_re.search(read(t)) or [None])[0] for t in tools}
+    sref = sblocks.get(tools[0]) if tools else None
+    for t, b in sblocks.items():
+        if b is None: problems.append(f'{t}: missing the All tools menu block')
+        elif b != sref: problems.append(f'{t}: All tools menu block differs from {tools[0]}')
     for t in tools:
         if f'href="{t}"' not in index:
             problems.append(f'index.html: no link to {t}')

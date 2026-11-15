@@ -110,6 +110,7 @@ def check_page(browser, base, hbase, host_dir, name, w, h, framed, is_tool, args
             over = target.evaluate('document.documentElement.scrollWidth') - w
             if over > 1: errs.append(f'scrolls sideways on a phone by {over}px')
         errs += check_theme(target)
+        if is_tool: errs += check_menu(target, w)
         if is_tool and framed and not args.no_switch:
             errs += check_switch(page, target, base, name)
         if name in ('video-layers.html', 'background-remover.html') and vp_name_is_desktop(w) and not framed:
@@ -139,12 +140,31 @@ def check_switch(page, frame, base, name):
     local = [l for l in others if l['u'].startswith(base)]
     if errs or not local: return errs
     other = local[0]
+    if frame.query_selector('.switch .sw-btn'): frame.click('.switch .sw-btn')
     frame.click(f'.switch a[href="{other["h"]}"]')
     for _ in range(50):
         f = next((f for f in page.frames if f.url.startswith(base + other['h'])), None)
         if f: return []
         page.wait_for_timeout(100)
     return [f'switching to {other["h"]} did not load it']
+
+def check_menu(target, w):
+    """The All tools menu opens from its button, lists the tools, stays on the screen, and closes again."""
+    btn = target.query_selector('.switch .sw-btn')
+    if not btn: return ['no All tools menu button']
+    if not btn.is_visible(): return ['All tools menu button is hidden']
+    btn.click()
+    menu = target.query_selector('.switch .sw-menu')
+    if not menu or not menu.is_visible(): return ['All tools menu did not open']
+    errs = []
+    box = target.evaluate("(()=>{const r=document.querySelector('.switch .sw-menu').getBoundingClientRect();return[r.left,r.right,document.documentElement.clientWidth,document.documentElement.scrollWidth]})()")
+    if box[0] < -1 or box[1] > box[2] + 1: errs.append(f'All tools menu runs off the screen ({box[0]:.0f} to {box[1]:.0f} of {box[2]})')
+    if box[3] > box[2] + 1: errs.append('opening the All tools menu makes the page scroll sideways')
+    if target.eval_on_selector_all('.switch .sw-menu a', 'as=>as.filter(a=>a.offsetParent===null).length'): errs.append('All tools menu has hidden links')
+    target.keyboard.press('Escape') if hasattr(target, 'keyboard') else btn.click()
+    if menu.is_visible(): btn.click()
+    if menu.is_visible(): errs.append('All tools menu did not close')
+    return errs
 
 def check_theme(target):
     """The light/dark switch is next to the page name, visible, and flips the page's background both ways."""

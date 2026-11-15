@@ -40,6 +40,35 @@ document.addEventListener('DOMContentLoaded',function(){var h=document.querySele
   b.addEventListener('click',function(){ptTheme.set(now()==='dark'?'light':'dark');});
   var t=h.querySelector('h1');if(t&&h.classList.contains('top'))t.after(b);else h.prepend(b);apply();});
 })();</script>
+<style id="pt-switch-css">
+/* the All tools menu next to each tool's name; same on every tool page */
+:root nav.switch{position:relative;display:inline-block;width:auto;order:0;max-width:100%;padding:0;border:0;border-radius:0;background:none;overflow:visible;align-self:center}
+:root nav.switch .sw-btn{display:inline-flex;align-items:center;gap:9px;width:auto;min-width:0;margin:0;padding:9px 13px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);font:500 14px/1 var(--f-body,system-ui,sans-serif);cursor:pointer;box-shadow:none;white-space:nowrap}
+:root nav.switch .sw-btn:hover,:root nav.switch .sw-btn[aria-expanded="true"]{border-color:var(--accent);background:var(--panel);color:var(--ink)}
+:root nav.switch .sw-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+:root nav.switch .sw-chev{width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-2px) rotate(45deg);opacity:.7}
+:root nav.switch .sw-btn[aria-expanded="true"] .sw-chev{transform:translateY(2px) rotate(225deg)}
+:root nav.switch .sw-menu{position:absolute;z-index:70;top:calc(100% + 6px);left:0;display:grid;grid-template-columns:repeat(4,auto);gap:4px 16px;width:max-content;max-width:calc(100vw - 16px);max-height:min(72vh,600px);overflow:auto;overscroll-behavior:contain;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--panel);box-shadow:0 14px 40px rgba(0,0,0,.3);text-align:left}
+:root nav.switch .sw-menu[hidden]{display:none}
+:root nav.switch .sw-g{display:flex;flex-direction:column;gap:1px;min-width:0}
+:root nav.switch .sw-g>span{padding:6px 10px 7px;font:600 11px/1 var(--f-body,system-ui,sans-serif);text-transform:uppercase;letter-spacing:.1em;color:var(--accent)}
+:root nav.switch .sw-g a{display:block;padding:8px 10px;border-radius:7px;font:500 14px/1.15 var(--f-body,system-ui,sans-serif);text-decoration:none;white-space:nowrap}
+:root nav.switch .sw-g a:not([aria-current]):hover{background:rgba(128,128,128,.16)}
+@media (max-width:760px){
+  :root nav.switch .sw-menu{grid-template-columns:1fr 1fr;width:calc(100vw - 24px);gap:10px 8px}
+  :root nav.switch .sw-g a{padding:10px;white-space:normal}
+}
+</style>
+<script id="pt-switch-js">/* opens and closes the All tools menu, and keeps it on the screen */
+(function(){document.addEventListener('DOMContentLoaded',function(){var n=document.querySelector('nav.switch');if(!n)return;var b=n.querySelector('.sw-btn'),m=n.querySelector('.sw-menu');if(!b||!m)return;
+  function set(open){m.hidden=!open;b.setAttribute('aria-expanded',String(open));if(!open)return;
+    m.style.left='0px';var r=m.getBoundingClientRect(),w=document.documentElement.clientWidth,dx=0;if(r.right>w-8)dx=w-8-r.right;if(r.left+dx<8)dx=8-r.left;m.style.left=dx+'px';}
+  b.addEventListener('click',function(){set(m.hidden);});
+  document.addEventListener('click',function(e){if(!m.hidden&&!n.contains(e.target))set(false);});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!m.hidden){set(false);b.focus();}});
+  n.addEventListener('focusout',function(e){if(!m.hidden&&e.relatedTarget&&!n.contains(e.relatedTarget))set(false);});
+  addEventListener('pageshow',function(){set(false);});
+});})();</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -220,7 +249,7 @@ input[type=color]{width:44px;height:34px;padding:2px;border:1px solid var(--line
 <body>
 <header class="top">
   <h1 class="brand">Motion <span>Comic</span></h1>
-  <nav class="switch" aria-label="Switch tool"><a href="photo-frame-studio.html">Frame Studio</a><a href="photo-splitter.html">Splitter</a><a href="chat-reel.html">Chat Reel</a><a href="metadata-scrubber.html">Scrubber</a><a href="watermark.html">Watermark</a><a href="glitch-filter.html">Glitch</a><a href="caption-maker.html">Captions</a><a href="sfx-maker.html">SFX</a><a href="effect-lines.html">Lines</a><a href="panel-layouts.html">Panels</a><a href="bubble-maker.html">Bubbles</a><a href="background-remover.html">BG Remover</a><a href="video-layers.html">Video</a><a href="delivery-reel.html">Delivery</a><a href="visual-novel.html">Novel</a><a href="motion-comic.html" aria-current="page">Comic</a><a href="outfit-tags.html">Outfits</a></nav>
+  <nav class="switch" aria-label="Switch tool"><button type="button" class="sw-btn" aria-expanded="false" aria-haspopup="true">All tools<span class="sw-chev" aria-hidden="true"></span></button><div class="sw-menu" hidden><div class="sw-g" role="group" aria-label="Photos"><span aria-hidden="true">Photos</span><a href="photo-frame-studio.html">Photo Frame Studio</a><a href="photo-splitter.html">Photo Splitter</a><a href="watermark.html">Watermark</a><a href="metadata-scrubber.html">Metadata Scrubber</a><a href="background-remover.html">Background Remover</a><a href="outfit-tags.html">Outfit Tags</a></div><div class="sw-g" role="group" aria-label="Photo effects"><span aria-hidden="true">Photo effects</span><a href="glitch-filter.html">Glitch Filter</a><a href="double-exposure.html">Double Exposure</a><a href="duotone.html">Duotone</a><a href="light-leaks.html">Light Leaks</a></div><div class="sw-g" role="group" aria-label="Words and comics"><span aria-hidden="true">Words and comics</span><a href="caption-maker.html">Caption Maker</a><a href="sfx-maker.html">SFX Maker</a><a href="effect-lines.html">Effect Lines</a><a href="panel-layouts.html">Panel Layouts</a><a href="bubble-maker.html">Bubble Maker</a><a href="motion-comic.html" aria-current="page">Motion Comic</a><a href="visual-novel.html">Visual Novel</a></div><div class="sw-g" role="group" aria-label="Video"><span aria-hidden="true">Video</span><a href="video-layers.html">Video Layers</a><a href="chat-reel.html">Chat Reel</a><a href="delivery-reel.html">Delivery Reel</a></div></div></nav>
   <span class="spacer"></span>
   <label class="btn" for="openProj">Open project<input type="file" id="openProj" accept=".json,application/json"></label>
   <button type="button" id="saveProj">Save project</button>

@@ -25,6 +25,9 @@ A small set of personal browser tools for dressing up photos, making short video
 | [Bubble Maker](#bubble-maker) | Manga speech and thought bubbles: 15 styles (classic, thought, shout, whisper, shaky, radio, narration, shoujo, pop, echo, horror and more), any words in about 100 fonts or your own, tails you point by dragging, patterns, double lines, shadows and decorations. Several bubbles on a page, random ideas, a bubble sheet to cut up, and saving as see-through PNG, SVG or a ZIP of each bubble. |
 | [Watermark](#watermark) | Puts your name or logo on one photo or a whole batch, with ready-made looks (corner signature, label, stamp, proof band, tiled) or your own saved watermarks. |
 | [Glitch Filter](#glitch-filter) | Gives a photo a broken-screen look: neon color bars, thin streaks, slices pushed sideways and colors pulled apart, with five ready-made looks, a clear area you place over a face, and a shuffle button for a new arrangement. |
+| [Double Exposure](#double-exposure) | Blends a second picture into the light or dark parts of a photo, like two shots on one piece of film. Five built-in second pictures (city, forest, hills, clouds, stars) or your own, five looks, and a fade toward any side. |
+| [Duotone](#duotone) | Turns a photo into two or three ink colors: smooth like a poster, or printed as speckled, slightly out-of-line layers like a riso print. Eight color pairs, your own colors, paper color and five looks. |
+| [Light Leaks](#light-leaks) | Gives a photo the look of old film: a glowing light leak you drag into place, extra leaks, a film burn on any side, faded and warmer or cooler color, dust, scratches, grain and a date stamp. |
 | [Background Remover](#background-remover) | Takes the background out of photos and videos: people, animals, everyday things, a plain background or green screen, or any color you pick like a chroma key. Touch-up brush for photos, and see-through, color, blurred or picture backgrounds. |
 | [Video Layers](#video-layers) | Puts pictures, videos, text, music and your voice together and exports a new video or GIF. Automatic background removal, green screen, motion paths with keyframes and one-tap layouts. |
 | [Delivery Reel](#delivery-reel) | Plays out an order from a made-up delivery app, from placed to delivered, and ends on the delivered screen. A courier chat on the way and a doorstep photo or video that opens full screen. |
@@ -32,7 +35,7 @@ A small set of personal browser tools for dressing up photos, making short video
 | [Motion Comic](#motion-comic) | Panels pop in, then their bubbles, with sound words, speed lines, cut-ins and page turns. Scrolls like a webtoon or turns pages like a book. |
 | [Outfit Tags](#outfit-tags) | Reads the outfit in a photo or a piece of anime art and turns it into Danbooru tags or prompts for AI image generators, with characters, series and named outfits. Sends the photo to an AI model to read it. |
 
-Every tool has a switcher at the top to jump to another tool. Your work is saved before it switches.
+Every tool has an **All tools** menu next to its name, with the tools grouped as Photos, Photo effects, Words and comics, and Video. Your work is saved before it switches.
 
 ---
 
@@ -396,6 +399,47 @@ Gives any photo a broken-screen look, like a picture coming through a bad signal
 - **Finish:** darken around the clear area so the colors pop, glow, screen lines and grain.
 - **See the original** flips between the photo before and after.
 - **Saving:** JPG or PNG at the photo's full size (up to 5000 pixels on the long side), looking the same as the preview, under a random name. **Copy image** and **Share** are there too, and **Frame it**, **Add words** and **Use in a video** pass the result straight to Photo Frame Studio, Caption Maker or Video Layers.
+
+---
+
+## Double Exposure
+
+Blends a second picture into your photo, like two shots taken on the same piece of film.
+
+- **Second picture:** City at night, Forest, Hills, Clouds or Stars come with the tool, or use one of your own. Drag on the photo to move it, scroll or pinch to zoom it, or flip it left to right.
+- **Looks:** Classic, City lights, Head in the clouds, Starry and Soft dream set everything at once. A look keeps your own second picture if you have chosen one.
+- **Where it shows:** into the dark parts of your photo (a person against a bright sky fills up with the second picture), into the light parts, the brightest of both, a rich mix, or a plain fade.
+- **How much of it shows**, and **let it fade out toward** the top, bottom, left, right or edges, with a slider for how soft the fade is.
+- **Color:** how much color stays in your photo and in the second picture (all the way down is black and white), stronger lights and darks, and a color wash over everything (warm, cool, teal, rose or violet).
+- **Finish:** grain. **See the original** flips between before and after.
+- **Saving:** the same as the Glitch Filter: JPG or PNG at full size under a random name, Copy, Share, and passing the result on to Photo Frame Studio, Caption Maker or Video Layers.
+
+---
+
+## Duotone
+
+Turns a photo into two or three ink colors.
+
+- **Looks:** Poster, Riso print, Newsprint, Soft wash and Night club.
+- **Colors:** eight ready-made pairs, **Surprise me** for a new pair, **Swap the two colors**, or pick your own dark and light colors. A third color can go in between.
+- **Printed how:** **Smooth** turns every shade of the photo into a shade between your colors, like a poster or an album cover. **Ink on paper** prints each color as its own layer on paper you choose the color of, with sliders for how far the layers are out of line and how speckled the ink is, like a riso print or a zine.
+- **Light and dark:** contrast, and a lighter-or-darker slider that gives more of the photo to one color or the other.
+- **Finish:** grain, and how much of the effect to apply, so the photo's own colors can show through.
+- **Saving:** the same as the Glitch Filter.
+
+---
+
+## Light Leaks
+
+Gives a photo the look of old film.
+
+- **Looks:** Warm leak, Film burn, Faded summer, Old print, Cool leak and Rainbow.
+- **Light leak:** drag on the photo to put the main leak where you want it, scroll or pinch to change its size. Choose its color (warm, pink, gold, cool, white or rainbow) and brightness, and add extra leaks around the edges. **Shuffle the leaks and dust** moves the extras, the dust and the scratches somewhere new.
+- **Film burn:** a bright, washed-out band with a wavy edge along the left, right, top or bottom, like the end of a roll.
+- **Film color:** faded (lifts the blacks to a soft grey), cooler or warmer, and more or less color down to black and white.
+- **Dust and scratches:** dust specks and hairs, scratches down the film, grain and dark corners.
+- **Date stamp:** an orange date in the corner like a compact camera prints, set to today or anything you type.
+- **Saving:** the same as the Glitch Filter.
 
 ---
 
@@ -923,6 +967,9 @@ Open each tool once while you're online so everything, fonts included, is saved 
 | `metadata-scrubber.html` | Metadata Scrubber |
 | `watermark.html` | Watermark |
 | `glitch-filter.html` | Glitch Filter |
+| `double-exposure.html` | Double Exposure |
+| `duotone.html` | Duotone |
+| `light-leaks.html` | Light Leaks |
 | `caption-maker.html` | Caption Maker |
 | `sfx-maker.html` | SFX Maker |
 | `effect-lines.html` | Effect Lines |

@@ -9,6 +9,10 @@ https://latieros.github.io/Photo-Tools-Personal/ (the GitHub owner name is `lati
   (doctype, manifest, icons, offline registration, and the light/dark switch block `#pt-theme-css` + `#pt-theme-js`,
   which adds the switch next to the page's `<h1>`, starts in dark, and keeps a choice in localStorage `pt-theme`). Keep it identical
   when adding a tool; `build.py check` compares the switch block across pages.
+- Every tool page also carries the same `#pt-switch-css` + `#pt-switch-js` block right after the light/dark block. It runs the
+  **All tools** drop-down: `<nav class="switch">` holds a `.sw-btn` button and a hidden `.sw-menu` with one `.sw-g` group per
+  category (Photos, Photo effects, Words and comics, Video), in the same order as the groups on `index.html`.
+  `build.py check` compares this block and the menu's links across pages.
 - `index.html` is the home page; `share.html` receives files from the phone's Share menu; `sw.js` is the offline worker.
 - `vendor/mediapipe/` is the background remover used by Video Layers (see its README). `.tflite` models can't be served
   inside Claude artifacts, so `video-layers.html` falls back to `<model>.tflite.txt` (base64) when the `.tflite` is missing.
@@ -35,7 +39,7 @@ https://latieros.github.io/Photo-Tools-Personal/ (the GitHub owner name is `lati
   Pass `url` from a new session so it updates the same artifact instead of making a new one.
 - `python3 dev/test.py --artifact [--shots]` tests the staged copy (screenshots go to `dist/shots/`).
 - `--tool <page>.html` stages a single tool, for the older one-tool-per-artifact copies listed in `dev/artifacts.json`.
-- When adding a tool: add it to every page's `.switch` nav, `index.html`, `FILES` in `sw.js`, the README,
+- When adding a tool: add it to the right group in every page's `.switch` menu, `index.html`, `FILES` in `sw.js`, the README,
   and `dev/artifacts.json` once it has an artifact link.
 
 ## Conventions

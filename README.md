@@ -28,6 +28,10 @@ A small set of personal browser tools for dressing up photos, making short video
 | [Double Exposure](#double-exposure) | Blends a second picture into the light or dark parts of a photo, like two shots on one piece of film. Five built-in second pictures (city, forest, hills, clouds, stars) or your own, five looks, and a fade toward any side. |
 | [Duotone](#duotone) | Turns a photo into two or three ink colors: smooth like a poster, or printed as speckled, slightly out-of-line layers like a riso print. Eight color pairs, your own colors, paper color and five looks. |
 | [Light Leaks](#light-leaks) | Gives a photo the look of old film: a glowing light leak you drag into place, extra leaks, a film burn on any side, faded and warmer or cooler color, dust, scratches, grain and a date stamp. |
+| [Tilt-Shift](#tilt-shift) | Keeps one strip or a round spot of a photo sharp and blurs the rest, more the further away it is, so a street or a landscape looks like a tiny model. |
+| [Particle Overlay](#particle-overlay) | Puts snow, rain, petals, golden dust, sparkles, embers, confetti or fireflies over a photo. Saves a still, or a looping GIF or video of them drifting. |
+| [Reveal](#reveal) | Changes one photo into another with a wipe, fade, circle, blinds, melt, burn-through or glitch cut. Saves any moment as a photo, or the whole change as a GIF or video. |
+| [Layer Reveal](#layer-reveal) | Lays one photo over another and opens a window in the top one: a paper tear, a torn hole, a peeled corner, glasses, a magnifier, a keyhole, window blinds, a jigsaw piece, a scratch patch, shapes or a word. |
 | [Background Remover](#background-remover) | Takes the background out of photos and videos: people, animals, everyday things, a plain background or green screen, or any color you pick like a chroma key. Touch-up brush for photos, and see-through, color, blurred or picture backgrounds. |
 | [Video Layers](#video-layers) | Puts pictures, videos, text, music and your voice together and exports a new video or GIF. Automatic background removal, green screen, motion paths with keyframes and one-tap layouts. |
 | [Delivery Reel](#delivery-reel) | Plays out an order from a made-up delivery app, from placed to delivered, and ends on the delivered screen. A courier chat on the way and a doorstep photo or video that opens full screen. |
@@ -441,6 +445,58 @@ Gives a photo the look of old film.
 - **Dust and scratches:** dust specks and hairs, scratches down the film, grain and dark corners.
 - **Date stamp:** an orange date in the corner like a compact camera prints, set to today or anything you type.
 - **Saving:** the same as the Glitch Filter.
+
+---
+
+## Tilt-Shift
+
+Keeps one part of a photo sharp and blurs the rest, so a street or a landscape looks like a tiny model.
+
+- **Looks:** Miniature, Tiny toy town, Slanted, Soft portrait and Dreamy.
+- **Sharp part:** a strip across the photo or a round spot. Drag on the photo to move it, scroll or pinch to make it wider or narrower, and tilt the strip to any angle.
+- **Blur:** how blurry the rest gets, and how gradually it blurs. The blur gets stronger the further you go from the sharp part.
+- **Color:** stronger colors and contrast (bright, toy-like color is half of the miniature look) and dark corners.
+- **Saving:** the same as the Glitch Filter's still photo.
+
+---
+
+## Particle Overlay
+
+Puts falling or floating particles over a photo.
+
+- **Kinds:** Snow, Rain, Petals, Golden dust, Sparkles, Embers, Confetti and Fireflies.
+- **Particles:** how many, size, speed, wind (left, still or right), softness (soft ones look close to the camera), how strongly they show, and their color. Confetti can use party colors.
+- **Mood:** darken the photo so snow, embers and fireflies stand out.
+- **Shuffle them** puts every particle somewhere new.
+- **Moving:** tap **Play it moving** to watch them drift. Every particle makes a whole number of trips round the loop, so the end joins the start. **Save a GIF** or **Save a video**, with the loop length and size you choose.
+- **Saving:** a still photo the same way as the Glitch Filter.
+
+---
+
+## Reveal
+
+Changes one photo into a second one. Good for before and after.
+
+- **Two photos:** the one it starts on, and the second photo it changes into. If they are different shapes, the second is cropped to fit.
+- **How it changes:** Wipe (any of four directions, soft or hard edge, with or without a white line), Fade, Circle, Blinds, Melt (the first photo slides off in strips), Burn through (a glowing edge eats it away) and Glitch cut.
+- **How far along:** a slider, or drag across the photo, to stop anywhere between the two. The photo you save is the moment you stop on.
+- **Timing:** change back again so it loops smoothly, start on the second photo instead, and how long it rests on each.
+- **Moving:** **Play it moving**, then **Save a GIF** or **Save a video**.
+
+---
+
+## Layer Reveal
+
+Lays one photo over another and opens a window in the top one, so the photo underneath shows through.
+
+- **Openings:** Paper tear, Torn hole, Torn in half, Peeled corner, Glasses, Magnifier, Keyhole, Window blinds, Jigsaw piece, Scratch patch, Brush stroke, Heart, Star, Circle, and Words (the photo shows through the letters of a word you type).
+- **Moving it:** drag on the photo to move the opening, scroll or pinch to change its size, and turn it to any angle. A peeled corner is dragged instead: pull it as far as you like in any direction.
+- **Torn paper:** how ragged the tear is, how much bare paper shows round it, the paper color, and **Tear it differently** for a new rip.
+- **Glasses:** round, square, heart or star lenses, frame color and thickness, and shine on the glass.
+- **Window blinds:** the spacing of the slats and how far open they are.
+- **Edge:** an outline for the shapes, and a shadow inside the opening that makes the top photo look like a sheet lying over the other.
+- **Photo underneath:** switch dragging to it, then zoom and slide it until the right part shows through. **Swap the two photos** trades top and bottom.
+- **Saving:** a still photo the same way as the Glitch Filter.
 
 ---
 
@@ -971,6 +1027,10 @@ Open each tool once while you're online so everything, fonts included, is saved 
 | `double-exposure.html` | Double Exposure |
 | `duotone.html` | Duotone |
 | `light-leaks.html` | Light Leaks |
+| `tilt-shift.html` | Tilt-Shift |
+| `particle-overlay.html` | Particle Overlay |
+| `reveal.html` | Reveal |
+| `layer-reveal.html` | Layer Reveal |
 | `caption-maker.html` | Caption Maker |
 | `sfx-maker.html` | SFX Maker |
 | `effect-lines.html` | Effect Lines |

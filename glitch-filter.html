@@ -144,6 +144,8 @@ canvas#cv.dragging{cursor:grabbing}
 .save{grid-area:save;display:flex;flex-direction:column;gap:12px}
 .phead{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .status{min-height:1.2em;font-size:13px;color:var(--accent);margin:0}
+.bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--accent)}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;z-index:30;max-width:calc(100% - 32px);box-shadow:0 8px 24px rgba(0,0,0,.25)}
 @media (max-width:900px){
   .app{grid-template-columns:minmax(0,1fr);grid-template-areas:"stage" "save" "opts"}
@@ -213,17 +215,20 @@ canvas#cv.dragging{cursor:grabbing}
     <div class="grp" id="keepF"></div>
     <h4 class="fhead">Finish</h4>
     <div class="grp" id="finF"></div>
+    <h4 class="fhead">Moving</h4>
+    <div class="grp" id="movF"></div>
     <h4 class="fhead">Saving</h4>
     <div class="grp" id="fmtF"></div>
   </section>
 
   <section class="stage" aria-label="Preview">
     <div class="canvas-wrap" id="drop">
-      <canvas id="cv" width="1200" height="800" aria-label="Your photo with the glitch filter. Drag the circle to choose the part that stays clear."></canvas>
+      <canvas id="cv" width="1200" height="800" aria-label="Your photo with the glitch filter. Drag the circle to choose the part that stays clear. Play it moving to watch the glitches jump about."></canvas>
       <label class="btn primary cta" id="cta" for="pick2">Choose your photo<input type="file" id="pick2" accept="image/*"></label>
     </div>
     <div class="under">
       <p class="help" id="dragHelp"></p>
+      <button type="button" id="playBtn" aria-pressed="false">Play it moving</button>
       <button type="button" id="compare" aria-pressed="false">See the original</button>
     </div>
   </section>
@@ -236,6 +241,12 @@ canvas#cv.dragging{cursor:grabbing}
       <button type="button" id="copyBtn" hidden>Copy image</button>
       <button type="button" id="saveBtn" class="primary">Save the photo</button>
     </div>
+    <div class="row" id="movRow">
+      <span class="help">Save it moving:</span>
+      <button type="button" id="gifBtn">Save a GIF</button>
+      <button type="button" id="vidBtn">Save a video</button>
+    </div>
+    <div class="bar" id="movBarW" hidden><i id="movBar"></i></div>
     <div class="row" id="sendRow" hidden>
       <span class="help">Carry on in another tool:</span>
       <button type="button" data-to="photo-frame-studio.html">Frame it</button>
@@ -281,7 +292,7 @@ function foldSections(p,sel,stop){let body=null;
     if(body&&!(stop&&el.matches(stop)))body.append(el);}}
 
 if(isPhone())foldSections(document.querySelector('.opts'),'h4.fhead');
-ptWide({panel:document.querySelector('.opts'),key:'gl-open',open:['Glitches','Colors','Keep an area clear','Finish','Saving'],firstRight:'Keep an area clear',
+ptWide({panel:document.querySelector('.opts'),key:'gl-open',open:['Glitches','Colors','Keep an area clear','Finish','Moving','Saving'],firstRight:'Keep an area clear',
   wide(){const st=document.querySelector('.stage');ptMove(document.querySelector('.phead'),st,st.firstElementChild);}});
 
 /* ================= basics ================= */
@@ -311,7 +322,9 @@ const PALS={
   ice:{name:'Ice',c:['#00e1ff','#3d7bff','#7df9ff','#b44dff','#00ffa6','#ffffff']},
   rgb:{name:'Red, green, blue',c:['#ff0033','#00ff66','#0a5cff','#ffffff']},
   white:{name:'White',c:['#ffffff','#d8dde6','#9aa3b2']}};
-const DEF=()=>({v:1,look:'neon',amt:1,seed:20261,...LOOKS.neon.v,keep:true,fx:.5,fy:.42,fr:.36,fmt:'jpg'});
+const DEF=()=>({v:1,look:'neon',amt:1,seed:20261,...LOOKS.neon.v,keep:true,fx:.5,fy:.42,fr:.36,fmt:'jpg',speed:.5,surge:.6,loop:3,msize:720,vfmt:'webm'});
+/* the moving version counts time in ticks, 12 a second, and repeats after a loop of them */
+const TICKS=12,loopTicks=()=>Math.max(1,Math.round(S.loop*TICKS));
 let S=DEF(),IMG=null,BLOB=null,NAME='',SAMPLE=true;
 const iw=()=>IMG.width,ih=()=>IMG.height;
 
@@ -333,18 +346,28 @@ const palette=()=>(PALS[S.pal]||PALS.neon).c||photoColors();
 /* ================= the filter ================= */
 /* Draws the photo at W × H with every glitch on it and returns the canvas. All places and sizes are worked out as
    parts of the picture, so a small preview and the full-size save look the same. */
-function glitch(W,H){
-  const A=S.amt,u=Math.sqrt(W*H)/1000,pal=palette(),seed=S.seed|0;
+function glitch(W,H,fr){
+  const u=Math.sqrt(W*H)/1000,pal=palette(),seed=S.seed|0;
+  /* Moving: fr is the tick to draw. Every piece holds still for a few ticks and then jumps to a new "take" of itself,
+     some pieces blink out for a take, and the whole effect surges and calms. A still photo (no fr) is take 0 of
+     everything at normal strength, so stills never change. */
+  const anim=fr!=null,N=anim?loopTicks():1,tk=anim?((fr%N)+N)%N:0;
+  const hsh=(i,salt)=>{let x=Math.imul(i+1,0x9E3779B1)^Math.imul((salt+seed)|0,0x85EBCA6B);x^=x>>>15;x=Math.imul(x,0x2C1B3C6D);x^=x>>>12;return(x>>>0)/4294967296;};
+  const take=(i,salt,slow)=>{if(!anim)return 0;const hold=Math.max(1,Math.round((1+hsh(i,salt)*slow)*(1.8-S.speed*1.6)));return(1+Math.floor(((tk+Math.floor(hsh(i,salt+1)*N))%N)/hold))*7919;};
+  const shown=(i,salt,k)=>!anim||hsh(i*131+k,salt+2)<.8;
+  const surge=anim?(()=>{const b=hsh(Math.floor(tk/3),99);return 1+S.surge*(b<.2?1:b<.5?-.55:0);})():1,A=S.amt*surge;
   const c=mkCanvas(W,H),g=c.getContext('2d',{willReadFrequently:true});
   g.imageSmoothingQuality='high';g.drawImage(IMG,0,0,W,H);
   const keep=S.keep,fxp=S.fx*W,fyp=S.fy*H,R=S.fr*Math.min(W,H);
 
   /* 1. slices pushed sideways, colors pulled apart, and stronger color and contrast, pixel by pixel */
   const id=g.getImageData(0,0,W,H),d=id.data,s=new Uint8ClampedArray(d);
-  const sh=new Float32Array(H),sp=new Float32Array(H),baseSp=S.split*A*W*.007;
+  const sh=new Float32Array(H),sp=new Float32Array(H),baseSp=S.split*A*W*.007*(anim?.55+hsh(tk,7)*1.1:1);
   const nb=Math.round(46*S.shift*A);
-  for(let i=0;i<nb;i++){const r=rnd(seed*7+i*131+1),y0=r(),hh=r()*r()*.07+.004,dx=(r()-.5)*2*(.015+.11*r())*W*Math.min(1.5,.5+S.shift*A),ex=r()<.4?r()*W*.012:0;
+  for(let i=0;i<nb;i++){const k=take(i,1,3);if(!shown(i,1,k))continue;const r=rnd(seed*7+i*131+1+k),y0=r(),hh=r()*r()*.07+.004,dx=(r()-.5)*2*(.015+.11*r())*W*Math.min(1.5,.5+S.shift*A),ex=r()<.4?r()*W*.012:0;
     const a=Math.floor(y0*H),b=Math.min(H,Math.ceil((y0+hh)*H));for(let y=a;y<b;y++){sh[y]+=dx;sp[y]+=ex;}}
+  /* now and then the picture tears: everything below a line jumps sideways for a tick */
+  if(anim&&hsh(tk,11)<.2*S.surge){const y0=Math.floor(hsh(tk,12)*H),dx=(hsh(tk,13)-.5)*W*.07*S.amt;for(let y=y0;y<H;y++)sh[y]+=dx;}
   const sat=1+S.punch*.9,con=1+S.punch*.45;
   for(let y=0;y<H;y++){const o=sh[y],p=sp[y]+baseSp,row=y*W*4,dy=y-fyp,dy2=dy*dy;
     for(let x=0;x<W;x++){
@@ -365,23 +388,23 @@ function glitch(W,H){
   const lenK=.35+S.len*1.5,thK=.35+S.thick*1.5,pick=r=>pal[Math.floor(r()*pal.length)%pal.length];
   /* bars, in bunches */
   const nBunch=Math.round(70*S.bars*A);
-  for(let i=0;i<nBunch;i++){const r=rnd(seed*13+i*977+2),cy=r()*H,e=r(),cx=(e<.38?r()*.3:e<.76?.7+r()*.3:r())*W,n=2+Math.floor(r()*7),spread=(.008+.045*r())*H,main=pick(r);
+  for(let i=0;i<nBunch;i++){const k=take(i,2,8);if(!shown(i,2,k))continue;const r=rnd(seed*13+i*977+2+k),cy=r()*H,e=r(),cx=(e<.38?r()*.3:e<.76?.7+r()*.3:r())*W,n=2+Math.floor(r()*7),spread=(.008+.045*r())*H,main=pick(r);
     for(let k=0;k<n;k++){const y=cy+(r()-.5)*2*spread,len=(.025+r()*r()*.42)*W*lenK,x=cx+(r()-.5)*len*1.2-len/2,th=Math.max(1,Math.round(u*(1+Math.pow(r(),3)*14)*thK));
       a.globalAlpha=.55+.45*r();a.fillStyle=r()<.45?main:pick(r);a.fillRect(Math.round(x),Math.round(y),Math.round(len),th);
       if(r()<.35){a.globalAlpha=.9;a.fillStyle=pick(r);a.fillRect(Math.round(x+len*r()*.5),Math.round(y+th),Math.round(len*(.2+.5*r())),Math.max(1,Math.round(u)));}}}
   /* blocks of stacked stripes, mostly at the sides */
   const nBlock=Math.round(14*S.blocks*A);
-  for(let i=0;i<nBlock;i++){const r=rnd(seed*17+i*613+3),bw=(.06+.13*r())*W,bh=(.03+.1*r())*H,e=r(),x=e<.42?r()*.03*W:e<.84?W-bw-r()*.03*W:r()*(W-bw),y0=r()*(H-bh);
+  for(let i=0;i<nBlock;i++){const k=take(i,3,10);if(!shown(i,3,k))continue;const r=rnd(seed*17+i*613+3+k),bw=(.06+.13*r())*W,bh=(.03+.1*r())*H,e=r(),x=e<.42?r()*.03*W:e<.84?W-bw-r()*.03*W:r()*(W-bw),y0=r()*(H-bh);
     let y=y0;while(y<y0+bh){const sh2=Math.max(1,Math.round(u*(1+r()*5)*thK));a.globalAlpha=.45+.55*r();a.fillStyle=pick(r);const w=bw*(r()<.6?1:.4+.6*r());a.fillRect(Math.round(x),Math.round(y),Math.round(w),sh2);y+=sh2+(r()<.25?Math.round(u*2):0);}}
   /* rows of small dashes, like broken text */
   const nRows=Math.round(170*S.noise*A);
-  for(let i=0;i<nRows;i++){const r=rnd(seed*19+i*389+4),y=Math.round(r()*H),len=(.08+.5*r())*W*lenK,hh=Math.max(1,Math.round(u*(r()<.3?2:1))),col=r()<.35?pick(r):null;
-    let x=r()*W-len*.3;const end=x+len;
+  for(let i=0;i<nRows;i++){const k=take(i,4,6);if(!shown(i,4,k))continue;const r=rnd(seed*19+i*389+4+k),y=Math.round(r()*H),len=(.08+.5*r())*W*lenK,hh=Math.max(1,Math.round(u*(r()<.3?2:1))),col=r()<.35?pick(r):null;
+    let x=r()*W-len*.3+(anim?(hsh(i,8)-.5)*tk*u*36*S.speed:0);const end=x+len;
     while(x<end){const w=u*(1+r()*8),gap=u*(1+r()*6);if(col){a.globalAlpha=.5+.4*r();a.fillStyle=r()<.8?col:pick(r);}else{a.globalAlpha=.25+.4*r();a.fillStyle='#cfd8e6';}a.fillRect(Math.round(x),y,Math.max(1,Math.round(w)),hh);x+=w+gap;}}
   a.globalAlpha=1;
   /* thin streaks that take their color from the photo underneath */
   const nStreak=Math.round(420*S.streaks*A);
-  for(let i=0;i<nStreak;i++){const r=rnd(seed*23+i*211+5),x=r()*W,y=Math.round(r()*H),len=(.02+r()*r()*.3)*W*lenK,th=Math.max(1,Math.round(u*(1+Math.pow(r(),4)*3)*Math.min(1.6,thK))),e=r();let col;
+  for(let i=0;i<nStreak;i++){const k=take(i,5,5);if(!shown(i,5,k))continue;const r=rnd(seed*23+i*211+5+k),x=r()*W,y=Math.round(r()*H),len=(.02+r()*r()*.3)*W*lenK,th=Math.max(1,Math.round(u*(1+Math.pow(r(),4)*3)*Math.min(1.6,thK))),e=r();let col;
     if(e<.55){const px=clamp(Math.round(x),0,W-1),py=clamp(y,0,H-1),j=(py*W+px)*4;col=vivid(d[j],d[j+1],d[j+2],.62);}else col=e<.9?pick(r):'#ffffff';
     b.globalAlpha=.5+.5*r();const x0=Math.round(x-len*r());
     if(r()<.4){const gr=b.createLinearGradient(x0,0,x0+len,0),dir=r()<.5;gr.addColorStop(dir?0:1,col);gr.addColorStop(dir?1:0,'rgba(0,0,0,0)');b.fillStyle=gr;}else b.fillStyle=col;
@@ -401,16 +424,17 @@ function glitch(W,H){
   g.globalCompositeOperation='source-over';L1.width=L1.height=L2.width=L2.height=0;
 
   /* 5. screen lines and grain over the top */
-  if(S.scan>0){const step=Math.max(2,Math.round(u*3)),th=Math.max(1,Math.round(step/2));g.fillStyle=`rgba(0,0,0,${S.scan*.45})`;for(let y=0;y<H;y+=step)g.fillRect(0,y,W,th);}
-  if(S.grain>0){const n=mkCanvas(160,160),q=n.getContext('2d'),nd=q.createImageData(160,160),r=rnd(seed*29+6);
+  if(S.scan>0){const step=Math.max(2,Math.round(u*3)),th=Math.max(1,Math.round(step/2));g.fillStyle=`rgba(0,0,0,${S.scan*.45})`;for(let y=anim?tk%step:0;y<H;y+=step)g.fillRect(0,y,W,th);}
+  if(S.grain>0){const n=mkCanvas(160,160),q=n.getContext('2d'),nd=q.createImageData(160,160),r=rnd(seed*29+6+tk);
     for(let i=0;i<nd.data.length;i+=4){const v=Math.floor(r()*256);nd.data[i]=nd.data[i+1]=nd.data[i+2]=v;nd.data[i+3]=255;}q.putImageData(nd,0,0);
     const k=Math.max(1,Math.round(u));g.save();g.imageSmoothingEnabled=false;g.globalCompositeOperation='overlay';g.globalAlpha=S.grain*.5;g.scale(k,k);g.fillStyle=g.createPattern(n,'repeat');g.fillRect(0,0,Math.ceil(W/k),Math.ceil(H/k));g.restore();}
   return c;}
 
 /* ================= preview ================= */
-let PV=null,showOrig=false,raf=0;
-function pvSize(){const m=1200,k=Math.min(1,m/Math.max(iw(),ih()));return[Math.max(1,Math.round(iw()*k)),Math.max(1,Math.round(ih()*k))];}
-function render(){if(!IMG)return;const[W,H]=pvSize();if(PV)PV.width=PV.height=0;PV=glitch(W,H);paint();}
+let PV=null,showOrig=false,raf=0,playing=false,playT0=0,playTick=0,playRaf=0;
+/* while it plays the preview is drawn smaller, so it keeps up */
+function pvSize(){const m=playing?720:1200,k=Math.min(1,m/Math.max(iw(),ih()));return[Math.max(1,Math.round(iw()*k)),Math.max(1,Math.round(ih()*k))];}
+function render(){if(!IMG)return;const[W,H]=pvSize();if(PV)PV.width=PV.height=0;PV=glitch(W,H,playing?playTick:undefined);paint();}
 function paint(){if(!PV)return;const W=PV.width,H=PV.height;if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H;}
   if(showOrig){ctx.imageSmoothingQuality='high';ctx.drawImage(IMG,0,0,W,H);return;}
   ctx.drawImage(PV,0,0);
@@ -419,6 +443,9 @@ function paint(){if(!PV)return;const W=PV.width,H=PV.height;if(cv.width!==W||cv.
 /* the dashed circle shows while you move it and for a moment after, then gets out of the way */
 let ringOn=false,ringT=0;
 function showRing(){ringOn=true;clearTimeout(ringT);ringT=setTimeout(()=>{ringOn=false;paint();},1600);}
+function playLoop(){if(!playing)return;const f=Math.floor((performance.now()-playT0)/1000*TICKS);if(f!==playTick){playTick=f;render();}playRaf=requestAnimationFrame(playLoop);}
+function setPlay(on){playing=on;cancelAnimationFrame(playRaf);$('playBtn').setAttribute('aria-pressed',String(on));$('playBtn').textContent=on?'Stop':'Play it moving';
+  if(on){if(showOrig)$('compare').click();playT0=performance.now();playTick=0;render();playLoop();}else render();}
 function schedule(){if(raf)return;raf=requestAnimationFrame(()=>{raf=0;render();});}
 function changed(){schedule();save();}
 
@@ -448,11 +475,19 @@ function renderOpts(){
   kf.append(h('p',{class:'help'},S.keep?'Drag the dashed circle on the photo onto the part that should stay clear. Inside it only a few thin streaks get through.':'The glitches cover the whole photo evenly.'));
   const ff=$('finF');ff.innerHTML='';
   ff.append(...sl('dark',S.keep?'Darken around the clear area':'Darken the edges','A darker photo makes the colors pop.'),...sl('glow','Glow'),...sl('scan','Screen lines'),...sl('grain','Grain'));
+  const mf=$('movF');mf.innerHTML='';
+  mf.append(rangeF('o-speed','Speed',0,1,.01,S.speed,v=>v<.34?'Slow':v>.66?'Fast':'Medium',v=>{S.speed=v;changed();}),
+    rangeF('o-surge','Surges',0,1,.01,S.surge,pct,v=>{S.surge=v;changed();}),h('p',{class:'help'},'With surges the glitching flares up, tears the picture and calms down again. At zero it glitches steadily.'),
+    segF('o-loop','Length of the loop',[[2,'2 seconds'],[3,'3 seconds'],[4,'4 seconds'],[6,'6 seconds']],S.loop,v=>{S.loop=v;renderOpts();changed();}),
+    segF('o-msize','Size of the GIF or video',[[480,'Small'],[720,'Medium'],[1080,'Large']],S.msize,v=>{S.msize=v;renderOpts();save();}));
+  if(vidMime('webm')&&vidMime('mp4'))mf.append(segF('o-vfmt','Kind of video',[['webm','WebM'],['mp4','MP4']],S.vfmt,v=>{S.vfmt=v;renderOpts();save();}));
+  mf.append(h('p',{class:'help'},'Tap Play it moving under the photo to watch it. The GIF loops on its own and is made at up to 640 pixels to keep the file sensible. The video plays the loop twice and records as it plays, so keep this page in front.'));
   const sf=$('fmtF');sf.innerHTML='';sf.append(segF('o-f','Save as',[['jpg','JPG'],['png','PNG']],S.fmt,v=>{S.fmt=v;renderOpts();save();}),
     h('p',{class:'help'},S.fmt==='jpg'?'JPG is small and works everywhere.':'PNG keeps every thin line perfectly sharp but the file is much bigger.'));
   $('dragHelp').textContent=S.keep?'Drag on the photo to move the clear area. Scroll or pinch to change its size.':'Tap Shuffle the glitches for a new arrangement.';
   cv.classList.toggle('movable',S.keep);
 }
+$('playBtn').onclick=()=>setPlay(!playing);
 $('shuffle').onclick=()=>{S.seed=(Math.random()*2147483647)|0;changed();};
 $('compare').onclick=()=>{showOrig=!showOrig;$('compare').setAttribute('aria-pressed',String(showOrig));$('compare').textContent=showOrig?'See the glitch':'See the original';paint();};
 
@@ -505,9 +540,119 @@ $('saveBtn').onclick=()=>withFile(async f=>{say(await saveFile(f,f.name));});
 $('shareBtn').onclick=()=>withFile(async f=>{try{await navigator.share({files:[f],title:'Glitch photo'});say('Shared.');}catch(err){say(err&&err.name==='AbortError'?'':'Sharing didn’t work here. Save the photo instead.');}});
 $('copyBtn').onclick=async()=>{say('Copying…');try{const[W,H]=outSize(),c=glitch(W,H);
   await navigator.clipboard.write([new ClipboardItem({'image/png':new Promise(r=>c.toBlob(r,'image/png'))})]);say('Copied. Paste it wherever you like.');}catch(e){say('Copying didn’t work here. Save the photo instead.');}};
+/* ---------- the moving version: a GIF made frame by frame, or a video recorded while it plays ---------- */
+/* WebM: the browser writes its own name into the file; turn those two entries into blank padding of the same size */
+const ebmlLen=b=>{let l=1,m=0x80;while(l<=8&&!(b&m)){m>>=1;l++;}return l;};
+async function cleanWebm(blob){try{const buf=new Uint8Array(await blob.arrayBuffer());let p=-1;
+  for(let i=0;i<Math.min(buf.length-4,65536);i++)if(buf[i]===0x15&&buf[i+1]===0x49&&buf[i+2]===0xA9&&buf[i+3]===0x66){p=i;break;}
+  if(p<0)return blob;const sl=ebmlLen(buf[p+4]);let size=buf[p+4]&(0xFF>>sl);for(let i=1;i<sl;i++)size=size*256+buf[p+4+i];
+  let q=p+4+sl,changed=false;const end=Math.min(buf.length,q+size);
+  while(q<end){const il=ebmlLen(buf[q]);if(il>4)break;let id=0;for(let i=0;i<il;i++)id=id*256+buf[q+i];
+    const zl=ebmlLen(buf[q+il]);if(zl>8)break;let n=buf[q+il]&(0xFF>>zl);for(let i=1;i<zl;i++)n=n*256+buf[q+il+i];const tot=il+zl+n;
+    if((id===0x4D80||id===0x5741)&&il===2&&n+1<Math.pow(2,7*zl)-1){buf[q]=0xEC;let v=n+1;for(let i=zl-1;i>=0;i--){buf[q+1+i]=v&255;v=Math.floor(v/256);}buf[q+1]|=(0x80>>(zl-1));buf.fill(0,q+1+zl,q+tot);changed=true;}
+    q+=tot;}
+  return changed?new Blob([buf],{type:blob.type}):blob;}catch(e){return blob;}}
+/* MP4: blank any notes and names, and zero the creation dates */
+async function cleanMp4(blob){try{const buf=new Uint8Array(await blob.arrayBuffer()),dv=new DataView(buf.buffer);let changed=false;
+  const T=i=>String.fromCharCode(buf[i],buf[i+1],buf[i+2],buf[i+3]);
+  const walk=(s,e)=>{let p=s;while(p+8<=e){let n=dv.getUint32(p),h=8;const t=T(p+4);if(n===1){n=Number(dv.getBigUint64(p+8));h=16;}else if(n===0)n=e-p;if(n<h||p+n>e)break;
+    if(t==='udta'||t==='meta'||t==='uuid'){buf.set([0x66,0x72,0x65,0x65],p+4);buf.fill(0,p+h,p+n);changed=true;}
+    else if(t==='mvhd'||t==='tkhd'||t==='mdhd'){buf.fill(0,p+h+4,p+h+(buf[p+h]===1?20:12));changed=true;}
+    else if(t==='hdlr'&&p+h+24<p+n){buf.fill(0,p+h+24,p+n);changed=true;}
+    else if(t==='stsd'){let q=p+h+8;const cnt=dv.getUint32(p+h+4);for(let k=0;k<cnt&&q+8<=p+n;k++){const en=dv.getUint32(q),et=T(q+4);if(en<8)break;
+      if(['avc1','avc3','hvc1','hev1','vp09','av01','mp4v'].includes(et)&&en>=82){buf.fill(0,q+50,q+82);changed=true;}q+=en;}}/* the encoder's name inside the video track */
+    else if(['moov','trak','mdia','minf','stbl'].includes(t))walk(p+h,p+n);
+    p+=n;}};
+  walk(0,buf.length);return changed?new Blob([buf],{type:blob.type}):blob;}catch(e){return blob;}}
+async function cleanOut(blob){if(!blob)return blob;const t=blob.type||'';const out=t.includes('jpeg')?await cleanJpeg(blob):t.includes('webm')?await cleanWebm(blob):t.includes('mp4')?await cleanMp4(blob):blob;if(blob.over)out.over=blob.over;return out;}
+
+async function fixWebmDuration(blob,ms){
+  try{const buf=new Uint8Array(await blob.arrayBuffer());let p=-1;
+    for(let i=0;i<Math.min(buf.length-4,16384);i++)if(buf[i]===0x15&&buf[i+1]===0x49&&buf[i+2]===0xA9&&buf[i+3]===0x66){p=i;break;}
+    if(p<0)return blob;const b0=buf[p+4];let len=1,mask=0x80;while(len<=8&&!(b0&mask)){mask>>=1;len++;}let size=b0&(mask-1);for(let i=1;i<len;i++)size=size*256+buf[p+4+i];
+    const cs=p+4+len,ce=cs+size,content=buf.subarray(cs,ce);for(let i=0;i<content.length-2;i++)if(content[i]===0x44&&content[i+1]===0x89&&(content[i+2]===0x88||content[i+2]===0x84))return blob;
+    const dur=new Uint8Array(11);dur[0]=0x44;dur[1]=0x89;dur[2]=0x88;new DataView(dur.buffer).setFloat64(3,ms);const sv=new Uint8Array(8);sv[0]=0x01;let v=content.length+11;for(let i=7;i>=1;i--){sv[i]=v&255;v=Math.floor(v/256);}
+    return new Blob([buf.subarray(0,p+4),sv,content,dur,buf.subarray(ce)],{type:blob.type});}catch(e){return blob;}
+}
+/* GIF encoder: shared palette from sample frames, unchanged pixels transparent, LZW in a worker */
+function ByteOut(){let buf=new Uint8Array(1<<16),len=0;const grow=()=>{const nb=new Uint8Array(buf.length*2);nb.set(buf);buf=nb;};
+  return{byte(b){if(len>=buf.length)grow();buf[len++]=b;},bytes(a){for(let i=0;i<a.length;i++){if(len>=buf.length)grow();buf[len++]=a[i];}},u16(v){this.byte(v&255);this.byte((v>>8)&255);},str(t){for(let i=0;i<t.length;i++)this.byte(t.charCodeAt(i));},data(){return buf.slice(0,len);}};}
+function gifLZW(pixels,out){
+  const initBits=9,BITS=12,HSIZE=5003,masks=[0,1,3,7,15,31,63,127,255,511,1023,2047,4095,8191,16383,32767,65535];
+  const htab=new Int32Array(HSIZE).fill(-1),codetab=new Int32Array(HSIZE),clearCode=256,eofCode=257,acc=new Uint8Array(256);
+  let nBits=initBits,maxcode=(1<<nBits)-1,freeEnt=258,clearFlg=false,curAccum=0,curBits=0,aCount=0;
+  const flushChar=()=>{if(aCount>0){out.byte(aCount);for(let i=0;i<aCount;i++)out.byte(acc[i]);aCount=0;}};
+  const charOut=c=>{acc[aCount++]=c;if(aCount>=254)flushChar();};
+  const output=code=>{curAccum&=masks[curBits];if(curBits>0)curAccum|=(code<<curBits);else curAccum=code;curBits+=nBits;
+    while(curBits>=8){charOut(curAccum&255);curAccum>>=8;curBits-=8;}
+    if(freeEnt>maxcode||clearFlg){if(clearFlg){nBits=initBits;maxcode=(1<<nBits)-1;clearFlg=false;}else{nBits++;maxcode=nBits===BITS?(1<<BITS):(1<<nBits)-1;}}
+    if(code===eofCode){while(curBits>0){charOut(curAccum&255);curAccum>>=8;curBits-=8;}flushChar();}};
+  out.byte(8);let hshift=0;for(let f=HSIZE;f<65536;f*=2)hshift++;hshift=8-hshift;output(clearCode);let ent=pixels[0];
+  outer:for(let p=1;p<pixels.length;p++){const c=pixels[p],fcode=(c<<BITS)+ent;let i=(c<<hshift)^ent;
+    if(htab[i]===fcode){ent=codetab[i];continue;}
+    if(htab[i]>=0){let disp=HSIZE-i;if(i===0)disp=1;do{if((i-=disp)<0)i+=HSIZE;if(htab[i]===fcode){ent=codetab[i];continue outer;}}while(htab[i]>=0);}
+    output(ent);ent=c;if(freeEnt<(1<<BITS)){codetab[i]=freeEnt++;htab[i]=fcode;}else{htab.fill(-1);freeEnt=clearCode+2;clearFlg=true;output(clearCode);}}
+  output(ent);output(eofCode);out.byte(0);
+}
+function gifBegin(w,h,pal,loop,nc){const o=ByteOut();o.str('GIF89a');o.u16(w);o.u16(h);o.byte(0xF7);o.byte(0);o.byte(0);o.bytes(pal);
+  if(loop){o.byte(0x21);o.byte(0xFF);o.byte(11);o.str('NETSCAPE2.0');o.byte(3);o.byte(1);o.u16(0);o.byte(0);}return{w,h,pal,nc:nc||255,cache:new Int16Array(32768).fill(-1),prev:null,parts:[o.data()],count:0};}
+function gifFrame(st,data,delay){
+  const n=st.w*st.h,idx=new Uint8Array(n),p=st.pal,c=st.cache;
+  for(let i=0,j=0;i<n;i++,j+=4){const k=((data[j]>>3)<<10)|((data[j+1]>>3)<<5)|(data[j+2]>>3);let v=c[k];
+    if(v<0){const r=(data[j]>>3)*8+4,g=(data[j+1]>>3)*8+4,b=(data[j+2]>>3)*8+4;let bd=1e9;v=0;for(let q=0;q<st.nc;q++){const dr=p[q*3]-r,dg=p[q*3+1]-g,db=p[q*3+2]-b,d=2*dr*dr+4*dg*dg+3*db*db;if(d<bd){bd=d;v=q;}}c[k]=v;}idx[i]=v;}
+  let px=idx;if(st.prev){px=new Uint8Array(n);const pr=st.prev;for(let i=0;i<n;i++)px[i]=idx[i]===pr[i]?255:idx[i];}st.prev=idx;const o=ByteOut();
+  o.byte(0x21);o.byte(0xF9);o.byte(4);o.byte(st.count?0x05:0x04);o.u16(Math.max(2,delay));o.byte(255);o.byte(0);o.byte(0x2C);o.u16(0);o.u16(0);o.u16(st.w);o.u16(st.h);o.byte(0);gifLZW(px,o);st.parts.push(o.data());st.count++;}
+function gifEnd(st){st.parts.push(new Uint8Array([0x3B]));return new Blob(st.parts,{type:'image/gif'});}
+function gifPalette(hist,maxC){
+  const keys=[];for(let k=0;k<32768;k++)if(hist[k])keys.push(k);const ch=[k=>(k>>10)&31,k=>(k>>5)&31,k=>k&31];
+  const stat=c=>{let n=0,mn=[31,31,31],mx=[0,0,0];for(const k of c){n+=hist[k];for(let a=0;a<3;a++){const v=ch[a](k);if(v<mn[a])mn[a]=v;if(v>mx[a])mx[a]=v;}}let ax=0;for(let a=1;a<3;a++)if(mx[a]-mn[a]>mx[ax]-mn[ax])ax=a;return{c,n,ax,range:mx[ax]-mn[ax]};};
+  const boxes=[stat(keys)];
+  while(boxes.length<(maxC||255)){let bi=-1,best=0;boxes.forEach((b,i)=>{if(b.c.length>1){const sc=b.n*(b.range+1);if(sc>best){best=sc;bi=i;}}});if(bi<0)break;
+    const b=boxes[bi],f=ch[b.ax];b.c.sort((x,y)=>f(x)-f(y));let acc=0,cut=1;for(let i=0;i<b.c.length;i++){acc+=hist[b.c[i]];if(acc>=b.n/2){cut=Math.min(b.c.length-1,Math.max(1,i));break;}}
+    boxes.splice(bi,1,stat(b.c.slice(0,cut)),stat(b.c.slice(cut)));}
+  const pal=new Uint8Array(768);boxes.forEach((b,i)=>{let r=0,g=0,bl=0,n=0;for(const k of b.c){const w=hist[k];r+=(ch[0](k)*8+4)*w;g+=(ch[1](k)*8+4)*w;bl+=(ch[2](k)*8+4)*w;n+=w;}pal[i*3]=r/n;pal[i*3+1]=g/n;pal[i*3+2]=bl/n;});return pal;
+}
+function gifWorkerMain(){let st;self.onmessage=e=>{const m=e.data;if(m.cmd==='start')st=gifBegin(m.w,m.h,m.pal,m.loop,m.nc);else if(m.cmd==='frame'){gifFrame(st,new Uint8ClampedArray(m.data),m.delay);self.postMessage({encoded:st.count});}else if(m.cmd==='finish')self.postMessage({blob:gifEnd(st)});};}
+function gifEncoder(w,h,pal,loop,nc){
+  let worker=null;try{const src=[ByteOut,gifLZW,gifBegin,gifFrame,gifEnd].map(String).join('\n')+'\n('+gifWorkerMain.toString()+')();';worker=new Worker(URL.createObjectURL(new Blob([src],{type:'text/javascript'})));}catch(e){worker=null;}
+  if(worker){let resolveDone,sent=0,done=0;const waiters=[],fin=new Promise(r=>resolveDone=r);
+    worker.onmessage=e=>{if(e.data.blob){resolveDone(e.data.blob);worker.terminate();}else{done=e.data.encoded;waiters.splice(0).forEach(f=>f());}};
+    worker.postMessage({cmd:'start',w,h,pal,loop,nc});
+    return{async add(data,delay){sent++;worker.postMessage({cmd:'frame',data:data.buffer,delay},[data.buffer]);while(sent-done>4)await new Promise(r=>waiters.push(r));},finish(){worker.postMessage({cmd:'finish'});return fin;}};}
+  const st=gifBegin(w,h,pal,loop,nc);return{async add(data,delay){gifFrame(st,data,delay);await new Promise(r=>setTimeout(r,0));},finish(){return Promise.resolve(gifEnd(st));}};
+}
+function movSize(cap){const m=Math.min(S.msize,cap||9999),k=Math.min(1,m/Math.max(iw(),ih()));return[Math.max(2,Math.round(iw()*k/2)*2),Math.max(2,Math.round(ih()*k/2)*2)];}
+const movProg=f=>{$('movBarW').hidden=false;$('movBar').style.width=Math.round(f*100)+'%';};
+const breathe=()=>new Promise(r=>setTimeout(r,0));
+function vidMime(kind){if(!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream)return null;
+  const c=kind==='mp4'?['video/mp4;codecs=avc1','video/mp4']:['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'];
+  return c.find(m=>{try{return MediaRecorder.isTypeSupported(m);}catch(e){return false;}})||null;}
+async function makeGif(){const[W,H]=movSize(640),N=loopTicks(),hist=new Uint32Array(32768);
+  const grab=f=>{const c=glitch(W,H,f),d=c.getContext('2d').getImageData(0,0,W,H).data;c.width=c.height=0;return d;};
+  /* the 255 colors of the GIF are chosen from a few frames spread round the loop */
+  const ns=Math.min(N,8);for(let i=0;i<ns;i++){const px=grab(Math.floor(i*N/ns));for(let j=0;j<px.length;j+=8)hist[((px[j]>>3)<<10)|((px[j+1]>>3)<<5)|(px[j+2]>>3)]++;movProg((i+1)/ns*.15);await breathe();}
+  const enc=gifEncoder(W,H,gifPalette(hist,255),true,255);
+  for(let f=0;f<N;f++){const px=grab(f);await enc.add(new Uint8Array(px.buffer),Math.round((f+1)*100/TICKS)-Math.round(f*100/TICKS));movProg(.15+(f+1)/N*.82);await breathe();}
+  const blob=await enc.finish();movProg(1);return blob;}
+async function makeVideo(mime){const[W,H]=movSize(),rc=mkCanvas(W,H),rg=rc.getContext('2d'),d=S.loop*2;
+  const draw=f=>{const c=glitch(W,H,f);rg.drawImage(c,0,0);c.width=c.height=0;};draw(0);
+  const stream=rc.captureStream(30),rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:W*H>600000?12e6:8e6}),chunks=[];rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data);};
+  const stopped=new Promise(r=>rec.onstop=r);rec.start(250);const t0=performance.now();let last=0;
+  await new Promise(res=>{const step=()=>{const t=(performance.now()-t0)/1000,f=Math.floor(Math.min(t,d)*TICKS);if(f!==last){last=f;draw(f);}movProg(Math.min(1,t/d));if(t>=d+.2)return res();requestAnimationFrame(step);};requestAnimationFrame(step);});
+  const ms=performance.now()-t0;rec.stop();await stopped;stream.getTracks().forEach(t=>t.stop());
+  const blob=new Blob(chunks,{type:mime.split(';')[0]});return cleanOut(mime.includes('webm')?await fixWebmDuration(blob,ms):blob);}
+async function saveMoving(kind){if(busy)return;busy=true;const was=playing;if(was)setPlay(false);
+  say(kind==='gif'?'Making the GIF…':'Recording the video. Keep this page in front…');movProg(0);await new Promise(r=>setTimeout(r,30));
+  try{let blob,ext;
+    if(kind==='gif'){blob=await makeGif();ext='gif';}
+    else{const mime=vidMime(S.vfmt)||vidMime('webm')||vidMime('mp4');if(!mime)throw new Error('this browser can’t record video. Save a GIF instead');blob=await makeVideo(mime);ext=mime.includes('mp4')?'mp4':'webm';}
+    const msg=await saveFile(blob,`glitch-${NAMECODE}.${ext}`);say(`${msg} ${(blob.size/1e6).toFixed(1)} MB.`);}
+  catch(err){say('That didn’t work: '+(err&&err.message||err)+'.');}
+  finally{busy=false;$('movBarW').hidden=true;if(was)setPlay(true);}}
+$('gifBtn').onclick=()=>saveMoving('gif');$('vidBtn').onclick=()=>saveMoving('video');
 function syncSave(){
   let share=false;try{share=topLevel&&!!navigator.canShare&&navigator.canShare({files:[new File([new Blob(['x'],{type:'image/jpeg'})],'a.jpg',{type:'image/jpeg'})]});}catch(e){}
-  $('shareBtn').hidden=!share;$('saveBtn').hidden=!canSave();$('copyBtn').hidden=!(topLevel&&navigator.clipboard&&window.ClipboardItem);$('sendRow').hidden=!HANDOFF.ok();
+  $('shareBtn').hidden=!share;$('saveBtn').hidden=!canSave();$('copyBtn').hidden=!(topLevel&&navigator.clipboard&&window.ClipboardItem);$('sendRow').hidden=!HANDOFF.ok();$('movRow').hidden=!canSave();$('vidBtn').hidden=!(vidMime('webm')||vidMime('mp4'));
   $('saveHelp').textContent=canSave()?'The saved photo is full size and looks the same as the preview. It gets a random name, and nothing about the original file is kept in it.':'Saving isn’t available here. Open the Photo Tools website or app to save the photo.';}
 
 /* ================= the photo ================= */

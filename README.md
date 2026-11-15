@@ -397,6 +397,7 @@ Gives any photo a broken-screen look, like a picture coming through a bad signal
 - **Colors:** Neon, colors taken from the photo itself, Fire, Ice, red-green-blue or White, plus a slider for stronger colors in the photo.
 - **Keep an area clear:** drag the dashed circle onto a face or a detail and it stays clean, with only a few thin streaks getting through. Scroll or pinch to change its size, or switch it off to cover the whole photo.
 - **Finish:** darken around the clear area so the colors pop, glow, screen lines and grain.
+- **Moving:** tap **Play it moving** under the photo and the glitches jump, blink and tear the picture in a loop. Set the speed, how much it surges and calms, and a loop of 2 to 6 seconds, then **Save a GIF** (loops on its own, up to 640 pixels) or **Save a video** (WebM or MP4, whichever your browser can record, in three sizes). The clear area stays steady while everything around it moves.
 - **See the original** flips between the photo before and after.
 - **Saving:** JPG or PNG at the photo's full size (up to 5000 pixels on the long side), looking the same as the preview, under a random name. **Copy image** and **Share** are there too, and **Frame it**, **Add words** and **Use in a video** pass the result straight to Photo Frame Studio, Caption Maker or Video Layers.
 

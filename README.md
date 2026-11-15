@@ -32,6 +32,7 @@ A small set of personal browser tools for dressing up photos, making short video
 | [Particle Overlay](#particle-overlay) | Puts snow, rain, petals, golden dust, sparkles, embers, confetti or fireflies over a photo. Saves a still, or a looping GIF or video of them drifting. |
 | [Reveal](#reveal) | Changes one photo into another with a wipe, fade, circle, blinds, melt, burn-through or glitch cut. Saves any moment as a photo, or the whole change as a GIF or video. |
 | [Layer Reveal](#layer-reveal) | Lays one photo over another and opens a window in the top one: a paper tear, a torn hole, a peeled corner, glasses, a magnifier, a keyhole, window blinds, a jigsaw piece, a scratch patch, shapes or a word. |
+| [Jigsaw Puzzle](#jigsaw-puzzle) | Cuts a whole photo into jigsaw pieces (up to 14 by 14). Move, turn, flip or take out any piece, scatter or loosen them all, choose what lies underneath, and hide the cut lines on some pieces or all of them. |
 | [Background Remover](#background-remover) | Takes the background out of photos and videos: people, animals, everyday things, a plain background or green screen, or any color you pick like a chroma key. Touch-up brush for photos, and see-through, color, blurred or picture backgrounds. |
 | [Video Layers](#video-layers) | Puts pictures, videos, text, music and your voice together and exports a new video or GIF. Automatic background removal, green screen, motion paths with keyframes and one-tap layouts. |
 | [Delivery Reel](#delivery-reel) | Plays out an order from a made-up delivery app, from placed to delivered, and ends on the delivered screen. A courier chat on the way and a doorstep photo or video that opens full screen. |
@@ -500,6 +501,21 @@ Lays one photo over another and opens a window in the top one, so the photo unde
 - **Window blinds:** the spacing of the slats and how far open they are.
 - **Edge:** an outline for the shapes, and a shadow inside the opening that makes the top photo look like a sheet lying over the other.
 - **Photo underneath:** switch dragging to it, then zoom and slide it until the right part shows through. **Swap the two photos** trades top and bottom.
+- **Saving:** a still photo the same way as the Glitch Filter.
+
+---
+
+## Jigsaw Puzzle
+
+Cuts a whole photo into jigsaw pieces that you can move about.
+
+- **How many:** 2 to 14 pieces across and down. Changing the number puts every piece back.
+- **Shape of the pieces:** knobs, waves or straight cuts, the size of the knobs, and **Uneven pieces** to give each one its own odd shape. **Cut it differently** recuts with the same settings; **Surprise me** changes the style and look as well.
+- **One piece at a time:** tap a piece to pick it, drag it anywhere, and scroll or pinch to turn it. Let go near its place and it clicks back in. The picked piece can also be turned with a slider, given a quarter turn, taken out, sent back to its place, or made to show the photo, black and white, its cardboard back, or the second photo.
+- **Many at once:** **Scatter some**, **Scatter them all** (turned or not), **Loosen them** for a just-finished look, **Take a few out** and **Put everything back**. **Flip a few over** and **Make a few black and white** change pieces at random.
+- **Cut lines:** their strength and color, and raised edges like thick card. Untick **Show the cut lines** and the photo looks whole while every piece can still be lifted out. Or hide the lines round chosen pieces only: tick **Hide the cut lines round this piece** on a picked piece, or use **Hide the lines on a few**. Neighbours drop their lines along the sides they share with a hidden piece, so a group blends into one smooth patch.
+- **Look:** shadow under moved pieces, a gap between pieces, and the color of the back of the pieces.
+- **Underneath:** a color, two colors, a pattern (checks, dots or stripes), a faint copy of the photo, another photo, or nothing (see-through, saved as PNG). Faint outlines can show where each piece belongs, and a table round the puzzle gives room for loose pieces.
 - **Saving:** a still photo the same way as the Glitch Filter.
 
 ---
@@ -1035,6 +1051,7 @@ Open each tool once while you're online so everything, fonts included, is saved 
 | `particle-overlay.html` | Particle Overlay |
 | `reveal.html` | Reveal |
 | `layer-reveal.html` | Layer Reveal |
+| `jigsaw-puzzle.html` | Jigsaw Puzzle |
 | `caption-maker.html` | Caption Maker |
 | `sfx-maker.html` | SFX Maker |
 | `effect-lines.html` | Effect Lines |

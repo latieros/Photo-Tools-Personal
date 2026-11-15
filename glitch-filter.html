@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="en">
+<head>
+<title>Glitch Filter</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#F7F3E8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A1630" media="(prefers-color-scheme: dark)">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Photo Tools">
+<script>try{if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')&&window.top===window.self)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}catch(e){}</script>
+<style id="pt-theme-css">
+/* light/dark switch, added next to each page's name; same on every page */
+:root header button.pt-theme{flex:none;display:inline-grid;place-items:center;width:34px;height:34px;min-width:0;padding:0;margin:0;border:1px solid var(--line);border-radius:50%;background:var(--panel);color:var(--ink);cursor:pointer;align-self:center;box-shadow:none;font:inherit;line-height:0}
+:root header button.pt-theme:hover{border-color:var(--accent);color:var(--accent);background:var(--panel)}
+:root header button.pt-theme:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+:root header button.pt-theme svg{width:18px;height:18px;display:block}
+header:not(.top){position:relative;padding-right:46px}
+header:not(.top)>button.pt-theme{position:absolute;top:0;right:0}
+</style>
+<script id="pt-theme-js">/* light or dark: dark unless you pick light with the switch; the choice is kept for every tool */
+(function(){var K='pt-theme',d=document.documentElement,C={light:'#F7F3E8',dark:'#0A1630'},
+SUN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>',
+MOON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.5 8.5 0 1 0 10.7 10.7z"/></svg>';
+var mem=null;function saved(){try{var v=localStorage.getItem(K);if(v==='light'||v==='dark')return v;}catch(e){}return mem;}
+function now(){return saved()||'dark';}
+function apply(){var cur=now();d.setAttribute('data-theme',cur);
+  document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.content=C[cur];});
+  var b=document.getElementById('ptTheme');if(b){var n=cur==='dark'?'light':'dark';b.setAttribute('aria-label','Switch to '+n+' mode');b.title='Switch to '+n+' mode';b.innerHTML=cur==='dark'?SUN:MOON;}}
+window.ptTheme={get:now,set:function(t){mem=t;try{localStorage.setItem(K,t);}catch(e){}apply();}};
+apply();
+addEventListener('storage',function(e){if(e.key===K)apply();});
+document.addEventListener('DOMContentLoaded',function(){var h=document.querySelector('header');if(!h||document.getElementById('ptTheme'))return;
+  var b=document.createElement('button');b.type='button';b.id='ptTheme';b.className='pt-theme';
+  b.addEventListener('click',function(){ptTheme.set(now()==='dark'?'light':'dark');});
+  var t=h.querySelector('h1');if(t&&h.classList.contains('top'))t.after(b);else h.prepend(b);apply();});
+})();</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&family=Lora:wght@500;600;700&family=Unbounded:wght@600&display=swap">
+<style>
+/* Layout: settings on the left, the glitched photo on the right with the save buttons under it; on phones the photo comes first */
+:root{
+  --bg:#F7F3E8; --panel:#FFFDF7; --ink:#0A1630; --muted:#4A5368; --line:#E2DAC4;
+  --accent:#8A6A1F; --accent-ink:#FFFFFF; --soft:#F1E7CC; --stage:#ECE5D2; --check:#E2DAC4;
+  --f-display:"Lora","Familjen Grotesk",system-ui,sans-serif;
+  --f-body:"Familjen Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0A1630; --panel:#111F3D; --ink:#F7F3E8; --muted:#C9C5B9; --line:#24365A;
+  --accent:#C8A24A; --accent-ink:#0A1630; --soft:#233457; --stage:#060E20; --check:#111F3D; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0A1630; --panel:#111F3D; --ink:#F7F3E8; --muted:#C9C5B9; --line:#24365A;
+  --accent:#C8A24A; --accent-ink:#0A1630; --soft:#233457; --stage:#060E20; --check:#111F3D; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body);padding-inline:16px;padding-block:18px 40px}
+[hidden]{display:none!important}
+.top{max-width:1400px;margin:0 auto 16px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px}
+.brand{font:600 22px/1.1 var(--f-display);letter-spacing:-.01em;margin:0}
+.brand span{color:var(--accent)}
+.top p{margin:0;color:var(--muted)}
+.spacer{flex:1}
+.switch{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:10px;background:var(--panel);align-self:center;max-width:100%;overflow-x:auto}
+.switch a{font:500 14px/1 var(--f-body);color:var(--muted);text-decoration:none;padding:8px 12px;border-radius:7px;white-space:nowrap}
+.switch a:hover{color:var(--ink)}
+.switch a[aria-current="page"]{background:var(--ink);color:var(--bg)}
+.switch a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.app{max-width:1400px;margin:0 auto;display:grid;grid-template-columns:330px minmax(0,1fr);grid-template-areas:"opts stage" "opts save";gap:16px;align-items:start}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
+.label{font:600 11px/1 var(--f-body);text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin:0}
+button,.btn{font:500 14px/1 var(--f-body);border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:9px 13px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;position:relative}
+button:hover,.btn:hover{border-color:var(--muted)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.primary:hover{border-color:var(--accent);filter:brightness(1.08)}
+.btn input{position:absolute;opacity:0;width:1px;height:1px}
+button:focus-visible,.btn:focus-within,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.row button,.row .btn{font-size:13px;padding:8px 11px}
+.opts{grid-area:opts;display:flex;flex-direction:column;gap:14px;position:sticky;top:16px;max-height:calc(100vh - 32px);overflow:auto}
+.grp{display:flex;flex-direction:column;gap:14px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field>label,.flabel{font-size:13px;font-weight:500;display:flex;justify-content:space-between;gap:8px}
+.rv{font-variant-numeric:tabular-nums;color:var(--muted);font-weight:400}
+.field input[type=range]{accent-color:var(--accent);width:100%}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{padding:7px 10px;font-size:13px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chk{display:inline-flex;align-items:center;gap:7px;font-size:13px;cursor:pointer}
+.chk input{accent-color:var(--accent);width:16px;height:16px;flex:none}
+.help{font-size:12px;color:var(--muted);margin:0}
+.fhead{font:600 13px/1.2 var(--f-display);margin:4px 0 -4px;padding-top:12px;border-top:1px solid var(--line)}
+.photo{display:flex;align-items:center;gap:10px}
+.photo .thumb{width:52px;height:52px;border-radius:8px;object-fit:cover;background:var(--bg);border:1px solid var(--line);flex:none}
+.photo .info{min-width:0;font-size:13px}
+.photo .info b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.sw{display:inline-flex;gap:2px;margin-left:2px}
+.sw i{display:block;width:8px;height:12px;border-radius:2px}
+.stage{grid-area:stage;display:flex;flex-direction:column;gap:8px;min-width:0}
+.canvas-wrap{position:relative;display:grid;place-items:center;padding:16px;border-radius:12px;min-height:300px;
+  background:var(--stage) conic-gradient(var(--check) 25%,transparent 0 50%,var(--check) 0 75%,transparent 0) 0 0/22px 22px}
+.canvas-wrap.drop{outline:3px dashed var(--accent);outline-offset:-8px}
+canvas#cv{display:block;max-width:100%;max-height:min(74vh,900px);width:auto;height:auto;touch-action:none;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.18)}
+canvas#cv.movable{cursor:grab}
+canvas#cv.dragging{cursor:grabbing}
+.cta{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.under{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.under .help{flex:1;min-width:200px}
+.save{grid-area:save;display:flex;flex-direction:column;gap:12px}
+.phead{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.status{min-height:1.2em;font-size:13px;color:var(--accent);margin:0}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;z-index:30;max-width:calc(100% - 32px);box-shadow:0 8px 24px rgba(0,0,0,.25)}
+@media (max-width:900px){
+  .app{grid-template-columns:minmax(0,1fr);grid-template-areas:"stage" "save" "opts"}
+  .opts{position:static;max-height:none}
+  .canvas-wrap{padding:10px;min-height:220px}
+  canvas#cv{max-height:62vh}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* phone touches */
+@media (max-width:900px){
+  body{padding-inline:12px}
+  .top p{display:none}
+  .seg button,.row button{padding:10px 12px;font-size:14px}
+  .field input[type=range]{height:30px}
+}
+/* folding sections (phones and wide screens) */
+.fsec{border-top:1px solid var(--line);margin:4px -16px 0;padding:0 16px}
+.fold{width:100%;justify-content:space-between;border:0;background:transparent;padding:14px 0;font:600 14px/1.2 var(--f-display);border-radius:0;color:var(--ink)}
+.fold .chev{width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .15s;margin-right:4px;flex:none}
+.fold[aria-expanded="true"] .chev{transform:rotate(45deg)}
+.foldbody{display:flex;flex-direction:column;gap:14px;padding-bottom:14px}
+/* wide screens: the whole width, settings on both sides of the picture */
+@media (min-width:1440px){
+  body{padding-inline:20px;padding-block:14px 24px}
+  .top,.app{max-width:none}
+  .top{margin-bottom:12px}
+  .app{grid-template-columns:380px minmax(0,1fr) 380px;grid-template-areas:"left stage opts" "left save opts";gap:16px 20px}
+  .pt-left{grid-area:left}
+  .opts,.pt-left{position:sticky;top:14px;max-height:calc(100vh - 28px);overflow:auto;overscroll-behavior:contain}
+  .stage{gap:10px}
+  .stage>.phead{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+  .stage>.phead .label{margin-right:4px}
+  .canvas-wrap{min-height:360px}
+  canvas#cv{max-height:calc(100vh - 250px)}
+}
+
+</style>
+
+</head>
+<body>
+<header class="top">
+  <h1 class="brand">Glitch <span>Filter</span></h1>
+  <nav class="switch" aria-label="Switch tool"><a href="photo-frame-studio.html">Frame Studio</a><a href="photo-splitter.html">Splitter</a><a href="chat-reel.html">Chat Reel</a><a href="metadata-scrubber.html">Scrubber</a><a href="watermark.html">Watermark</a><a href="glitch-filter.html" aria-current="page">Glitch</a><a href="caption-maker.html">Captions</a><a href="sfx-maker.html">SFX</a><a href="effect-lines.html">Lines</a><a href="panel-layouts.html">Panels</a><a href="bubble-maker.html">Bubbles</a><a href="background-remover.html">BG Remover</a><a href="video-layers.html">Video</a><a href="delivery-reel.html">Delivery</a><a href="visual-novel.html">Novel</a><a href="motion-comic.html">Comic</a><a href="outfit-tags.html">Outfits</a></nav>
+  <p>Give any photo a broken-screen look: neon streaks, shifted slices and split colors.</p>
+</header>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<main class="app">
+  <section class="card opts" aria-label="Settings">
+    <div class="field">
+      <span class="flabel">Photo</span>
+      <div class="photo"><img class="thumb" id="thumb" alt=""><div class="info"><b id="pName">Sample picture</b><span class="help" id="pInfo">Choose yours, drop it here, or paste it.</span></div></div>
+      <div class="row"><label class="btn primary" for="pick">Choose photo<input type="file" id="pick" accept="image/*"></label></div>
+    </div>
+    <div class="field">
+      <span class="flabel" id="look-l">Look</span>
+      <div class="seg" id="looks" role="group" aria-labelledby="look-l"></div>
+    </div>
+    <div class="field" id="amtF"></div>
+    <div class="row"><button type="button" id="shuffle">Shuffle the glitches</button></div>
+    <p class="help">Shuffle keeps your settings and moves every streak and bar somewhere new. Keep tapping until you like it.</p>
+    <h4 class="fhead">Glitches</h4>
+    <div class="grp" id="glF"></div>
+    <h4 class="fhead">Colors</h4>
+    <div class="grp" id="colF"></div>
+    <h4 class="fhead">Keep an area clear</h4>
+    <div class="grp" id="keepF"></div>
+    <h4 class="fhead">Finish</h4>
+    <div class="grp" id="finF"></div>
+    <h4 class="fhead">Saving</h4>
+    <div class="grp" id="fmtF"></div>
+  </section>
+
+  <section class="stage" aria-label="Preview">
+    <div class="canvas-wrap" id="drop">
+      <canvas id="cv" width="1200" height="800" aria-label="Your photo with the glitch filter. Drag the circle to choose the part that stays clear."></canvas>
+      <label class="btn primary cta" id="cta" for="pick2">Choose your photo<input type="file" id="pick2" accept="image/*"></label>
+    </div>
+    <div class="under">
+      <p class="help" id="dragHelp"></p>
+      <button type="button" id="compare" aria-pressed="false">See the original</button>
+    </div>
+  </section>
+
+  <section class="card save" aria-label="Saving">
+    <div class="phead">
+      <h2 class="label">Save it</h2>
+      <span class="spacer"></span>
+      <button type="button" id="shareBtn" hidden>Share</button>
+      <button type="button" id="copyBtn" hidden>Copy image</button>
+      <button type="button" id="saveBtn" class="primary">Save the photo</button>
+    </div>
+    <div class="row" id="sendRow" hidden>
+      <span class="help">Carry on in another tool:</span>
+      <button type="button" data-to="photo-frame-studio.html">Frame it</button>
+      <button type="button" data-to="caption-maker.html">Add words</button>
+      <button type="button" data-to="video-layers.html">Use in a video</button>
+    </div>
+    <p class="help" id="saveHelp"></p>
+    <p class="status" id="status" role="status"></p>
+  </section>
+</main>
+
+<script>
+
+/* ================= phones and wide screens: fold-out sections ================= */
+const phoneMQ=matchMedia('(max-width:900px)'),isPhone=()=>phoneMQ.matches;
+const openSecs=new Set();
+/* ================= wide screens: full width, settings on both sides of the picture, sections fold ================= */
+const wideMQ=matchMedia('(min-width:1440px)'),isWide=()=>wideMQ.matches;
+const ptMoves=[];
+function ptMove(el,parent,before){if(!el||!parent)return;ptMoves.push({el,p:el.parentNode,n:el.nextSibling});parent.insertBefore(el,before||null);}
+function ptUnmove(){while(ptMoves.length){const m=ptMoves.pop();m.p.insertBefore(m.el,m.n);}}
+/* everything in the settings panel before the section called firstRight moves to a second panel on the left */
+function ptSplit(panel,firstRight){if(!panel)return;let left=document.querySelector('.pt-left');
+  if(isWide()){if(!left){left=document.createElement('aside');left.className=panel.className+' pt-left';left.setAttribute('aria-label','Settings');left.id='';panel.before(left);}
+    for(const el of[...panel.children]){const f=el.querySelector&&(el.querySelector('.fold')||el.querySelector(':scope>h2'));if(f&&f.firstChild.textContent.trim()===firstRight)break;left.append(el);}}
+  else if(left){panel.prepend(...left.children);left.remove();}}
+/* o: {panel, key, open:[sections open the first time], firstRight, fold(panel), wide(), narrow()} */
+function ptWide(o){globalThis.ptKey=o.key||'';const p=o.panel;const apply=()=>{
+  if(isWide()&&!apply.loaded){apply.loaded=true;let v=null;try{v=JSON.parse(localStorage.getItem(o.key)||'null');}catch(e){}(Array.isArray(v)?v:o.open||[]).forEach(n=>openSecs.add(n));}
+  if(isWide()&&p&&!p.querySelector('.fsec'))(o.fold||(x=>foldSections(x,'h4.fhead')))(p);
+  ptUnmove();if(o.firstRight)ptSplit(p,o.firstRight);if(isWide()&&o.wide)o.wide();if(!isWide()&&o.narrow)o.narrow();};
+  apply();wideMQ.addEventListener('change',apply);return apply;}
+function keepOpen(){if(isWide()&&globalThis.ptKey)try{localStorage.setItem(globalThis.ptKey,JSON.stringify([...openSecs]));}catch(e){}}
+/* section headings (sel) fold their section away on a phone; tap one to open it */
+function foldSections(p,sel,stop){let body=null;
+  for(const el of[...p.children]){
+    if(el.matches(sel)){const name=el.textContent.trim(),open=openSecs.has(name);
+      const b=document.createElement('button');b.type='button';b.className='fold';b.setAttribute('aria-expanded',String(open));if(el.id)b.id=el.id;b.append(name);
+      const ch=document.createElement('span');ch.className='chev';ch.setAttribute('aria-hidden','true');ch.textContent='';b.append(ch);
+      body=document.createElement('div');body.className='foldbody';body.hidden=!open;const bd=body;
+      b.onclick=()=>{const o=bd.hidden;bd.hidden=!o;b.setAttribute('aria-expanded',String(o));if(o)openSecs.add(name);else openSecs.delete(name);keepOpen();};
+      const sec=document.createElement('div');sec.className='fsec';sec.append(b,body);el.replaceWith(sec);continue;}
+    if(body&&!(stop&&el.matches(stop)))body.append(el);}}
+
+if(isPhone())foldSections(document.querySelector('.opts'),'h4.fhead');
+ptWide({panel:document.querySelector('.opts'),key:'gl-open',open:['Glitches','Colors','Keep an area clear','Finish','Saving'],firstRight:'Keep an area clear',
+  wide(){const st=document.querySelector('.stage');ptMove(document.querySelector('.phead'),st,st.firstElementChild);}});
+
+/* ================= basics ================= */
+const $=id=>document.getElementById(id);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function h(tag,props,...kids){const e=document.createElement(tag);for(const[k,v]of Object.entries(props||{})){if(k==='class')e.className=v;else if(k==='text')e.textContent=v;else if(k==='style')e.style.cssText=v;else if(k.startsWith('on'))e[k]=v;else if(v===true)e.setAttribute(k,'');else if(v!==false&&v!=null)e.setAttribute(k,v);}
+  kids.flat().forEach(c=>{if(c!=null&&c!==false)e.append(c.nodeType?c:document.createTextNode(c));});return e;}
+function toast(msg){const t=$('toast');t.textContent=msg;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>{t.hidden=true;},4500);}
+function segF(id,label,opts,val,on){const g=h('div',{class:'seg',role:'group','aria-labelledby':id+'-l'});opts.forEach(([v,l])=>g.append(h('button',{type:'button','aria-pressed':String(v===val),onclick:()=>on(v)},l)));return h('div',{class:'field'},h('span',{class:'flabel',id:id+'-l'},label),g);}
+function rangeF(id,label,min,max,step,val,fmt,on){const out=h('output',{class:'rv',for:id},fmt(val)),inp=h('input',{type:'range',id,min,max,step,value:val});inp.oninput=()=>{out.textContent=fmt(+inp.value);on(+inp.value);};return h('div',{class:'field'},h('label',{for:id},label,out),inp);}
+const HAS_FILTER=(()=>{try{const g=document.createElement('canvas').getContext('2d');g.filter='blur(2px)';return g.filter==='blur(2px)';}catch(e){return false;}})();
+const cv=$('cv'),ctx=cv.getContext('2d');
+const mkCanvas=(w,hh)=>{const c=document.createElement('canvas');c.width=w;c.height=hh;return c;};
+
+/* ================= looks and colors ================= */
+/* every amount runs from 0 (off) to 1 (a lot) */
+const LOOKS={
+  neon:{name:'Neon streaks',v:{bars:.7,streaks:.6,shift:.15,split:.25,noise:.55,blocks:.5,len:.5,thick:.5,pal:'neon',glow:.45,scan:.1,grain:.2,dark:.45,punch:.35}},
+  signal:{name:'Lost signal',v:{bars:.2,streaks:.3,shift:.75,split:.65,noise:.35,blocks:.2,len:.6,thick:.35,pal:'photo',glow:.2,scan:.25,grain:.3,dark:.15,punch:.25}},
+  tape:{name:'Old tape',v:{bars:.05,streaks:.2,shift:.3,split:.5,noise:.1,blocks:0,len:.8,thick:.2,pal:'white',glow:.3,scan:.65,grain:.55,dark:.25,punch:.1}},
+  soft:{name:'Light touch',v:{bars:.2,streaks:.3,shift:.05,split:.12,noise:.2,blocks:.1,len:.4,thick:.3,pal:'photo',glow:.3,scan:0,grain:.1,dark:.15,punch:.15}},
+  melt:{name:'Meltdown',v:{bars:1,streaks:1,shift:.6,split:.5,noise:.9,blocks:.9,len:.75,thick:.7,pal:'neon',glow:.6,scan:.2,grain:.3,dark:.55,punch:.5}}};
+const PALS={
+  neon:{name:'Neon',c:['#ff2d2d','#ff5a1f','#ff9d00','#ffe600','#9dff00','#00ffa6','#00e1ff','#3d7bff','#b44dff','#ff3dd0','#ffffff']},
+  photo:{name:'From the photo',c:null},
+  fire:{name:'Fire',c:['#ff2d2d','#ff5a1f','#ff9d00','#ffd000','#ff3d6e','#ffffff']},
+  ice:{name:'Ice',c:['#00e1ff','#3d7bff','#7df9ff','#b44dff','#00ffa6','#ffffff']},
+  rgb:{name:'Red, green, blue',c:['#ff0033','#00ff66','#0a5cff','#ffffff']},
+  white:{name:'White',c:['#ffffff','#d8dde6','#9aa3b2']}};
+const DEF=()=>({v:1,look:'neon',amt:1,seed:20261,...LOOKS.neon.v,keep:true,fx:.5,fy:.42,fr:.36,fmt:'jpg'});
+let S=DEF(),IMG=null,BLOB=null,NAME='',SAMPLE=true;
+const iw=()=>IMG.width,ih=()=>IMG.height;
+
+/* the same seed always gives the same numbers, so the preview and the saved photo match */
+function rnd(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+/* a strong, bright version of a color */
+function vivid(r,g,b,light){const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;let hue=0;
+  if(d>6){if(mx===r)hue=((g-b)/d)%6;else if(mx===g)hue=(b-r)/d+2;else hue=(r-g)/d+4;hue*=60;if(hue<0)hue+=360;}
+  else return `hsl(0,0%,${Math.round(clamp((mx+mn)/510+.25,.6,1)*100)}%)`;
+  return `hsl(${Math.round(hue)},100%,${Math.round(clamp(light!=null?light:(mx+mn)/510,.5,.72)*100)}%)`;}
+/* colors picked out of the photo itself */
+let photoPal=null;
+function photoColors(){if(photoPal)return photoPal;const c=mkCanvas(24,24),g=c.getContext('2d',{willReadFrequently:true});g.drawImage(IMG,0,0,24,24);const d=g.getImageData(0,0,24,24).data,found=[];
+  for(let i=0;i<d.length;i+=4){const mx=Math.max(d[i],d[i+1],d[i+2]),mn=Math.min(d[i],d[i+1],d[i+2]);found.push({s:mx-mn,c:vivid(d[i],d[i+1],d[i+2],.58)});}
+  found.sort((a,b)=>b.s-a.s);const out=[];for(const f of found){if(!out.includes(f.c))out.push(f.c);if(out.length>=9)break;}
+  out.push('#ffffff');return photoPal=out;}
+const palette=()=>(PALS[S.pal]||PALS.neon).c||photoColors();
+
+/* ================= the filter ================= */
+/* Draws the photo at W × H with every glitch on it and returns the canvas. All places and sizes are worked out as
+   parts of the picture, so a small preview and the full-size save look the same. */
+function glitch(W,H){
+  const A=S.amt,u=Math.sqrt(W*H)/1000,pal=palette(),seed=S.seed|0;
+  const c=mkCanvas(W,H),g=c.getContext('2d',{willReadFrequently:true});
+  g.imageSmoothingQuality='high';g.drawImage(IMG,0,0,W,H);
+  const keep=S.keep,fxp=S.fx*W,fyp=S.fy*H,R=S.fr*Math.min(W,H);
+
+  /* 1. slices pushed sideways, colors pulled apart, and stronger color and contrast, pixel by pixel */
+  const id=g.getImageData(0,0,W,H),d=id.data,s=new Uint8ClampedArray(d);
+  const sh=new Float32Array(H),sp=new Float32Array(H),baseSp=S.split*A*W*.007;
+  const nb=Math.round(46*S.shift*A);
+  for(let i=0;i<nb;i++){const r=rnd(seed*7+i*131+1),y0=r(),hh=r()*r()*.07+.004,dx=(r()-.5)*2*(.015+.11*r())*W*Math.min(1.5,.5+S.shift*A),ex=r()<.4?r()*W*.012:0;
+    const a=Math.floor(y0*H),b=Math.min(H,Math.ceil((y0+hh)*H));for(let y=a;y<b;y++){sh[y]+=dx;sp[y]+=ex;}}
+  const sat=1+S.punch*.9,con=1+S.punch*.45;
+  for(let y=0;y<H;y++){const o=sh[y],p=sp[y]+baseSp,row=y*W*4,dy=y-fyp,dy2=dy*dy;
+    for(let x=0;x<W;x++){
+      let f=1;if(keep&&(o||p)){const dx=x-fxp;f=clamp((Math.sqrt(dx*dx+dy2)/R-.8)/.4,0,1);}
+      let xs=x;if(o){xs=x-Math.round(o*f);if(xs<0||xs>=W)xs=((xs%W)+W)%W;}
+      const q=p?Math.round(p*(keep?.3+.7*f:1)):0,xr=xs-q<0?0:xs-q,xb=xs+q>=W?W-1:xs+q;
+      let r=s[row+xr*4],gg=s[row+xs*4+1],b=s[row+xb*4+2];
+      const lum=.299*r+.587*gg+.114*b,i=row+x*4;
+      d[i]=(lum+(r-lum)*sat-128)*con+128;d[i+1]=(lum+(gg-lum)*sat-128)*con+128;d[i+2]=(lum+(b-lum)*sat-128)*con+128;}}
+  g.putImageData(id,0,0);
+
+  /* 2. darken everything away from the clear area, so the colors stand out */
+  if(S.dark>0){const far=Math.hypot(Math.max(fxp,W-fxp),Math.max(fyp,H-fyp)),r0=keep?Math.min(R*.8,far*.9):0,gr=g.createRadialGradient(fxp,fyp,r0,fxp,fyp,far);
+    gr.addColorStop(0,'rgba(2,4,12,0)');gr.addColorStop(.45,`rgba(2,4,12,${S.dark*.6})`);gr.addColorStop(1,`rgba(2,4,12,${Math.min(.92,S.dark*.95)})`);g.fillStyle=gr;g.fillRect(0,0,W,H);}
+
+  /* 3. the heavy pieces (bars, blocks, rows of dots) on one layer and the thin streaks on another */
+  const L1=mkCanvas(W,H),a=L1.getContext('2d'),L2=mkCanvas(W,H),b=L2.getContext('2d');
+  const lenK=.35+S.len*1.5,thK=.35+S.thick*1.5,pick=r=>pal[Math.floor(r()*pal.length)%pal.length];
+  /* bars, in bunches */
+  const nBunch=Math.round(70*S.bars*A);
+  for(let i=0;i<nBunch;i++){const r=rnd(seed*13+i*977+2),cy=r()*H,e=r(),cx=(e<.38?r()*.3:e<.76?.7+r()*.3:r())*W,n=2+Math.floor(r()*7),spread=(.008+.045*r())*H,main=pick(r);
+    for(let k=0;k<n;k++){const y=cy+(r()-.5)*2*spread,len=(.025+r()*r()*.42)*W*lenK,x=cx+(r()-.5)*len*1.2-len/2,th=Math.max(1,Math.round(u*(1+Math.pow(r(),3)*14)*thK));
+      a.globalAlpha=.55+.45*r();a.fillStyle=r()<.45?main:pick(r);a.fillRect(Math.round(x),Math.round(y),Math.round(len),th);
+      if(r()<.35){a.globalAlpha=.9;a.fillStyle=pick(r);a.fillRect(Math.round(x+len*r()*.5),Math.round(y+th),Math.round(len*(.2+.5*r())),Math.max(1,Math.round(u)));}}}
+  /* blocks of stacked stripes, mostly at the sides */
+  const nBlock=Math.round(14*S.blocks*A);
+  for(let i=0;i<nBlock;i++){const r=rnd(seed*17+i*613+3),bw=(.06+.13*r())*W,bh=(.03+.1*r())*H,e=r(),x=e<.42?r()*.03*W:e<.84?W-bw-r()*.03*W:r()*(W-bw),y0=r()*(H-bh);
+    let y=y0;while(y<y0+bh){const sh2=Math.max(1,Math.round(u*(1+r()*5)*thK));a.globalAlpha=.45+.55*r();a.fillStyle=pick(r);const w=bw*(r()<.6?1:.4+.6*r());a.fillRect(Math.round(x),Math.round(y),Math.round(w),sh2);y+=sh2+(r()<.25?Math.round(u*2):0);}}
+  /* rows of small dashes, like broken text */
+  const nRows=Math.round(170*S.noise*A);
+  for(let i=0;i<nRows;i++){const r=rnd(seed*19+i*389+4),y=Math.round(r()*H),len=(.08+.5*r())*W*lenK,hh=Math.max(1,Math.round(u*(r()<.3?2:1))),col=r()<.35?pick(r):null;
+    let x=r()*W-len*.3;const end=x+len;
+    while(x<end){const w=u*(1+r()*8),gap=u*(1+r()*6);if(col){a.globalAlpha=.5+.4*r();a.fillStyle=r()<.8?col:pick(r);}else{a.globalAlpha=.25+.4*r();a.fillStyle='#cfd8e6';}a.fillRect(Math.round(x),y,Math.max(1,Math.round(w)),hh);x+=w+gap;}}
+  a.globalAlpha=1;
+  /* thin streaks that take their color from the photo underneath */
+  const nStreak=Math.round(420*S.streaks*A);
+  for(let i=0;i<nStreak;i++){const r=rnd(seed*23+i*211+5),x=r()*W,y=Math.round(r()*H),len=(.02+r()*r()*.3)*W*lenK,th=Math.max(1,Math.round(u*(1+Math.pow(r(),4)*3)*Math.min(1.6,thK))),e=r();let col;
+    if(e<.55){const px=clamp(Math.round(x),0,W-1),py=clamp(y,0,H-1),j=(py*W+px)*4;col=vivid(d[j],d[j+1],d[j+2],.62);}else col=e<.9?pick(r):'#ffffff';
+    b.globalAlpha=.5+.5*r();const x0=Math.round(x-len*r());
+    if(r()<.4){const gr=b.createLinearGradient(x0,0,x0+len,0),dir=r()<.5;gr.addColorStop(dir?0:1,col);gr.addColorStop(dir?1:0,'rgba(0,0,0,0)');b.fillStyle=gr;}else b.fillStyle=col;
+    b.fillRect(x0,y,Math.round(len),th);}
+  b.globalAlpha=1;
+  /* clear both layers out of the kept area: fully for the heavy pieces, mostly for the thin streaks */
+  if(keep){for(const[q,al]of[[a,1],[b,.8]]){const gr=q.createRadialGradient(fxp,fyp,R*.7,fxp,fyp,R*1.2);gr.addColorStop(0,`rgba(0,0,0,${al})`);gr.addColorStop(1,'rgba(0,0,0,0)');
+    q.globalCompositeOperation='destination-out';q.fillStyle=gr;q.beginPath();q.arc(fxp,fyp,R*1.2,0,Math.PI*2);q.fill();q.globalCompositeOperation='source-over';}}
+  g.drawImage(L1,0,0);g.globalCompositeOperation='screen';g.drawImage(L2,0,0);
+
+  /* 4. glow around the bright pieces */
+  if(S.glow>0){g.globalCompositeOperation='lighter';
+    if(HAS_FILTER){g.filter=`blur(${Math.max(1,u*9).toFixed(1)}px)`;g.globalAlpha=S.glow*.75;g.drawImage(L1,0,0);g.drawImage(L2,0,0);g.filter='none';}
+    else{const k=Math.max(2,Math.round(u*10)),sm=mkCanvas(Math.max(1,Math.round(W/k)),Math.max(1,Math.round(H/k))),q=sm.getContext('2d');q.drawImage(L1,0,0,sm.width,sm.height);q.drawImage(L2,0,0,sm.width,sm.height);
+      g.imageSmoothingEnabled=true;g.globalAlpha=S.glow*.75;g.drawImage(sm,0,0,W,H);}
+    g.globalAlpha=1;}
+  g.globalCompositeOperation='source-over';L1.width=L1.height=L2.width=L2.height=0;
+
+  /* 5. screen lines and grain over the top */
+  if(S.scan>0){const step=Math.max(2,Math.round(u*3)),th=Math.max(1,Math.round(step/2));g.fillStyle=`rgba(0,0,0,${S.scan*.45})`;for(let y=0;y<H;y+=step)g.fillRect(0,y,W,th);}
+  if(S.grain>0){const n=mkCanvas(160,160),q=n.getContext('2d'),nd=q.createImageData(160,160),r=rnd(seed*29+6);
+    for(let i=0;i<nd.data.length;i+=4){const v=Math.floor(r()*256);nd.data[i]=nd.data[i+1]=nd.data[i+2]=v;nd.data[i+3]=255;}q.putImageData(nd,0,0);
+    const k=Math.max(1,Math.round(u));g.save();g.imageSmoothingEnabled=false;g.globalCompositeOperation='overlay';g.globalAlpha=S.grain*.5;g.scale(k,k);g.fillStyle=g.createPattern(n,'repeat');g.fillRect(0,0,Math.ceil(W/k),Math.ceil(H/k));g.restore();}
+  return c;}
+
+/* ================= preview ================= */
+let PV=null,showOrig=false,raf=0;
+function pvSize(){const m=1200,k=Math.min(1,m/Math.max(iw(),ih()));return[Math.max(1,Math.round(iw()*k)),Math.max(1,Math.round(ih()*k))];}
+function render(){if(!IMG)return;const[W,H]=pvSize();if(PV)PV.width=PV.height=0;PV=glitch(W,H);paint();}
+function paint(){if(!PV)return;const W=PV.width,H=PV.height;if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H;}
+  if(showOrig){ctx.imageSmoothingQuality='high';ctx.drawImage(IMG,0,0,W,H);return;}
+  ctx.drawImage(PV,0,0);
+  if(S.keep&&ringOn){const R=S.fr*Math.min(W,H),x=S.fx*W,y=S.fy*H,lw=Math.max(2,W/400);ctx.save();ctx.setLineDash([lw*5,lw*4]);ctx.lineWidth=lw;
+    ctx.strokeStyle='rgba(0,0,0,.6)';ctx.beginPath();ctx.arc(x,y,R,0,Math.PI*2);ctx.stroke();ctx.lineDashOffset=lw*4.5;ctx.strokeStyle='rgba(255,255,255,.9)';ctx.beginPath();ctx.arc(x,y,R,0,Math.PI*2);ctx.stroke();ctx.restore();}}
+/* the dashed circle shows while you move it and for a moment after, then gets out of the way */
+let ringOn=false,ringT=0;
+function showRing(){ringOn=true;clearTimeout(ringT);ringT=setTimeout(()=>{ringOn=false;paint();},1600);}
+function schedule(){if(raf)return;raf=requestAnimationFrame(()=>{raf=0;render();});}
+function changed(){schedule();save();}
+
+/* ================= settings panel ================= */
+const pct=v=>v<=0?'Off':Math.round(v*100)+'%';
+function sl(key,label,help){const f=rangeF('o-'+key,label,0,1,.01,S[key],pct,v=>{S[key]=v;if(S.look!=='own'){S.look='own';markLook();}changed();});return help?[f,h('p',{class:'help'},help)]:[f];}
+function markLook(){[...$('looks').children].forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.k===S.look)));}
+function renderOpts(){
+  const lk=$('looks');lk.innerHTML='';
+  for(const[k,L]of Object.entries(LOOKS))lk.append(h('button',{type:'button','data-k':k,'aria-pressed':String(S.look===k),onclick:()=>{Object.assign(S,L.v);S.look=k;renderOpts();changed();}},L.name));
+  lk.append(h('button',{type:'button','data-k':'own','aria-pressed':String(S.look==='own'),onclick:()=>{S.look='own';markLook();save();}},'Your own'));
+  const af=$('amtF');af.innerHTML='';af.append(...rangeF('o-amt','How much, overall',0,1.6,.02,S.amt,v=>v<=0?'None':Math.round(v*100)+'%',v=>{S.amt=v;changed();}).childNodes);
+  const gl=$('glF');gl.innerHTML='';
+  gl.append(...sl('bars','Color bars'),...sl('streaks','Thin streaks','Streaks pick up the colors of the photo under them.'),...sl('blocks','Striped blocks at the sides'),...sl('noise','Rows of dots'),
+    ...sl('shift','Slices pushed sideways'),...sl('split','Colors pulled apart','Red slides one way and blue the other, like a 3D picture without the glasses.'),
+    ...sl('len','Length of bars and streaks'),...sl('thick','Thickness'));
+  const cf=$('colF');cf.innerHTML='';
+  const g=h('div',{class:'seg',role:'group','aria-labelledby':'o-pal-l'});
+  for(const[k,P]of Object.entries(PALS)){const cols=(P.c||(IMG?photoColors():[])).slice(0,6);
+    g.append(h('button',{type:'button','aria-pressed':String(S.pal===k),onclick:()=>{S.pal=k;if(S.look!=='own')S.look='own';renderOpts();changed();}},P.name,h('span',{class:'sw','aria-hidden':'true'},cols.map(c=>h('i',{style:'background:'+c})))));}
+  cf.append(h('div',{class:'field'},h('span',{class:'flabel',id:'o-pal-l'},'Colors of the bars'),g),...sl('punch','Stronger colors in the photo'));
+  const kf=$('keepF');kf.innerHTML='';
+  const ck=h('input',{type:'checkbox',id:'o-keep'});ck.checked=S.keep;ck.onchange=()=>{S.keep=ck.checked;renderOpts();showRing();changed();};
+  kf.append(h('label',{class:'chk'},ck,' Keep a face or detail clear'));
+  if(S.keep)kf.append(rangeF('o-fr','Size of the clear area',.08,.9,.01,S.fr,v=>Math.round(v*100)+'%',v=>{S.fr=v;showRing();changed();}),
+    h('div',{class:'row'},h('button',{type:'button',onclick:()=>{S.fx=.5;S.fy=.42;S.fr=.36;renderOpts();showRing();changed();}},'Back to the middle')));
+  kf.append(h('p',{class:'help'},S.keep?'Drag the dashed circle on the photo onto the part that should stay clear. Inside it only a few thin streaks get through.':'The glitches cover the whole photo evenly.'));
+  const ff=$('finF');ff.innerHTML='';
+  ff.append(...sl('dark',S.keep?'Darken around the clear area':'Darken the edges','A darker photo makes the colors pop.'),...sl('glow','Glow'),...sl('scan','Screen lines'),...sl('grain','Grain'));
+  const sf=$('fmtF');sf.innerHTML='';sf.append(segF('o-f','Save as',[['jpg','JPG'],['png','PNG']],S.fmt,v=>{S.fmt=v;renderOpts();save();}),
+    h('p',{class:'help'},S.fmt==='jpg'?'JPG is small and works everywhere.':'PNG keeps every thin line perfectly sharp but the file is much bigger.'));
+  $('dragHelp').textContent=S.keep?'Drag on the photo to move the clear area. Scroll or pinch to change its size.':'Tap Shuffle the glitches for a new arrangement.';
+  cv.classList.toggle('movable',S.keep);
+}
+$('shuffle').onclick=()=>{S.seed=(Math.random()*2147483647)|0;changed();};
+$('compare').onclick=()=>{showOrig=!showOrig;$('compare').setAttribute('aria-pressed',String(showOrig));$('compare').textContent=showOrig?'See the glitch':'See the original';paint();};
+
+/* ================= drag to move the clear area, scroll or pinch to size it ================= */
+const ptrs=new Map();let drag=null;
+function cpt(e){const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width,y:(e.clientY-r.top)/r.height};}
+cv.addEventListener('pointerdown',e=>{if(!IMG||!S.keep||showOrig)return;cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,cpt(e));
+  if(ptrs.size===1){const p=cpt(e),R=S.fr*Math.min(cv.width,cv.height),inside=Math.hypot((p.x-S.fx)*cv.width,(p.y-S.fy)*cv.height)<=R;
+    if(!inside){S.fx=clamp(p.x,0,1);S.fy=clamp(p.y,0,1);}drag={p,fx:S.fx,fy:S.fy};}
+  else if(ptrs.size===2){const[a,b]=[...ptrs.values()];drag={pinch:Math.hypot(a.x-b.x,a.y-b.y)||.001,fr:S.fr};}
+  cv.classList.add('dragging');showRing();schedule();e.preventDefault();});
+cv.addEventListener('pointermove',e=>{if(!ptrs.has(e.pointerId)||!drag)return;ptrs.set(e.pointerId,cpt(e));
+  if(drag.pinch&&ptrs.size>=2){const[a,b]=[...ptrs.values()];S.fr=clamp(drag.fr*Math.hypot(a.x-b.x,a.y-b.y)/drag.pinch,.08,.9);}
+  else if(!drag.pinch){const p=cpt(e);S.fx=clamp(drag.fx+p.x-drag.p.x,0,1);S.fy=clamp(drag.fy+p.y-drag.p.y,0,1);}
+  showRing();schedule();});
+const endPtr=e=>{ptrs.delete(e.pointerId);if(!ptrs.size){if(drag){drag=null;renderOpts();save();}cv.classList.remove('dragging');}else if(ptrs.size===1){const[p]=[...ptrs.values()];drag={p,fx:S.fx,fy:S.fy};}};
+cv.addEventListener('pointerup',endPtr);cv.addEventListener('pointercancel',endPtr);
+cv.addEventListener('wheel',e=>{if(!IMG||!S.keep||showOrig)return;e.preventDefault();S.fr=clamp(S.fr*Math.exp(-e.deltaY*.0015),.08,.9);showRing();changed();clearTimeout(cv.wt);cv.wt=setTimeout(renderOpts,250);},{passive:false});
+
+/* ================= leaving nothing behind in what you save ================= */
+/* random short codes for file names, so names don't carry your original file name or the time */
+const rndCode=(n=6)=>{const a='abcdefghjkmnpqrstuvwxyz23456789',u=new Uint8Array(n);crypto.getRandomValues(u);return[...u].map(x=>a[x%a.length]).join('');};
+/* JPG: keep the picture, drop everything else the browser adds (its color profile, notes) */
+async function cleanJpeg(blob){try{const b=new Uint8Array(await blob.arrayBuffer());if(b[0]!==0xFF||b[1]!==0xD8)return blob;const parts=[b.subarray(0,2)];let p=2;
+  while(p+4<=b.length&&b[p]===0xFF){const m=b[p+1];if(m===0xDA){parts.push(b.subarray(p));return new Blob(parts,{type:'image/jpeg'});}
+    const n=(b[p+2]<<8)|b[p+3];if(!((m>=0xE1&&m<=0xEF)||m===0xFE))parts.push(b.subarray(p,p+2+n));p+=2+n;}
+  return blob;}catch(e){return blob;}}
+
+/* ================= saving ================= */
+let NAMECODE=rndCode(),outCache=null;
+const sig=()=>JSON.stringify([S,NAME,iw(),ih(),SAMPLE]);
+/* the saved photo is as big as the one you chose, up to 5000 pixels on its long side */
+function outSize(){const k=Math.min(1,5000/Math.max(iw(),ih()));return[Math.max(1,Math.round(iw()*k)),Math.max(1,Math.round(ih()*k))];}
+async function makeFile(){const s=sig();if(outCache&&outCache.sig===s)return outCache.file;
+  const[W,H]=outSize();let c;try{c=glitch(W,H);}catch(e){throw new Error('the photo is too big for this browser');}
+  const png=S.fmt==='png',type=png?'image/png':'image/jpeg';let blob=await new Promise(r=>c.toBlob(r,type,.93));c.width=c.height=0;
+  if(!blob)throw new Error('the photo is too big for this browser');if(!png)blob=await cleanJpeg(blob);
+  const file=new File([blob],`glitch-${NAMECODE}.${png?'png':'jpg'}`,{type});outCache={sig:s,file};return file;}
+let topLevel=false;try{topLevel=window.top===window.self;}catch(e){}
+let DL=null;try{if(window.claude&&typeof window.claude.use==='function')window.claude.use('downloads').then(d=>{DL=d||null;syncSave();}).catch(()=>{});}catch(e){}
+const canSave=()=>!!DL||topLevel;
+async function saveFile(blob,filename){
+  if(DL){try{await DL.save({filename,data:blob});return'Saved.';}catch(err){const c=err&&err.code;if(c==='declined')return'Not saved.';if(c==='rate_limited')return'A save prompt is already open.';if(c==='too_large')return'That file is too big to save here. Try JPG.';
+    if(!topLevel)return'Saving isn’t available here.';}}
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;document.body.append(a);a.click();a.remove();return'Saved to your downloads.';}
+const say=m=>{$('status').textContent=m;};
+let busy=false;
+async function withFile(fn){if(busy)return;busy=true;say('Making the full-size photo…');await new Promise(r=>setTimeout(r,30));try{await fn(await makeFile());}catch(err){say('That didn’t work: '+(err&&err.message||err)+'.');}finally{busy=false;}}
+$('saveBtn').onclick=()=>withFile(async f=>{say(await saveFile(f,f.name));});
+$('shareBtn').onclick=()=>withFile(async f=>{try{await navigator.share({files:[f],title:'Glitch photo'});say('Shared.');}catch(err){say(err&&err.name==='AbortError'?'':'Sharing didn’t work here. Save the photo instead.');}});
+$('copyBtn').onclick=async()=>{say('Copying…');try{const[W,H]=outSize(),c=glitch(W,H);
+  await navigator.clipboard.write([new ClipboardItem({'image/png':new Promise(r=>c.toBlob(r,'image/png'))})]);say('Copied. Paste it wherever you like.');}catch(e){say('Copying didn’t work here. Save the photo instead.');}};
+function syncSave(){
+  let share=false;try{share=topLevel&&!!navigator.canShare&&navigator.canShare({files:[new File([new Blob(['x'],{type:'image/jpeg'})],'a.jpg',{type:'image/jpeg'})]});}catch(e){}
+  $('shareBtn').hidden=!share;$('saveBtn').hidden=!canSave();$('copyBtn').hidden=!(topLevel&&navigator.clipboard&&window.ClipboardItem);$('sendRow').hidden=!HANDOFF.ok();
+  $('saveHelp').textContent=canSave()?'The saved photo is full size and looks the same as the preview. It gets a random name, and nothing about the original file is kept in it.':'Saving isn’t available here. Open the Photo Tools website or app to save the photo.';}
+
+/* ================= the photo ================= */
+async function loadBlob(blob,name,keep){
+  let im=null;try{im=await createImageBitmap(blob);}catch(e){im=await new Promise(res=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>res(null);i.src=URL.createObjectURL(blob);});}
+  if(!im||!im.width){toast('That file couldn’t be opened as a picture. Try JPG or PNG.');return false;}
+  IMG=im;BLOB=blob;NAME=name||'photo';SAMPLE=false;photoPal=null;outCache=null;if(!keep)NAMECODE=rndCode();
+  $('thumb').src=URL.createObjectURL(blob);$('pName').textContent=NAME;$('pInfo').textContent=`${im.width} × ${im.height} pixels`;$('cta').hidden=true;
+  renderOpts();render();if(!keep)save();return true;}
+function addFile(f){if(!f)return;if(!/^image\//.test(f.type)&&!/\.(png|jpe?g|webp|gif|avif|bmp)$/i.test(f.name)){toast('That isn’t a picture.');return;}loadBlob(f,f.name);}
+['pick','pick2'].forEach(id=>$(id).onchange=e=>{addFile(e.target.files[0]);e.target.value='';});
+const dropEl=$('drop');
+['dragenter','dragover'].forEach(ev=>dropEl.addEventListener(ev,e=>{e.preventDefault();dropEl.classList.add('drop');}));
+['dragleave','drop'].forEach(ev=>dropEl.addEventListener(ev,e=>{e.preventDefault();dropEl.classList.remove('drop');}));
+dropEl.addEventListener('drop',e=>{if(e.dataTransfer&&e.dataTransfer.files.length)addFile(e.dataTransfer.files[0]);});
+document.addEventListener('paste',e=>{const f=[...(e.clipboardData&&e.clipboardData.files)||[]].find(x=>/^image\//.test(x.type));if(f)addFile(f);});
+/* a made-up night street to try the filter on before you choose a photo */
+function makeSample(){const W=1500,H=1000,c=mkCanvas(W,H),g=c.getContext('2d'),r=rnd(7);
+  let gr=g.createLinearGradient(0,0,0,H);gr.addColorStop(0,'#0B1030');gr.addColorStop(.55,'#3A1E5C');gr.addColorStop(.8,'#B5476E');gr.addColorStop(1,'#F29B5E');g.fillStyle=gr;g.fillRect(0,0,W,H);
+  g.fillStyle='#FFD9A0';g.beginPath();g.arc(750,640,150,0,Math.PI*2);g.fill();
+  for(let i=0;i<26;i++){const w=50+r()*90,x=i*60-20+r()*20,hh=160+r()*420;g.fillStyle=i%2?'#141033':'#1E1746';g.fillRect(x,H-hh,w,hh);
+    for(let y=H-hh+14;y<H-20;y+=22)for(let xx=x+8;xx<x+w-10;xx+=16)if(r()<.35){g.fillStyle=r()<.5?'#FFD27A':'#7FE7FF';g.fillRect(xx,y,7,10);}}
+  g.fillStyle='#0A0820';g.fillRect(0,H-60,W,60);return c;}
+
+/* ================= keeping your work ================= */
+const DB={db:null,
+  open(){if(DB.opening)return DB.opening;return DB.opening=new Promise(res=>{try{const r=indexedDB.open('glitch-filter',1);r.onupgradeneeded=()=>r.result.createObjectStore('state');
+    r.onsuccess=()=>{DB.db=r.result;res(r.result);};r.onerror=r.onblocked=()=>res(null);}catch(e){res(null);}});},
+  async tx(mode,fn){const db=DB.db||await DB.open();if(!db)return null;return new Promise(res=>{try{const t=db.transaction('state',mode),st=t.objectStore('state');const q=fn(st);t.oncomplete=()=>res(q&&'result' in q?q.result:true);t.onerror=t.onabort=()=>res(null);}catch(e){res(null);}});}};
+let restored=false,saveT=0;
+function writeState(){if(!restored)return Promise.resolve();return DB.tx('readwrite',s=>s.put({S,blob:SAMPLE?null:BLOB,name:NAME,savedAt:Date.now()},'current'));}
+function save(){clearTimeout(saveT);saveT=setTimeout(writeState,500);}
+function flushAutosave(){clearTimeout(saveT);return writeState();}
+async function restore(){try{const st=await DB.tx('readonly',s=>s.get('current'));
+  if(st&&st.S){S={...DEF(),...st.S};if(st.blob)await loadBlob(st.blob,st.name,true);}}catch(e){}
+  restored=true;renderOpts();render();}
+
+/* ================= passing files between tools, and from your gallery's Share menu (installed app only) ================= */
+const HANDOFF={name:'pt-handoff',
+  ok(){try{return window.top===window.self&&'caches' in window;}catch(e){return false;}},
+  async put(files){const c=await caches.open(this.name);for(const k of await c.keys())await c.delete(k);let i=0;
+    for(const f of files)await c.put(new Request(`handoff/${Date.now()}-${i++}`),new Response(f,{headers:{'content-type':f.type||'application/octet-stream','x-name':encodeURIComponent(f.name||'file')}}));},
+  async take(){if(!this.ok()||!/[?&]handoff\b/.test(location.search))return[];const out=[];
+    try{const c=await caches.open(this.name);for(const k of await c.keys()){const r=await c.match(k);if(r){const b=await r.blob();out.push(new File([b],decodeURIComponent(r.headers.get('x-name')||'file'),{type:b.type||r.headers.get('content-type')||''}));}await c.delete(k);}}catch(e){}
+    try{history.replaceState(null,'',location.pathname+location.hash);}catch(e){}return out;},
+  async send(files,page){try{await this.put(files);}catch(e){toast('Couldn’t pass it along. Save it and add it there instead.');return;}
+    try{await Promise.race([flushAutosave(),new Promise(r=>setTimeout(r,1500))]);}catch(e){}location.href=page+'?handoff=1';}};
+async function handoffIn(){const fs=(await HANDOFF.take()).filter(f=>/^image\//.test(f.type));if(!fs.length)return;await loadBlob(fs[0],fs[0].name);
+  toast(fs.length>1?'Opened the first photo. The filter works on one photo at a time.':'Your photo is in. Pick a look, then save it.');}
+document.querySelectorAll('#sendRow button').forEach(b=>b.onclick=()=>withFile(async f=>{say('');await HANDOFF.send([f],b.dataset.to);}));
+
+/* ================= switching tools ================= */
+(function(){
+  const ART={'photo-frame-studio.html':'https://claude.ai/artifact/BTFF4oB7m8EHQMWNwCo2Uw','photo-splitter.html':'https://claude.ai/artifact/ENVcKXEpCdopL6rRfj1fT9','chat-reel.html':'https://claude.ai/artifact/Tzehgnj1qjBYtpZ6oxKAhG','metadata-scrubber.html':'https://claude.ai/artifact/8kwiNFdeFAR3uZ8NTzKVnX','watermark.html':'https://claude.ai/artifact/KY6NSnRSjL5vHT5tjTEZeu','glitch-filter.html':'https://claude.ai/artifact/6BsRKvUZd7igd3rSDzzSTu','caption-maker.html':'https://claude.ai/artifact/5E6VdnrgfSVCytQtsQUNVc','background-remover.html':'https://claude.ai/artifact/FzXZ8jMRnT8kFRFXS4G3wF','video-layers.html':'https://claude.ai/artifact/HMnHFrAaDUyaiSg7H8uxwN','delivery-reel.html':'https://claude.ai/artifact/4XzpUcdVZdRCviwGjyvTNQ','visual-novel.html':'https://claude.ai/artifact/GUKwPgmd3o8tZarDH4ygRx','motion-comic.html':'https://claude.ai/artifact/QA3g3sR3Jy4etrFoq8rNBD','outfit-tags.html':'https://claude.ai/artifact/3GUgfTcEMSDbgj5TMVuARd','sfx-maker.html':'https://claude.ai/artifact/REzZEE49rDGsJvLMiHU94S','effect-lines.html':'https://claude.ai/artifact/VjVk1Y38uReCEXRQm4Pkmo','panel-layouts.html':'https://claude.ai/artifact/RW5tZaV6fYwPoei7bXPpkh','bubble-maker.html':'https://claude.ai/artifact/QFhAdXvekc5mfPs9ynJyKX'};
+  document.querySelectorAll('.switch a').forEach(a=>{
+    if(a.getAttribute('aria-current')){a.addEventListener('click',e=>e.preventDefault());return;}
+    if(!topLevel){const u=ART[a.getAttribute('href')];if(u&&u.startsWith('https:')){a.href=u;a.target='_blank';a.rel='noopener';}return;}
+    a.addEventListener('click',async e=>{if(e.metaKey||e.ctrlKey||e.shiftKey||e.altKey||e.button)return;e.preventDefault();try{await Promise.race([flushAutosave(),new Promise(r=>setTimeout(r,1500))]);}catch(err){}location.href=a.href;});
+  });
+  addEventListener('pagehide',()=>{try{flushAutosave();}catch(e){}});
+})();
+
+/* ================= boot ================= */
+IMG=makeSample();NAME='Sample picture';$('thumb').src=IMG.toDataURL('image/jpeg',.7);
+syncSave();renderOpts();render();
+restore().then(handoffIn);
+</script>
+
+</body>
+</html>

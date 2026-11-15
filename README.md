@@ -24,6 +24,7 @@ A small set of personal browser tools for dressing up photos, making short video
 | [Panel Layouts](#panel-layouts) | Manga and comic page layouts in batches of 12, 24 or 48 from a seed: orderly, standard, action or splash pages, slanted borders, bleeds and split panels, right-to-left or left-to-right. Drag borders, remove panels, mutate a layout into variations, and save as SVG or PNG with a clear, white or black background. |
 | [Bubble Maker](#bubble-maker) | Manga speech and thought bubbles: 15 styles (classic, thought, shout, whisper, shaky, radio, narration, shoujo, pop, echo, horror and more), any words in about 100 fonts or your own, tails you point by dragging, patterns, double lines, shadows and decorations. Several bubbles on a page, random ideas, a bubble sheet to cut up, and saving as see-through PNG, SVG or a ZIP of each bubble. |
 | [Watermark](#watermark) | Puts your name or logo on one photo or a whole batch, with ready-made looks (corner signature, label, stamp, proof band, tiled) or your own saved watermarks. |
+| [Glitch Filter](#glitch-filter) | Gives a photo a broken-screen look: neon color bars, thin streaks, slices pushed sideways and colors pulled apart, with five ready-made looks, a clear area you place over a face, and a shuffle button for a new arrangement. |
 | [Background Remover](#background-remover) | Takes the background out of photos and videos: people, animals, everyday things, a plain background or green screen, or any color you pick like a chroma key. Touch-up brush for photos, and see-through, color, blurred or picture backgrounds. |
 | [Video Layers](#video-layers) | Puts pictures, videos, text, music and your voice together and exports a new video or GIF. Automatic background removal, green screen, motion paths with keyframes and one-tap layouts. |
 | [Delivery Reel](#delivery-reel) | Plays out an order from a made-up delivery app, from placed to delivered, and ends on the delivered screen. A courier chat on the way and a doorstep photo or video that opens full screen. |
@@ -379,6 +380,22 @@ Removes everything from a photo or video except the picture and sound themselves
 - **New names:** random letters or photo-style names (like `IMG_20261006_142233`). Edit any name or roll new ones.
 - **Pixel shuffle (optional):** scrambles the invisible lowest bit of every pixel to wipe data other tools hide in the pixels themselves. It turns on automatically when hidden pixel data is found.
 - **Download:** one at a time, or all at once as a ZIP.
+
+---
+
+## Glitch Filter
+
+Gives any photo a broken-screen look, like a picture coming through a bad signal.
+
+- **Looks:** Neon streaks, Lost signal, Old tape, Light touch and Meltdown set everything at once. Move any slider and it becomes your own look.
+- **How much, overall:** one slider that turns the whole effect up or down.
+- **Shuffle the glitches:** keeps your settings and moves every streak and bar somewhere new. Keep tapping until you like it.
+- **Glitches:** color bars in bunches, thin streaks that pick up the colors of the photo under them, striped blocks at the sides, rows of dots like broken text, slices pushed sideways, and colors pulled apart (red one way, blue the other). Two more sliders set how long and how thick the bars and streaks are.
+- **Colors:** Neon, colors taken from the photo itself, Fire, Ice, red-green-blue or White, plus a slider for stronger colors in the photo.
+- **Keep an area clear:** drag the dashed circle onto a face or a detail and it stays clean, with only a few thin streaks getting through. Scroll or pinch to change its size, or switch it off to cover the whole photo.
+- **Finish:** darken around the clear area so the colors pop, glow, screen lines and grain.
+- **See the original** flips between the photo before and after.
+- **Saving:** JPG or PNG at the photo's full size (up to 5000 pixels on the long side), looking the same as the preview, under a random name. **Copy image** and **Share** are there too, and **Frame it**, **Add words** and **Use in a video** pass the result straight to Photo Frame Studio, Caption Maker or Video Layers.
 
 ---
 
@@ -905,6 +922,7 @@ Open each tool once while you're online so everything, fonts included, is saved 
 | `chat-reel.html` | Chat Reel |
 | `metadata-scrubber.html` | Metadata Scrubber |
 | `watermark.html` | Watermark |
+| `glitch-filter.html` | Glitch Filter |
 | `caption-maker.html` | Caption Maker |
 | `sfx-maker.html` | SFX Maker |
 | `effect-lines.html` | Effect Lines |

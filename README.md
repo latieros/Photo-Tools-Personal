@@ -53,7 +53,12 @@ Pick a frame, add a photo, change the words, drag things into place, export.
 The frames sit in four categories: **Social & phone**, **Cameras**, **Prints** and **Covers & comics**. Tap a category to drop down its frames. A closed category shows which of its frames is picked, or how many it has.
 
 **Social & phone**
-- **Story caption:** a full-screen story with a see-through caption bar you can slide, a big sticker word and a profile header.
+- **Story caption:** a full-screen story done like a snap. Drag any caption or sticker around on the picture.
+  - Caption as a see-through bar, big text or a colored label, in seven fonts.
+  - A big sticker word: outline, bubble, pill or neon, in three sizes, tilted or straight.
+  - Photo filters: warm, cool, black and white, vivid or faded.
+  - Stickers for the weather (sunny, cloudy, rain, snow, storm or night, °F or °C), the time (digital, pill or clock face), the date (pill, handwriting or an orange film stamp), a place, your speed, battery level, a mention, a streak, a question box, a song and up to four emoji. One button fills in the time and date right now.
+  - Profile header with story bars at the top, and an optional "Send a chat" reply bar.
 - **Social post:** a feed post with username, location, likes, caption, comments and time. Light or dark.
 - **Short video (TikTok-style):**
   - The For You and Following tabs, plus the like, comment, save and share rail with a spinning sound disc.

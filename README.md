@@ -36,6 +36,7 @@ A small set of personal browser tools for dressing up photos, making short video
 | [Background Remover](#background-remover) | Takes the background out of photos and videos: people, animals, everyday things, a plain background or green screen, or any color you pick like a chroma key. Touch-up brush for photos, and see-through, color, blurred or picture backgrounds. |
 | [Video Layers](#video-layers) | Puts pictures, videos, text, music and your voice together and exports a new video or GIF. Automatic background removal, green screen, motion paths with keyframes and one-tap layouts. |
 | [Delivery Reel](#delivery-reel) | Plays out an order from a made-up delivery app, from placed to delivered, and ends on the delivered screen. A courier chat on the way and a doorstep photo or video that opens full screen. |
+| [Live Stream](#live-stream) | A made-up live stream: your video or a drawn game with a running chat, alerts for subs, raids and tips, a face cam, and comments flying across the screen. |
 | [Visual Novel](#visual-novel) | Scenes with characters, expressions and choices that branch. Play it in the page, export a video of a path, or save a playable file anyone can open. |
 | [Motion Comic](#motion-comic) | Panels pop in, then their bubbles, with sound words, speed lines, cut-ins and page turns. Scrolls like a webtoon or turns pages like a book. |
 | [Outfit Tags](#outfit-tags) | Reads the outfit in a photo or a piece of anime art and turns it into Danbooru tags or prompts for AI image generators, with characters, series and named outfits. Sends the photo to an AI model to read it. |
@@ -276,6 +277,32 @@ An order from a made-up delivery app, played out as a video: placed, being prepa
 
 ### Export
 - **Formats:** WebM, MP4 or GIF, with the same quality and size-limit choices as Chat Reel. Work is kept in the browser.
+
+---
+
+## Live Stream
+
+A made-up live stream, played out as a video: a stream with a running chat, pop-up alerts and comments flying across the picture.
+
+### The stream
+- **Layouts:** Desktop (player, info bar and chat beside it), Phone (player on top, chat underneath) or the video on its own with the chat laid over it.
+- **A made-up site:** type its name and pick one of five colors. The streamer's name and picture, stream title, game or category, tags, viewer count and how long it's been live are all yours to set. The viewer count drifts and jumps up when a raid comes in; the live timer counts up.
+- **What's on stream:** your video (it loops for as long as the stream runs) or photo, filling the player or shown whole. Without one, a made-up platform game plays.
+- **Face cam:** a photo or video in any corner, as a box or a circle. A shadowy stand-in shows until you add one, or turn it off.
+
+### Chat
+- **Messages:** one per line, as `name: message`. `@` before a name makes a moderator and `+` a subscriber, each with a badge. Names get their own colors.
+- **Alerts:** `!sub name 6`, `!gift name 5`, `!raid name 120`, `!tip name $5 message` and `!follow name` pop up over the stream with a sound and show in the chat.
+- **Speed:** slow, normal, fast or flooding. The messages can repeat to keep chat going, and chat can start already full.
+
+### Comments across the screen
+- **Flying comments** scroll right to left over the picture in rows that don't bump into each other, like a Japanese video site.
+- **One per line.** Start a line with `#red`, `#pink`, `#orange`, `#yellow`, `#green`, `#cyan`, `#blue`, `#purple` or `#black` for a color, `#big` or `#small` for size, and `#top` or `#bottom` to hold it still in the middle at the top or bottom.
+- **How many:** a few, lots or a wall of them. Three sizes, a see-through slider, and chat messages can fly across too.
+
+### Export
+- **Length** from 3 to 60 seconds, alert and chat sounds on or off, and a shuffle for the timing.
+- **Formats:** MP4, WebM or GIF, full or half size. **Screenshot** saves the moment under the playhead as a picture.
 
 ---
 
@@ -1064,6 +1091,8 @@ Open each tool once while you're online so everything, fonts included, is saved 
 | `bubble-maker.html` | Bubble Maker |
 | `background-remover.html` | Background Remover |
 | `video-layers.html` | Video Layers |
+| `delivery-reel.html` | Delivery Reel |
+| `live-stream.html` | Live Stream |
 | `outfit-tags.html` | Outfit Tags (built from the Outfit-Idenitfy repository) |
 | `manifest.webmanifest` | App name, icons, shortcuts and the Share menu entry for installing |
 | `sw.js` | Offline support: keeps the tools and fonts on your device, and receives files shared from other apps |

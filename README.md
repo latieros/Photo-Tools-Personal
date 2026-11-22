@@ -290,6 +290,11 @@ A made-up live stream, played out as a video: a stream with a running chat, pop-
 - **What's on stream:** your video (it loops for as long as the stream runs) or photo, filling the player or shown whole. Without one, a made-up platform game plays.
 - **Face cam:** a photo or video in any corner, as a box or a circle. A shadowy stand-in shows until you add one, or turn it off.
 
+### On the stream
+- **Look:** Base, or **Orchard**: the alerts, the chat box on the stream, the face cam and the goal are dressed in drawn apples, leaves and branches on cream paper, with falling leaves when an alert pops up. The site around the player keeps its own look.
+- **Chat box on the stream:** the video-only layout always has one; Desktop and Phone can show one over the player too.
+- **Donation goal:** a name, how much is raised, the goal and the money sign, as a bar going across or up and down, thin, medium or thick, as long as you like. Drag it anywhere on the preview, or use the sliders. `!tip` lines in the chat can add to it as they come in, and it glows when it's full.
+
 ### Chat
 - **Messages:** one per line, as `name: message`. `@` before a name makes a moderator and `+` a subscriber, each with a badge. Names get their own colors.
 - **Alerts:** `!sub name 6`, `!gift name 5`, `!raid name 120`, `!tip name $5 message` and `!follow name` pop up over the stream with a sound and show in the chat.

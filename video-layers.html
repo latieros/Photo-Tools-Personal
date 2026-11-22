@@ -71,8 +71,10 @@ document.addEventListener('DOMContentLoaded',function(){var h=document.querySele
 });})();</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<style>/* caption memes use Futura Condensed ExtraBold; most Apple devices have it built in */
+@font-face{font-family:"Meme Caption";font-weight:800;src:local("Futura-CondensedExtraBold"),local("Futura Condensed ExtraBold"),local("Futura PT Cond ExtraBold"),local("FuturaPTCond-ExtraBold")}</style>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&family=Lora:wght@500;600;700&family=Unbounded:wght@600&family=Anton&family=Bebas+Neue&family=Playfair+Display:ital,wght@0,700;1,700&family=DM+Serif+Display:ital@0;1&family=Permanent+Marker&family=Caveat:wght@700&family=Pacifico&family=Bangers&family=Fredoka:wght@600&family=Special+Elite&family=Space+Mono:ital,wght@0,700;1,700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&family=Lora:wght@500;600;700&family=Unbounded:wght@600&family=Anton&family=Bebas+Neue&family=Playfair+Display:ital,wght@0,700;1,700&family=DM+Serif+Display:ital@0;1&family=Permanent+Marker&family=Caveat:wght@700&family=Pacifico&family=Bangers&family=Fredoka:wght@600&family=Encode+Sans+Condensed:wght@800&family=Special+Elite&family=Space+Mono:ital,wght@0,700;1,700&display=swap">
 <style>
 /* Layout: editor workbench — layers | live preview | settings, with the timeline across the bottom; stacks on phones (preview first) */
 :root{
@@ -572,6 +574,7 @@ const FONTS={
   grotesk:['Clean','600','"Familjen Grotesk",system-ui,sans-serif'],
   display:['Wide','600','Unbounded,"Familjen Grotesk",sans-serif'],
   anton:['Bold','400','Anton,Impact,"Arial Narrow Bold",sans-serif'],
+  futura:['Condensed','800','"Meme Caption","Encode Sans Condensed","Arial Narrow",sans-serif'],
   bebas:['Tall','400','"Bebas Neue",Impact,sans-serif'],
   serif:['Serif','700','"Playfair Display",Georgia,serif'],
   elegant:['Elegant','400','"DM Serif Display",Georgia,serif'],
@@ -726,7 +729,7 @@ function textLayout(L,W){
   const ws=lines.map(s=>ctx.measureText(s).width);ctx.restore();
   const lh=px*(L.lh||1.18),tw=Math.max(px*.4,...ws);
   const padX=L.tbg==='box'?px*.5:L.tbg==='line'?px*.35:0,padY=L.tbg==='box'?px*.3:L.tbg==='line'?px*.08:0;
-  let w=tw+padX*2+sw*2,ht=lines.length*lh+padY*2+sw*2;if(bar){w=W;ht=lines.length*lh+px*.8;}
+  let w=tw+padX*2+sw*2,ht=lines.length*lh+padY*2+sw*2;if(bar){w=W;ht=lines.length*lh+px*(.8+(L.barPad||0)*.9);}
   return{px,lh,lines,ws,tw,w,h:ht,padX,padY,sw,bar,font:tfont(L,px)};}
 function boxOf(L){const[W,H]=canvasSize();
   if(L.type==='text'){const t=textLayout(L,W);return{cx:t.bar?W/2:L.x*W,cy:L.y*H,w:t.w,h:t.h,t};}
@@ -1258,8 +1261,8 @@ function renderList(){
   $('startCard').hidden=P.layers.length>0;$('cvResize').hidden=!P.layers.length||cvEdit;$('dockCount').textContent=P.layers.length?P.layers.length:'';
 }
 function moveLayer(id,d){const i=P.layers.findIndex(l=>l.id===id),j=i+d;if(i<0||j<0||j>=P.layers.length)return;[P.layers[i],P.layers[j]]=[P.layers[j],P.layers[i]];refresh();}
-function removeLayer(id){const i=P.layers.findIndex(l=>l.id===id);if(i<0)return;const L=P.layers[i];dropMedia(id);P.layers.splice(i,1);if(sel===id)sel=null;refresh();toast(`Removed “${L.type==='text'?'text':L.name}”. Undo brings it back.`);}
-async function duplicate(L){const C=JSON.parse(JSON.stringify(L));C.id=uid();C.x=clamp(C.x+.04,0,1);C.y=clamp(C.y+.04,0,1);
+function removeLayer(id){const i=P.layers.findIndex(l=>l.id===id);if(i<0)return;const L=P.layers[i];if(L.roomPx>0)fitRoom(L,false);dropMedia(id);P.layers.splice(i,1);if(sel===id)sel=null;refresh();toast(`Removed “${L.type==='text'?'text':L.name}”. Undo brings it back.`);}
+async function duplicate(L){const C=JSON.parse(JSON.stringify(L));C.room=false;C.roomPx=0;C.id=uid();C.x=clamp(C.x+.04,0,1);C.y=clamp(C.y+.04,0,1);
   if(L.media){const ok=await makeMedia(C);if(!ok){toast('Couldn’t copy that layer.');return;}}
   const i=P.layers.findIndex(l=>l.id===L.id);P.layers.splice(i+1,0,C);sel=C.id;refresh();}
 /* cut a layer in two at the playhead */
@@ -1697,6 +1700,7 @@ const TP=[
   ['caption','Caption',{font:'grotesk',size:.055,color:'#FFFFFF',shadowFx:'soft'},7],
   ['highlight','Highlight',{font:'grotesk',size:.05,color:'#111111',tbg:'line',bgColor:'#FFFFFF',bgOpacity:1}],
   ['meme','Meme',{font:'anton',size:.085,color:'#FFFFFF',stroke:.1,strokeColor:'#000000',caps:true},1],
+  ['capmeme','Caption meme',{font:'futura',size:.078,color:'#000000',tbg:'bar',bgColor:'#FFFFFF',bgOpacity:1,lh:1.02,barPad:1},1],
   ['title','Title',{font:'display',size:.085,color:'#FFFFFF',shadowFx:'soft'},4],
   ['lower','Lower third',{font:'grotesk',size:.045,color:'#FFFFFF',tbg:'box',bgColor:'#5B3DF5',bgOpacity:1,align:'left'},6],
   ['subtitle','Subtitle',{font:'grotesk',size:.042,color:'#FFE14D',tbg:'box',bgColor:'#000000',bgOpacity:.6},7],
@@ -1704,11 +1708,30 @@ const TP=[
   ['note','Sticky note',{font:'hand',size:.075,color:'#1F2A44',tbg:'box',bgColor:'#FFF1A8',bgOpacity:1,shadowFx:'hard',rot:-3}],
   ['news','News bar',{font:'bebas',size:.06,color:'#FFFFFF',tbg:'bar',bgColor:'#C8102E',bgOpacity:1,align:'left',caps:true},7],
   ['type','Typewriter',{font:'typewriter',size:.05,color:'#FFFFFF',tbg:'box',bgColor:'#000000',bgOpacity:.75,inFx:'type',fadeIn:1.5}]];
-const TP_BASE={italic:false,caps:false,ls:0,lh:1.18,stroke:0,strokeColor:'#000000',tbg:'none',bgOpacity:.6,shadowFx:'none',align:'center',rot:0};
+const TP_BASE={italic:false,caps:false,ls:0,lh:1.18,stroke:0,strokeColor:'#000000',tbg:'none',bgOpacity:.6,shadowFx:'none',align:'center',rot:0,barPad:0};
 function applyPreset(L,k){const pr=TP.find(x=>x[0]===k);if(!pr)return;
   if(L.preset==='type'&&L.inFx==='type'&&!pr[2].inFx){L.inFx='fade';L.fadeIn=0;}
-  Object.assign(L,TP_BASE,pr[2]);L.preset=k;
-  if(pr[3]!=null){const[W,H]=canvasSize();placeIn(L,{x:0,y:0,w:W,h:H},pr[3]%3,Math.floor(pr[3]/3));}}
+  const wasRoom=L.room;Object.assign(L,TP_BASE,pr[2]);L.preset=k;
+  if(pr[3]!=null){const[W,H]=canvasSize();placeIn(L,{x:0,y:0,w:W,h:H},pr[3]%3,Math.floor(pr[3]/3));}
+  /* a caption meme sits on its own white bar above the video, so the video is made taller to fit it */
+  if(k==='capmeme'){if(L.text==='Your text here')L.text='when the caption is on top';fitRoom(L,true,true);}
+  else if(wasRoom||L.roomPx)fitRoom(L,false);}
+/* ================= making room for a full-width bar, so it doesn't cover the video ================= */
+/* The video is made taller by exactly the bar's height and everything else moves down (or stays, for a bar
+   underneath). L.roomPx remembers how much was added, so it can be changed or taken away again. */
+function fitRoom(L,on,top){const[W,H0]=canvasSize();let H=H0;
+  const shift=(dy,Ho,Hn)=>{for(const o of P.layers){if(o===L||o.type==='audio')continue;o.y=(o.y*Ho+dy)/Hn;if(hasKf(o))o.kf.forEach(f=>{f.y=(f.y*Ho+dy)/Hn;});}};
+  if(L.roomPx>0){const r=L.roomPx,Hn=H-r;shift(L.roomTop?-r:0,H,Hn);H=Hn;L.roomPx=0;
+    /* without the room, the bar stays on the same edge, now over the video */
+    if(!on&&L.tbg==='bar'){const hh=textLayout(L,W).h/2;L.y=L.roomTop===false?(H-hh)/H:hh/H;}}
+  if(on&&L.tbg==='bar'){if(top!=null)L.roomTop=top;else if(L.roomTop==null)L.roomTop=true;
+    const need=Math.ceil(textLayout(L,W).h),Hn=evenPx(H+need),r=Hn-H;shift(L.roomTop?r:0,H,Hn);H=Hn;L.roomPx=r;L.y=L.roomTop?(r/2)/H:(H-r/2)/H;}
+  L.room=!!(on&&L.tbg==='bar');if(hasKf(L))L.kf.forEach(f=>{f.y=L.y;});
+  P.aspect='custom';P.cw=W;P.ch=H;}
+/* while you type, the bar grows or shrinks, and the room above the video follows it */
+let roomT=0;function roomSoon(){clearTimeout(roomT);roomT=setTimeout(()=>{const L=selL();if(!L||L.type!=='text'||!L.room)return;
+  const[W]=canvasSize(),need=Math.ceil(textLayout(L,W).h);if(Math.abs(need-L.roomPx)<2&&L.tbg==='bar')return;fitRoom(L,L.tbg==='bar');drawNow();renderTimeline();save();},300);}
+['input','click','change'].forEach(ev=>$('panel').addEventListener(ev,()=>{const L=selL();if(L&&L.type==='text'&&(L.room||L.roomPx))roomSoon();}));
 function presetLook(pr){const s=pr[2],f=FONTS[s.font]||FONTS.grotesk;let css=`font:${s.italic?'italic ':''}${f[1]} 15px ${f[2]};color:${s.color};`;
   if(s.tbg&&s.tbg!=='none')css+=`background:${hexA(s.bgColor,s.bgOpacity==null?.6:s.bgOpacity)};`;
   if(s.stroke)css+='text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;';else if(s.shadowFx==='glow')css+=`text-shadow:0 0 8px ${s.color},0 0 2px ${s.color};`;else if(s.shadowFx)css+='text-shadow:0 1px 3px rgba(0,0,0,.7);';
@@ -1717,6 +1740,7 @@ function textPanel(p,L){
   const pg=h('div',{class:'presets',role:'group','aria-labelledby':'p-pre-l'});
   TP.forEach(pr=>pg.append(h('button',{type:'button','aria-pressed':String(L.preset===pr[0]),title:pr[1],onclick:()=>{applyPreset(L,pr[0]);renderSide();soft();renderListSoon();}},h('span',{style:presetLook(pr)},pr[1]))));
   p.append(h('div',{class:'field'},h('span',{class:'flabel',id:'p-pre-l'},'Style'),pg));
+  if(L.preset==='capmeme')p.append(h('p',{class:'help'},'Caption meme: black words on a white bar above the video, in lowercase like you type it. The bar’s size and the room above the video are on the Style tab.'));
   const ta=h('textarea',{id:'p-text',rows:3});ta.value=L.text;ta.oninput=()=>{L.text=ta.value;drawNow();renderListSoon();save();};
   p.append(h('div',{class:'field'},h('label',{for:'p-text'},'Text'),ta,h('p',{class:'help'},'Press Enter for a new line. Long lines wrap on their own.')));
   const fg=h('div',{class:'fontgrid',role:'group','aria-labelledby':'p-font-l'});
@@ -1734,9 +1758,14 @@ function stylePanel(p,L){
   p.append(rangeF('p-stroke','Outline',0,.25,.005,L.stroke,v=>v>0?Math.round(v*100)+'':'None',v=>{L.stroke=v;drawNow();save();}));
   p.append(colorF('p-sc','Outline color',L.strokeColor,v=>{L.strokeColor=v;drawNow();save();}));
   p.append(h('h4',{class:'fhead'},'Background'));
-  p.append(segF('p-bg','Style',[['none','None'],['box','Box'],['line','Each line'],['bar','Full-width bar']],L.tbg,v=>{L.tbg=v;if(v!=='none'&&L.bgOpacity<.2)L.bgOpacity=.6;renderSide();soft();}));
+  p.append(segF('p-bg','Style',[['none','None'],['box','Box'],['line','Each line'],['bar','Full-width bar']],L.tbg,v=>{L.tbg=v;if(v!=='none'&&L.bgOpacity<.2)L.bgOpacity=.6;if(v!=='bar'&&L.roomPx)fitRoom(L,false);renderSide();soft();}));
   if(L.tbg!=='none'){p.append(colorF('p-bgc','Background color',L.bgColor,v=>{L.bgColor=v;drawNow();save();}));
     p.append(rangeF('p-bgo','Background opacity',.1,1,.01,L.bgOpacity,pct,v=>{L.bgOpacity=v;drawNow();save();}));}
+  if(L.tbg==='bar'){
+    p.append(rangeF('p-bpad','Space above and below the words',0,2,.05,L.barPad||0,v=>v?pct(v/2):'Snug',v=>{L.barPad=v;drawNow();save();}));
+    p.append(checkF('p-room','Make room, so the bar doesn’t cover the video',!!L.room,v=>{fitRoom(L,v);refresh();}));
+    if(L.room)p.append(segF('p-roomat','The bar goes',[['top','Above the video'],['bottom','Below the video']],L.roomTop===false?'bottom':'top',v=>{fitRoom(L,true,v==='top');refresh();}));
+    p.append(h('p',{class:'help'},L.room?'The video is made taller by the height of the bar, and everything else moves to make space. If the words need more lines, the space grows with them.':'Tick this for the caption-meme look: the words on their own bar, with the whole video showing underneath.'));}
   p.append(h('h4',{class:'fhead'},'Shadow'));
   p.append(segF('p-shf','Style',[['none','None'],['soft','Soft'],['hard','Hard'],['glow','Glow']],L.shadowFx,v=>{L.shadowFx=v;renderSide();soft();}));
   p.append(h('p',{class:'help'},'Glow uses the text color, so it works best with bright colors on a dark video.'));

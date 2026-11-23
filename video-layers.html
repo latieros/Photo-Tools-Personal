@@ -1149,14 +1149,14 @@ function gradFill(W,H,g){const d=g.dir||'v';let gr;
 /* the empty space filled from the bottom layer itself: its edge colors stretched outwards, or a mirror image, softened */
 function edgeFill(base,W,H,mirror){
   const rt=((base.rot%360)+360)%360;if(rt>.5&&rt<359.5)return false;
-  const m=M[base.id],c=base.crop,b=boxOf(base),sw=mirror?160:72,sh=Math.max(2,Math.round(sw*H/W)),k=sw/W;
+  const s=bgSrc(base),b=boxOf(base),sw=mirror?160:72,sh=Math.max(2,Math.round(sw*H/W)),k=sw/W;
   const x0=(b.cx-b.w/2)*k,y0=(b.cy-b.h/2)*k,bw=b.w*k,bh=b.h*k;
   const X0=clamp(Math.ceil(x0),0,sw),Y0=clamp(Math.ceil(y0),0,sh),X1=clamp(Math.floor(x0+bw),0,sw),Y1=clamp(Math.floor(y0+bh),0,sh),iw=X1-X0,ih=Y1-Y0;
   if(iw<3||ih<3)return false;
   const g=room(EB,sw+2,sh+2),gc=room(EC,sw+2,sh+2);
   g.setTransform(1,0,0,1,0,0);g.globalAlpha=1;g.globalCompositeOperation='source-over';g.clearRect(0,0,sw+2,sh+2);g.imageSmoothingEnabled=true;g.imageSmoothingQuality='medium';
   g.save();g.translate(x0+bw/2,y0+bh/2);g.scale(base.flipX?-1:1,base.flipY?-1:1);
-  try{g.drawImage(m.el,c.l*m.w,c.t*m.h,Math.max(1,m.w*(1-c.l-c.r)),Math.max(1,m.h*(1-c.t-c.b)),-bw/2,-bh/2,bw,bh);}catch(e){g.restore();return false;}
+  try{g.drawImage(s.el,s.sx,s.sy,s.sw,s.sh,-bw/2,-bh/2,bw,bh);}catch(e){g.restore();return false;}
   g.restore();
   const copy=()=>{gc.setTransform(1,0,0,1,0,0);gc.globalCompositeOperation='source-over';gc.clearRect(0,0,sw+2,sh+2);gc.drawImage(EB,0,0,sw,sh,0,0,sw,sh);};
   copy();
@@ -1179,15 +1179,37 @@ function edgeFill(base,W,H,mirror){
   ctx.restore();return true;}
 function rr(x,y,w,hh,r){ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x,y,w,hh,Math.max(0,Math.min(r,w/2,hh/2)));else ctx.rect(x,y,w,hh);}
 function hexA(hex,a){const n=parseInt(String(hex).slice(1),16)||0;return`rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;}
+/* ================= a still empty space: one frame of each video, kept with the project ================= */
+/* P.bgStill makes the blurred, stretched or mirrored fill stay still. Each video gets one frame: the one at the playhead
+   when you tap "Use the frame at the playhead", or else the first frame it shows. It is kept small, as a JPG, in the
+   project (P.bgStills), because the fill is softened anyway. */
+const STILLS={};
+const cropSig=L=>{const c=L.crop;return[c.l,c.t,c.r,c.b].map(v=>(+v).toFixed(4)).join(',');};
+function bgLive(base){const m=M[base.id],c=base.crop;return{el:m.el,sx:c.l*m.w,sy:c.t*m.h,sw:Math.max(1,m.w*(1-c.l-c.r)),sh:Math.max(1,m.h*(1-c.t-c.b))};}
+function bgGrab(base){const m=M[base.id];if(!m||!frameReady(base))return false;const s=bgLive(base),k=Math.min(1,480/Math.max(s.sw,s.sh)),
+    c=document.createElement('canvas');c.width=Math.max(2,Math.round(s.sw*k));c.height=Math.max(2,Math.round(s.sh*k));
+  try{c.getContext('2d').drawImage(s.el,s.sx,s.sy,s.sw,s.sh,0,0,c.width,c.height);}catch(e){return false;}
+  let u='';try{u=c.toDataURL('image/jpeg',.86);}catch(e){}
+  STILLS[base.id]={el:c,ready:true,crop:cropSig(base)};if(!P.bgStills)P.bgStills={};if(u)P.bgStills[base.id]={u,crop:cropSig(base)};return true;}
+function bgSrc(base){if(!P.bgStill||base.type!=='video')return bgLive(base);
+  const kept=P.bgStills&&P.bgStills[base.id],have=STILLS[base.id];
+  if(kept&&kept.crop!==cropSig(base)){delete P.bgStills[base.id];delete STILLS[base.id];return bgSrc(base);}
+  if(have&&have.ready&&have.crop===cropSig(base))return{el:have.el,sx:0,sy:0,sw:have.el.width,sh:have.el.height};
+  if(kept&&!have){/* load the kept frame back in; until it arrives, the moving one is used */
+    const im=new Image();STILLS[base.id]={el:im,ready:false,crop:kept.crop};im.onload=()=>{const c=document.createElement('canvas');c.width=im.naturalWidth;c.height=im.naturalHeight;c.getContext('2d').drawImage(im,0,0);STILLS[base.id]={el:c,ready:true,crop:kept.crop};if(!state.playing)drawNow();};im.src=kept.u;return bgLive(base);}
+  if(!kept&&bgGrab(base)){save();const s=STILLS[base.id];return{el:s.el,sx:0,sy:0,sw:s.el.width,sh:s.el.height};}
+  return bgLive(base);}
+/* the layer whose frame fills the empty space at a moment */
+const bgBaseAt=t=>P.layers.find(L=>VIS(L)&&!(L.key&&L.key.on)&&!(L.cut&&L.cut.on&&L.cut.bg==='remove')&&visibleAt(L,t)&&frameReady(L));
 function drawBackground(W,H,t){
   if(P.bg==='grad'){ctx.fillStyle=gradFill(W,H,P.bgGrad||{});ctx.fillRect(0,0,W,H);return;}
   ctx.fillStyle=P.bg==='color'?P.bgColor:'#000';ctx.fillRect(0,0,W,H);
   if(P.bg==='color')return;
-  const base=P.layers.find(L=>VIS(L)&&!(L.key&&L.key.on)&&!(L.cut&&L.cut.on&&L.cut.bg==='remove')&&visibleAt(L,t)&&frameReady(L));if(!base)return;
+  const base=bgBaseAt(t);if(!base)return;
   if((P.bg==='edges'||P.bg==='mirror')&&edgeFill(base,W,H,P.bg==='mirror'))return;
-  const m=M[base.id],c=base.crop,ar=dispAR(base)*base.sy,sw=48,sh=Math.max(2,Math.round(sw*H/W));small.width=sw;small.height=sh;
+  const s=bgSrc(base),ar=dispAR(base)*base.sy,sw=48,sh=Math.max(2,Math.round(sw*H/W));small.width=sw;small.height=sh;
   let dw=sw,dh=sw/ar;if(dh<sh){dh=sh;dw=sh*ar;}
-  try{sg.drawImage(m.el,c.l*m.w,c.t*m.h,Math.max(1,m.w*(1-c.l-c.r)),Math.max(1,m.h*(1-c.t-c.b)),(sw-dw)/2,(sh-dh)/2,dw,dh);}catch(e){return;}
+  try{sg.drawImage(s.el,s.sx,s.sy,s.sw,s.sh,(sw-dw)/2,(sh-dh)/2,dw,dh);}catch(e){return;}
   ctx.save();ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(small,0,0,W,H);ctx.fillStyle='rgba(0,0,0,.25)';ctx.fillRect(0,0,W,H);ctx.restore();
 }
 let exporting=false,clearBg=false,guides={xs:[],ys:[]};
@@ -2018,6 +2040,13 @@ function canvasPanel(p){
     p.append(segF('c-gd','Direction',[['v','Top to bottom'],['h','Left to right'],['d','Corner to corner'],['r','From the middle']],g.dir||'v',v=>{g.dir=v;renderSide();soft();}));
     p.append(h('div',{class:'row'},btn('🎨 Match the video’s colors',()=>{if(matchGrad())toast('Picked the colors from the edges of the bottom layer.');renderSide();soft();},'Picks the colors at the edges of the bottom layer'),btn('⇅ Swap colors',()=>{[g.a,g.b]=[g.b,g.a];renderSide();soft();})));}
   p.append(h('p',{class:'help'},BGHELP[P.bg]||''));
+  if(P.bg==='blur'||P.bg==='edges'||P.bg==='mirror'){
+    p.append(segF('c-bgst','The filled space',[['move','Moves with the video'],['still','Stays still']],P.bgStill?'still':'move',v=>{P.bgStill=v==='still';
+      if(P.bgStill){const b=bgBaseAt(state.t);if(b&&b.type==='video'&&!(P.bgStills&&P.bgStills[b.id]))bgGrab(b);}renderSide();soft();}));
+    if(P.bgStill){const b=bgBaseAt(state.t),vid=b&&b.type==='video';
+      p.append(h('div',{class:'row'},btn('Use the frame at the playhead',()=>{const b2=bgBaseAt(state.t);if(!b2||b2.type!=='video'){toast('Move the playhead onto a video first.');return;}
+        if(bgGrab(b2)){soft();toast(`The space now uses the frame at ${fmtS(state.t)}.`);}},'Fill the space from the picture showing now')));
+      p.append(h('p',{class:'help'},'The space is filled from one frame of each video and stays still while the video plays. To choose which frame, move the playhead there and tap the button. A video you haven’t picked a frame for uses the first frame it shows.'+(vid?'':' Pictures are always still.')));}}
   p.append(h('p',{class:'help'},`Your video will be ${W} × ${H} pixels and ${fmtS(projDur())} long.${Math.max(W,H)>1920?' Sizes over 1920 take more work to record, so keep the tab in front while it exports.':''}`));
   p.append(h('h4',{class:'fhead'},'Project'));
   const rb=h('button',{type:'button'},resetArmed?'Tap again to remove everything':'Start a new video');

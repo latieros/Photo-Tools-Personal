@@ -224,6 +224,12 @@ input[type=color]{width:40px;height:32px;border:1px solid var(--line);border-rad
 .hold{position:absolute;top:10px;height:20px;border-radius:0 6px 6px 0;opacity:.35;pointer-events:none}
 .hold.video{background:repeating-linear-gradient(135deg,var(--c-video) 0 5px,transparent 5px 10px)}
 .tl-head{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:var(--accent);pointer-events:none;z-index:3}
+/* the part that gets exported: a band on the ruler with a handle at each end, and the rest of the timeline shaded */
+.xr-band{position:absolute;top:0;height:100%;background:color-mix(in srgb,#3DD68C 28%,transparent);border-left:2px solid #3DD68C;border-right:2px solid #3DD68C;pointer-events:none;z-index:1}
+.xr-h{position:absolute;top:0;height:100%;width:18px;margin-left:-9px;z-index:4;cursor:ew-resize;touch-action:none;display:flex;align-items:flex-end;justify-content:center}
+.xr-h::after{content:"";width:12px;height:14px;background:#3DD68C;border-radius:3px 3px 0 0;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.xr-shade{position:absolute;top:0;bottom:0;background:rgba(0,0,0,.42);pointer-events:none;z-index:2}
+.tl-bar .xr-btn[aria-pressed="true"]{border-color:#3DD68C;color:#3DD68C}
 .tl-head::before{content:"";position:absolute;top:0;left:-6px;border:7px solid transparent;border-top:9px solid var(--accent)}
 
 /* dialogs */
@@ -383,6 +389,7 @@ input[type=color]{width:40px;height:32px;border:1px solid var(--line);border-rad
   .strack.drag .stip{display:block}
   .transport #restart{display:none}
   .tl-ruler{height:40px}
+  .xr-h{width:32px;margin-left:-16px}.xr-h::after{width:16px;height:18px}
   .tl-head{pointer-events:auto;touch-action:none;width:30px;margin-left:-15px;background:linear-gradient(90deg,transparent 14px,var(--accent) 14px 16px,transparent 16px);cursor:ew-resize}
   .tl-head::before{left:8px}
   .tl-head::after{content:"";position:absolute;top:21px;left:6px;width:18px;height:18px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px var(--panel)}
@@ -480,6 +487,7 @@ input[type=color]{width:40px;height:32px;border:1px solid var(--line);border-rad
       <h2 class="label">Timeline</h2>
       <span class="help">Drag a bar to move it. Drag its ends to trim. Tap the ruler to jump.</span>
       <span class="spacer"></span>
+      <button type="button" class="xr-btn" id="xrBtn" aria-pressed="false" title="Choose where the exported video starts and ends">✂ Export part</button>
       <label class="zoom" for="tlZoom">Zoom <input type="range" id="tlZoom" min="20" max="240" value="60"></label>
     </div>
     <div class="tl-scroll" id="tlScroll">
@@ -518,6 +526,8 @@ input[type=color]{width:40px;height:32px;border:1px solid var(--line);border-rad
     <h3 id="xTitle">Export video</h3>
     <div class="field"><span class="flabel" id="xfmt-l">Format</span><div class="seg" id="xfmt" role="group" aria-labelledby="xfmt-l"></div></div>
     <div class="field"><span class="flabel" id="xq-l">Quality</span><div class="seg" id="xq" role="group" aria-labelledby="xq-l"></div></div>
+    <div class="field"><span class="flabel" id="xpart-l">What to export</span><div class="seg" id="xpart" role="group" aria-labelledby="xpart-l"></div></div>
+    <div id="xpartF" hidden></div>
     <div class="field" id="xlimF" hidden><label for="xlim">Keep the file under (MB)</label><input type="number" id="xlim" min="0.5" max="2000" step="0.5" value="25" inputmode="decimal"></div>
     <p class="help" id="xHelp"></p>
     <div class="vprog" id="xProg" hidden><div id="xBar"></div></div>
@@ -642,7 +652,7 @@ function norm(L){
   d('rot',0);d('opacity',1);d('fadeIn',0);d('fadeOut',0);d('inFx','fade');d('outFx','fade');d('hidden',false);d('x',.5);d('y',.5);
   if(VIS(L)){
     d('w',1);d('crop',{l:0,t:0,r:0,b:0});d('sy',1);d('lock',true);d('flipX',false);d('flipY',false);d('radius',0);d('shape',L.radius>0?'round':'rect');
-    d('shadow',false);d('border',0);d('borderColor','#FFFFFF');d('blend','source-over');d('fx',{...FX0});d('look','none');d('motion','none');d('motionAmt',.15);
+    d('shadow',false);d('border',0);d('borderColor','#FFFFFF');d('ol',0);d('olColor','#FFFFFF');d('olSoft',0);d('blend','source-over');d('fx',{...FX0});d('look','none');d('motion','none');d('motionAmt',.15);
     L.fx={...FX0,...L.fx};L.key={...KEY0,...(L.key||{})};L.cut={...CUT0,...(L.cut||{})};}
   if(isMedia(L)){d('speed',1);d('volume',1);d('muted',false);d('aFadeIn',0);d('aFadeOut',0);d('trimIn',0);d('trimOut',0);}
   if(L.type==='video')d('endMode','hide');
@@ -670,6 +680,13 @@ function stretchFill(L){const[W,H]=canvasSize(),arc=dispAR(L)*L.sy;L.x=.5;L.y=.5
 const lenOf=L=>isMedia(L)&&!L.freeze?Math.max(.1,(L.trimOut-L.trimIn)/(L.speed||1)):Math.max(.1,L.dur);
 const endOf=L=>L.start+lenOf(L);
 function projDur(){let d=0;for(const L of P.layers)if(!L.hidden)d=Math.max(d,endOf(L));return Math.max(1,d);}
+/* the part that gets exported: the whole thing, or from xr.a to xr.b seconds */
+const XR_MIN=.2;
+function xr(){if(!P.xr||typeof P.xr!=='object')P.xr={on:false,a:0,b:0};return P.xr;}
+function xRange(){const d=projDur(),r=xr();if(!r.on)return[0,d];let a=clamp(r.a||0,0,d-XR_MIN),b=r.b>0?clamp(r.b,a+XR_MIN,d):d;return[a,b];}
+function xrSet(k,v){const r=xr(),d=projDur(),[a,b]=xRange();if(!r.b)r.b=d;
+  if(k==='a')r.a=clamp(v,0,b-XR_MIN);else r.b=clamp(v,a+XR_MIN,d);r.a=Math.round(r.a*100)/100;r.b=Math.round(r.b*100)/100;}
+function xrToggle(on){const r=xr(),d=projDur();r.on=on;if(on&&!(r.b>r.a&&r.b<=d+1e-6)){r.a=0;r.b=d;}save();renderTimeline();}
 
 /* ================= media ================= */
 function waitEvt(el,ev,ms=8000){return new Promise(res=>{let done=false;const f=()=>{if(done)return;done=true;el.removeEventListener(ev,f);res(true);};el.addEventListener(ev,f);setTimeout(()=>{if(!done){done=true;el.removeEventListener(ev,f);res(false);}},ms);});}
@@ -820,6 +837,8 @@ function drawVisual(L,t,b,W){
       if(L.flipX||L.flipY)ctx.scale(L.flipX?-1:1,L.flipY?-1:1);try{ctx.drawImage(src,sx,sy,sw,sh,x,y,b.w,b.h);}catch(e){}}
     else{ctx.shadowOffsetY=so;ctx.fillStyle='#000';shapePath(L,x,y,b.w,b.h);ctx.fill();}
     ctx.restore();}
+  /* outline: follows the picture's own see-through edges, like a sticker, drawn behind it so it can reach past its box */
+  if(L.ol>0)alphaOutline(L,m,src,sx,sy,sw,sh,b,W);
   ctx.save();shapePath(L,x,y,b.w,b.h);ctx.clip();
   let dw=b.w,dh=b.h,ox=0,oy=0;const mo=L.motion;
   if(mo&&mo!=='none'){const u=clamp((t-L.start)/lenOf(L),0,1),a=L.motionAmt||.15;let z=1+a;
@@ -1065,6 +1084,23 @@ const vhsToday=()=>{const d=new Date();return`${['JAN.','FEB.','MAR.','APR.','MA
 function barsOver(L,t,x,y,w,hh){const e=L.ef,s0=L.start,e0=endOf(L),sm=v=>v*v*(3-2*v);let k=1;
   if(e.barSlide)k=sm(clamp((t-s0)/.7,0,1))*sm(clamp((e0-t)/.7,0,1));const bh=hh*e.bars*.2*k;if(bh<.5)return;
   ctx.save();ctx.fillStyle=e.barCol||'#000';ctx.fillRect(x,y,w,bh);ctx.fillRect(x,y+hh-bh,w,bh);ctx.restore();}
+/* ---------- outline round a picture's own shape ---------- */
+/* The picture is stamped many times in a ring round itself and filled with one color: a solid copy a little bigger
+   than the picture, all the way round its see-through edges. Pictures that don't change are only done once. */
+const ALO=fxCanvas();
+function alphaOutline(L,m,src,sx,sy,sw,sh,b,W){const k=Math.min(1,(exporting?2048:1200)/Math.max(b.w,b.h)),w=Math.max(2,Math.round(b.w*k)),hh=Math.max(2,Math.round(b.h*k)),
+    r=Math.max(1,L.ol*Math.min(b.w,b.h)*k),sf=L.olSoft*r*1.2,pad=Math.ceil(r+sf*2+2),cw=w+pad*2,ch=hh+pad*2;
+  const still=L.type==='image'&&src===m.el,sig=still&&[w,hh,r.toFixed(2),L.olColor,L.olSoft,sx,sy,sw,sh].join('|'),c=still?(m.olC||(m.olC=fxCanvas())):ALO;
+  if(!still||m.olSig!==sig){const g=c===ALO?room(ALO,cw,ch):(c.width=cw,c.height=ch,c.getContext('2d'));g.setTransform(1,0,0,1,0,0);g.globalAlpha=1;g.filter='none';g.globalCompositeOperation='source-over';g.clearRect(0,0,cw,ch);
+    /* rings of copies: enough of them that a thick outline has no gaps */
+    const rings=Math.max(1,Math.ceil(r/6));
+    try{for(let j=1;j<=rings;j++){const rr=r*j/rings,n=Math.max(12,Math.min(48,Math.ceil(rr*.9)));for(let i=0;i<n;i++){const a=i/n*Math.PI*2;g.drawImage(src,sx,sy,sw,sh,pad+Math.cos(a)*rr,pad+Math.sin(a)*rr,w,hh);}}}catch(_){return;}
+    g.globalCompositeOperation='source-in';g.fillStyle=L.olColor;g.fillRect(0,0,cw,ch);g.globalCompositeOperation='source-over';
+    if(still)m.olSig=sig;}
+  ctx.save();if(L.flipX||L.flipY)ctx.scale(L.flipX?-1:1,L.flipY?-1:1);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+  if(sf>0&&HAS_FILTER)ctx.filter=`blur(${(sf/k).toFixed(1)}px)`;
+  try{ctx.drawImage(c,0,0,cw,ch,-b.w/2-pad/k,-b.h/2-pad/k,cw/k,ch/k);if(sf>0&&HAS_FILTER){ctx.filter='none';ctx.globalAlpha*=.7;ctx.drawImage(c,0,0,cw,ch,-b.w/2-pad/k,-b.h/2-pad/k,cw/k,ch/k);}}catch(_){}
+  ctx.restore();}
 /* how much a flickering layer dims, brightens or fades at a moment (0 is not at all) */
 function flickerAt(L,t){const e=L.ef;if(!e||!(e.flicker>0))return 0;const rate=4+e.flickSpeed*20,r=prng(seedOf(L)+Math.floor(t*rate)*7907);
   return r()<.35+e.flicker*.4?e.flicker*(.3+.7*r()):e.flicker*.08*r();}
@@ -1277,10 +1313,11 @@ function syncMedia(t,playing){
 }
 function drawNow(follow){state.t=clamp(state.t,0,projDur());render(state.t);$('clock').textContent=isPhone()?`${state.t.toFixed(1)} / ${projDur().toFixed(1)}s`:`${state.t.toFixed(1)}s / ${projDur().toFixed(1)}s`;moveHead(follow);seekShow();}
 function play(){if(!P.layers.length){toast('Add a video or picture first.');return;}const ac=audio();if(ac&&ac.state==='suspended')ac.resume();
-  if(state.t>=projDur()-.02)state.t=0;state.startAt=performance.now()-state.t*1000;state.playing=true;syncMedia(state.t,true);syncTransport();requestAnimationFrame(tick);}
+  /* with Export part on, it plays just that part */
+  const[A,B]=xRange();if(xr().on&&(state.t<A-.02||state.t>=B-.02))state.t=A;else if(state.t>=projDur()-.02)state.t=0;state.startAt=performance.now()-state.t*1000;state.playing=true;syncMedia(state.t,true);syncTransport();requestAnimationFrame(tick);}
 function pause(){state.playing=false;syncMedia(state.t,false);syncTransport();drawNow();}
-function tick(){if(!state.playing)return;let t=(performance.now()-state.startAt)/1000;const d=projDur();
-  if(t>=d){if($('loop').checked&&!exporting){state.startAt=performance.now();t=0;syncMedia(0,false);}else{state.t=d;state.playing=false;syncMedia(d,false);syncTransport();drawNow();return;}}
+function tick(){if(!state.playing)return;let t=(performance.now()-state.startAt)/1000;const[A,B]=xRange(),part=xr().on&&!exporting,d=part?B:projDur(),a0=part?A:0;
+  if(t>=d){if($('loop').checked&&!exporting){state.startAt=performance.now()-a0*1000;t=a0;syncMedia(a0,false);}else{state.t=d;state.playing=false;syncMedia(d,false);syncTransport();drawNow();return;}}
   state.t=t;syncMedia(t,true);drawNow(true);requestAnimationFrame(tick);}
 function syncTransport(){$('playLbl').textContent=state.playing?'Pause':'Play';$('playIco').textContent=state.playing?'❚❚':'▶';}
 $('play').onclick=()=>state.playing?pause():play();
@@ -1533,6 +1570,12 @@ function lookPanel(p,L){
   if(L.shape==='round')p.append(rangeF('p-r','Corner size',.01,.5,.01,L.radius,pct,v=>{L.radius=v;drawNow();save();}));
   p.append(rangeF('p-bw','Border',0,.08,.002,L.border,v=>v>0?(Math.round(v*1000)/10)+'%':'None',v=>{L.border=v;drawNow();save();}));
   p.append(colorF('p-bc','Border color',L.borderColor,v=>{L.borderColor=v;drawNow();save();}));
+  /* outline round the picture's own shape: for see-through pictures, cut-outs and green screen */
+  const seeThrough=!!(M[L.id]&&M[L.id].alpha)||(L.key&&L.key.on)||(L.cut&&L.cut.on&&L.cut.bg==='remove');
+  p.append(rangeF('p-ol','Outline',0,.08,.001,L.ol,v=>v>0?(Math.round(v*1000)/10)+'%':'None',v=>{L.ol=v;drawNow();save();}));
+  if(L.ol>0){p.append(colorF('p-olc','Outline color',L.olColor,v=>{L.olColor=v;drawNow();save();}));
+    p.append(rangeF('p-ols','Outline softness',0,1,.01,L.olSoft,v=>v?pct(v):'Sharp',v=>{L.olSoft=v;drawNow();save();}));}
+  p.append(h('p',{class:'help'},seeThrough?'Border goes round the layer’s box. Outline follows the edge of the picture itself, round its see-through parts, like a sticker.':'Border goes round the layer’s box. Outline follows the edge of the picture itself: use it on pictures with see-through backgrounds (PNG), or after Remove background or green screen. On a picture with no see-through parts it looks like a border just outside the box.'));
   p.append(checkF('p-sh','Drop shadow',L.shadow,v=>{L.shadow=v;soft();}));
   p.append(segF('p-blend','Blend with what’s underneath',BLENDS,L.blend,v=>{L.blend=v;renderSide();soft();}));
   p.append(h('p',{class:'help'},'Screen hides black backgrounds (sparkles, fire, light leaks). Multiply hides white backgrounds (logos, drawings, signatures).'));
@@ -2118,6 +2161,12 @@ function renderTimeline(){
   inner.style.width=Math.max($('tlScroll').clientWidth-2,PAD*2+(d+3)*pps)+'px';
   const step=pps<35?5:pps<70?2:1;let r='';for(let s=0;s<=d+3;s+=step/2){const mj=Math.abs(s/step-Math.round(s/step))<1e-6;r+=`<div class="tk${mj?' mj':''}" style="left:${PAD+s*pps}px">${mj?`<span>${s}s</span>`:''}</div>`;}
   $('tlRuler').innerHTML=r;
+  /* the export part: drag its green handles to choose where the video starts and ends */
+  inner.querySelectorAll('.xr-shade').forEach(e=>e.remove());const xo=xr().on;$('xrBtn').setAttribute('aria-pressed',String(xo));
+  if(xo){const[a,b]=xRange(),ax=PAD+a*pps,bx=PAD+b*pps,tw=parseFloat(inner.style.width)||0;
+    $('tlRuler').append(h('div',{class:'xr-band',style:`left:${ax}px;width:${bx-ax}px`}),
+      h('div',{class:'xr-h','data-x':'a',style:`left:${ax}px`,title:`Export starts at ${fmtS(a)}. Drag to change.`}),h('div',{class:'xr-h','data-x':'b',style:`left:${bx}px`,title:`Export ends at ${fmtS(b)}. Drag to change.`}));
+    inner.append(h('div',{class:'xr-shade',style:`left:0;width:${ax}px`}),h('div',{class:'xr-shade',style:`left:${bx}px;width:${Math.max(0,tw-bx)}px`}));}
   rows.innerHTML='';
   [...P.layers].reverse().forEach(L=>{
     const row=h('div',{class:'trow'}),x=PAD+L.start*pps,w=Math.max(14,lenOf(L)*pps);
@@ -2135,9 +2184,13 @@ function moveHead(follow){const x=PAD+state.t*pps,hd=$('tlHead');hd.style.left=x
 function timeAt(e){const r=$('tlInner').getBoundingClientRect();return clamp((e.clientX-r.left-PAD)/pps,0,projDur());}
 let td=null;
 function scrub(e){if(state.playing)pause();state.t=timeAt(e);syncMedia(state.t,false);drawNow();}
-$('tlRuler').addEventListener('pointerdown',e=>{td={mode:'scrub'};scrub(e);$('tlRuler').setPointerCapture(e.pointerId);});
+$('tlRuler').addEventListener('pointerdown',e=>{const hx=e.target.closest('.xr-h');
+  if(hx){e.preventDefault();e.stopPropagation();if(state.playing)pause();td={mode:'xr',k:hx.dataset.x};$('tlRuler').setPointerCapture(e.pointerId);return;}
+  td={mode:'scrub'};scrub(e);$('tlRuler').setPointerCapture(e.pointerId);});
+$('tlRuler').addEventListener('pointermove',e=>{if(td&&td.mode==='xr'){xrSet(td.k,timeAt(e));state.t=xRange()[td.k==='a'?0:1];syncMedia(state.t,false);drawNow();renderTimeline();}});
+$('xrBtn').onclick=()=>{const on=!xr().on;xrToggle(on);toast(on?'Drag the green handles on the ruler to choose where the export starts and ends.':'The whole video will be exported.');};
 $('tlRuler').addEventListener('pointermove',e=>{if(td&&td.mode==='scrub')scrub(e);});
-$('tlRuler').addEventListener('pointerup',()=>{td=null;const L=selL();if(L&&hasKf(L)){renderSide();renderTimeline();}});
+$('tlRuler').addEventListener('pointerup',()=>{if(td&&td.mode==='xr')save();td=null;const L=selL();if(L&&hasKf(L)){renderSide();renderTimeline();}});
 $('tlRows').addEventListener('pointerdown',e=>{const bar=e.target.closest('.bar');if(!bar)return;const L=P.layers.find(l=>l.id===bar.dataset.id);if(!L)return;
   const kd=e.target.closest('.kfd'),kk=kd&&hasKf(L)?L.kf[+kd.dataset.kf]:null;if(kk){td={mode:'kf',L,k:kk,x0:e.clientX,t0:kk.t,moved:false};bar.setPointerCapture(e.pointerId);e.preventDefault();return;}
   const hd=e.target.closest('.hd');td={mode:hd?hd.dataset.h:'move',L,x0:e.clientX,s0:L.start,d0:L.dur,ti0:L.trimIn,to0:L.trimOut,moved:false};
@@ -2232,7 +2285,14 @@ function openExport(){
   const xf=$('xfmt');xf.innerHTML='';fm.forEach(([k,l])=>xf.append(h('button',{type:'button','aria-pressed':String(k===xFormat),onclick:()=>{if(!busy){xFormat=k;openExport();}}},l)));
   const xq=$('xq');xq.innerHTML='';(gif?[['best','Standard'],['limit','Size limit']]:[['best','Best quality'],['half','Half size'],['limit','Size limit']]).forEach(([k,l])=>xq.append(h('button',{type:'button','aria-pressed':String(k===q),onclick:()=>{if(!busy){xQual=k;openExport();}}},l)));
   $('xlimF').hidden=q!=='limit';
-  const d=projDur().toFixed(0);
+  /* the whole video, or only a part of it */
+  const r=xr(),xp=$('xpart');xp.innerHTML='';[['all','The whole video'],['part','Only part of it']].forEach(([k,l])=>xp.append(h('button',{type:'button','aria-pressed':String((k==='part')===!!r.on),onclick:()=>{if(!busy){xrToggle(k==='part');openExport();}}},l)));
+  const pf=$('xpartF');pf.innerHTML='';pf.hidden=!r.on;
+  if(r.on){const[a,b]=xRange(),D=projDur(),row=(k,label,v)=>h('div',{class:'field'},
+      rangeF('x-'+k,label,0,D,.05,v,fmtS,x=>{xrSet(k,x);state.t=xRange()[k==='a'?0:1];syncMedia(state.t,false);drawNow();renderTimeline();$('xpartLen').textContent=partLen();}),
+      h('div',{class:'row'},btn(`Use the playhead (${fmtS(state.t)})`,()=>{if(busy)return;xrSet(k,state.t);save();renderTimeline();openExport();})));
+    pf.append(row('a','Starts at',a),row('b','Ends at',b),h('p',{class:'help',id:'xpartLen'},partLen()));}
+  const d=(xRange()[1]-xRange()[0]).toFixed(1);
   $('xHelp').textContent=gif?`Loops on its own and works anywhere pictures do. A GIF has no sound and only 256 colors, and it’s made smaller, up to 540 pixels on the long side. It steps through your ${d} seconds one frame at a time, so give it a moment.`+(q==='limit'?' With a size limit, it gets smaller and choppier until it fits.':'')
     :`${xFormat==='mp4'?'Plays almost everywhere, including iPhone and social apps.':'Full color and a small file. Plays in Chrome, Firefox and on Android.'} The video plays through once while it records, so it takes about ${d} seconds. Keep this tab in front until it finishes.`+(q==='limit'?' With a size limit, quality goes down until the file fits, and it may record a second time.':q==='half'?' Half size makes a smaller file and runs smoother on slower phones.':'');
   $('xDl').textContent=gif?'Save GIF':'Save video';
@@ -2241,6 +2301,7 @@ function openExport(){
 $('exportBtn').onclick=openExport;
 $('xClose').onclick=()=>{if(!busy){$('xmodal').hidden=true;drawNow();}};
 const xprog=f=>{$('xBar').style.width=Math.round(f*100)+'%';};
+function partLen(){const[a,b]=xRange();return`Exports ${fmtS(a)} to ${fmtS(b)}, ${(b-a).toFixed(1)} seconds. You can also drag the green handles on the timeline.`;}
 $('xStart').onclick=async()=>{
   busy=true;$('xStart').disabled=true;$('xClose').disabled=true;$('xProg').hidden=false;xprog(0);['xVid','xGif','xDl','xSave'].forEach(id=>$(id).hidden=true);
   const say=m=>{$('xStatus').textContent=m;},gif=xFormat==='gif',q=gif&&xQual==='half'?'best':xQual;
@@ -2249,13 +2310,13 @@ $('xStart').onclick=async()=>{
     await cutPrepare(say,xprog);
     if(gif){xResult=await gifFit(limit,say,xprog);$('xGif').src=URL.createObjectURL(xResult);$('xGif').hidden=false;}
     else{const snd=hasSound(),mime=pickMime(xFormat,snd)||pickMime(xFormat);if(!mime)throw new Error('This browser cannot record video');
-      xResult=await videoFit(mime,limit,q,say,xprog,projDur(),snd?(limit?96000:160000):0,{withSound:snd});$('xVid').src=URL.createObjectURL(xResult);$('xVid').hidden=false;}
+      xResult=await videoFit(mime,limit,q,say,xprog,xRange()[1]-xRange()[0],snd?(limit?96000:160000):0,{withSound:snd});$('xVid').src=URL.createObjectURL(xResult);$('xVid').hidden=false;}
     say(xResult.over?`Done, but it came out at ${mbs(xResult.size)}, over your ${mbs(limit)} limit. Try a bigger limit or a shorter ${gif?'GIF':'video'}.`:`Done. ${mbs(xResult.size)}.`);
     $('xStart').textContent='Make it again';$('xDl').hidden=!canSave();$('xSave').hidden=false;
     $('xSave').textContent=canSave()?(gif?'Save GIF puts it in your downloads. On a phone it shows up in your gallery or Files app.':'Save video puts it in your downloads. On a phone it shows up in your gallery or Files app.')
       :(gif?'Right-click the GIF and choose “Save image as…”, or press and hold it on a phone.':'Right-click the video and choose “Save video as…” to keep it.');
   }catch(err){say('That didn’t work: '+(err&&err.message||err)+(err&&err.cut?'. Turn off Remove background for now, or try again later.':'. Try another format, or open the app in Chrome.'));}
-  finally{busy=false;exporting=false;$('xStart').disabled=false;$('xClose').disabled=false;state.playing=false;syncTransport();state.t=0;syncMedia(0,false);drawNow();}
+  finally{busy=false;exporting=false;$('xStart').disabled=false;$('xClose').disabled=false;state.playing=false;syncTransport();state.t=xRange()[0];syncMedia(state.t,false);drawNow();}
 };
 $('xDl').onclick=async()=>{if(!xResult)return;const n=new Uint32Array(1);crypto.getRandomValues(n);$('xStatus').textContent=await saveFile(xResult,`video-${n[0].toString(36)}.${xResult.type==='image/gif'?'gif':xFormat}`);};
 async function videoFit(mime,limit,qual,say,onProg,dur,audioBps,extra){
@@ -2302,18 +2363,18 @@ async function cleanOut(blob){if(!blob)return blob;const t=blob.type||'';const o
 async function recordVideo(mime,onProg,o){
   const[W,H]=canvasSize(),sc=o.scale||1;let src=cv,copy=null;
   if(sc<1){src=document.createElement('canvas');src.width=Math.round(W*sc/2)*2;src.height=Math.round(H*sc/2)*2;const g2=src.getContext('2d');copy=()=>g2.drawImage(cv,0,0,src.width,src.height);}
-  pause();exporting=true;state.t=0;
+  const[A,B]=xRange();pause();exporting=true;state.t=A;
   /* line every video up on its first frame before recording starts */
-  syncMedia(0,false);await Promise.all(P.layers.filter(L=>L.type==='video'&&M[L.id]).map(L=>M[L.id].el.seeking?waitEvt(M[L.id].el,'seeked',3000):true));render(0);if(copy)copy();
+  syncMedia(A,false);await Promise.all(P.layers.filter(L=>L.type==='video'&&M[L.id]).map(L=>M[L.id].el.seeking?waitEvt(M[L.id].el,'seeked',3000):true));render(A);if(copy)copy();
   const tracks=[...src.captureStream(30).getVideoTracks()];let dest=null;
   if(o.withSound&&audio()){await AC.resume();dest=AC.createMediaStreamDestination();master.connect(dest);tracks.push(...dest.stream.getAudioTracks());}
   const opts={mimeType:mime,videoBitsPerSecond:Math.round(o.vbps||10e6)};if(dest)opts.audioBitsPerSecond=o.abps||128000;
   const rec=new MediaRecorder(new MediaStream(tracks),opts),chunks=[];rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data);};
-  const stopped=new Promise(r=>rec.onstop=r),d=projDur();
-  rec.start(250);const t0=performance.now();state.startAt=t0;state.playing=true;syncMedia(0,true);
-  await new Promise(res=>{const step=()=>{const t=(performance.now()-t0)/1000;state.t=Math.min(t,d);syncMedia(state.t,t<d);render(state.t);if(copy)copy();onProg(Math.min(1,t/d));moveHead(true);
-    $('clock').textContent=`${state.t.toFixed(1)}s / ${d.toFixed(1)}s`;if(t>=d+.25)return res();requestAnimationFrame(step);};requestAnimationFrame(step);});
-  state.playing=false;syncMedia(d,false);const ms=performance.now()-t0;rec.stop();await stopped;if(dest){try{master.disconnect(dest);}catch(e){}}tracks.forEach(t=>t.stop());
+  const stopped=new Promise(r=>rec.onstop=r),d=B-A;
+  rec.start(250);const t0=performance.now();state.startAt=t0-A*1000;state.playing=true;syncMedia(A,true);
+  await new Promise(res=>{const step=()=>{const t=(performance.now()-t0)/1000;state.t=A+Math.min(t,d);syncMedia(state.t,t<d);render(state.t);if(copy)copy();onProg(Math.min(1,t/d));moveHead(true);
+    $('clock').textContent=`${(state.t-A).toFixed(1)}s / ${d.toFixed(1)}s`;if(t>=d+.25)return res();requestAnimationFrame(step);};requestAnimationFrame(step);});
+  state.playing=false;syncMedia(B,false);const ms=performance.now()-t0;rec.stop();await stopped;if(dest){try{master.disconnect(dest);}catch(e){}}tracks.forEach(t=>t.stop());
   const blob=new Blob(chunks,{type:mime.split(';')[0]});return cleanOut(mime.includes('webm')?await fixWebmDuration(blob,ms):blob);
 }
 async function fixWebmDuration(blob,ms){
@@ -2787,10 +2848,10 @@ function gifEncoder(w,h,pal,loop,nc){
 }
 const GIF_STEPS=[{px:540,fps:12,c:255},{px:480,fps:10,c:160},{px:420,fps:10,c:128},{px:360,fps:8,c:96},{px:320,fps:8,c:64},{px:270,fps:6,c:48},{px:216,fps:5,c:32}];
 async function makeGif(onProg,o){
-  const[W,H]=canvasSize(),d=projDur(),k=Math.min(1,o.px/Math.max(W,H)),gw=Math.max(2,Math.round(W*k/2)*2),gh=Math.max(2,Math.round(H*k/2)*2);
+  const[W,H]=canvasSize(),[A,B]=xRange(),d=B-A,k=Math.min(1,o.px/Math.max(W,H)),gw=Math.max(2,Math.round(W*k/2)*2),gh=Math.max(2,Math.round(H*k/2)*2);
   const off=document.createElement('canvas');off.width=gw;off.height=gh;const og=off.getContext('2d',{willReadFrequently:true});og.imageSmoothingEnabled=true;og.imageSmoothingQuality='high';
   pause();exporting=true;
-  const grab=async t=>{state.t=t;await seekAll(t);render(t);og.drawImage(cv,0,0,gw,gh);moveHead(true);$('clock').textContent=`${t.toFixed(1)}s / ${d.toFixed(1)}s`;return og.getImageData(0,0,gw,gh).data;};
+  const grab=async t=>{state.t=A+t;await seekAll(A+t);render(A+t);og.drawImage(cv,0,0,gw,gh);moveHead(true);$('clock').textContent=`${t.toFixed(1)}s / ${d.toFixed(1)}s`;return og.getImageData(0,0,gw,gh).data;};
   try{
     const hist=new Uint32Array(32768);for(let i=0;i<=8;i++){const px=await grab(Math.min(d-.01,d*i/8));for(let j=0;j<px.length;j+=8)hist[((px[j]>>3)<<10)|((px[j+1]>>3)<<5)|(px[j+2]>>3)]++;}
     const enc=gifEncoder(gw,gh,gifPalette(hist,o.c),$('loop').checked,o.c),n=Math.max(1,Math.ceil(d*o.fps));let pend=null,pendT=0;

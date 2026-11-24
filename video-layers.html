@@ -187,6 +187,15 @@ input[type=color]{width:40px;height:32px;border:1px solid var(--line);border-rad
 .grid9 button i{width:8px;height:8px;border-radius:2px;background:var(--muted);display:block}
 .swatches{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .swatches button{width:26px;height:26px;border-radius:50%;padding:0;border:1px solid var(--line);box-shadow:inset 0 0 0 2px rgba(255,255,255,.25)}
+/* the color picker: a big chip that opens the device's own color picker, the color as a code, and an eyedropper */
+.cp{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cp-pick{position:relative;display:inline-flex;align-items:center;gap:8px;padding:5px 12px 5px 5px;border:1px solid var(--line);border-radius:10px;background:var(--panel);font:500 13px/1 var(--f-body,system-ui,sans-serif);cursor:pointer;color:var(--ink)}
+.cp-pick:hover,.cp-pick:focus-within{border-color:var(--accent)}
+.cp-pick input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0;padding:0}
+.cp-chip{width:28px;height:28px;border-radius:7px;border:1px solid var(--line);box-shadow:inset 0 0 0 2px rgba(255,255,255,.2);flex:none}
+.cp-hex{width:6.2em!important;flex:none;font:500 13px/1 ui-monospace,"SF Mono",Menlo,monospace!important;text-transform:uppercase;padding:9px 8px!important}
+.cp-eye{width:38px;height:38px;padding:0;justify-content:center;font-size:16px}
+@media (max-width:900px){.cp-hex{font-size:16px!important}}
 .fontgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
 .fontgrid button{justify-content:center;padding:9px 4px;font-size:17px;line-height:1.1;white-space:nowrap;overflow:hidden}
 .fontgrid button[aria-pressed="true"],.presets button[aria-pressed="true"]{box-shadow:0 0 0 2px var(--accent);border-color:var(--accent)}
@@ -606,7 +615,7 @@ const GX0={often:.5,speed:.5,split:.5,cols:'rc',dir:'h',tear:.5,blocks:0,scan:0,
 const SHX0={speed:.5,turn:.5,dir:'both',every:0};
 const EF0={grain:0,grainSize:.3,flicker:0,flickSpeed:.5,flickKind:'dark',pulse:0,pulseEvery:.4,pulseKind:'bump',
   glow:0,glowThr:.5,glowSize:.5,glowCol:'',stutter:0,stutMove:true,echo:0,echoN:4,echoLen:.35,echoTint:'',
-  vhs:0,vhsLabel:true,vhsTop:'PLAY ▶',vhsDate:'',pop:0,popCol:'#E0303A',popTol:.35,popSoft:.4,outline:0,outKind:'neon',outCol:'#5DE8F5',outW:.35,
+  vhs:0,vhsLabel:true,vhsTop:'PLAY ▶',vhsDate:'',vhsCol:'#FFFFFF',pop:0,popCol:'#E0303A',popTol:.35,popSoft:.4,outline:0,outKind:'neon',outCol:'#5DE8F5',outW:.35,
   mirror:'none',mirSide:'a',kalN:8,kalSpin:.2,kalZoom:1,bars:0,barCol:'#000000',barSlide:true};
 const KEY0={on:false,color:'#00B140',tol:.38,soft:.2,spill:.6};
 const CUT0={on:false,what:'people',bg:'remove',blur:.5,fit:0,edge:.35,steady:.5,plain:true};
@@ -652,7 +661,7 @@ function norm(L){
   d('rot',0);d('opacity',1);d('fadeIn',0);d('fadeOut',0);d('inFx','fade');d('outFx','fade');d('hidden',false);d('x',.5);d('y',.5);
   if(VIS(L)){
     d('w',1);d('crop',{l:0,t:0,r:0,b:0});d('sy',1);d('lock',true);d('flipX',false);d('flipY',false);d('radius',0);d('shape',L.radius>0?'round':'rect');
-    d('shadow',false);d('border',0);d('borderColor','#FFFFFF');d('ol',0);d('olColor','#FFFFFF');d('olSoft',0);d('blend','source-over');d('fx',{...FX0});d('look','none');d('motion','none');d('motionAmt',.15);
+    d('shadow',false);d('shStr',.5);d('shSoft',.5);d('shDist',.5);d('shAng',90);d('shColor','#000000');d('border',0);d('borderColor','#FFFFFF');d('ol',0);d('olColor','#FFFFFF');d('olSoft',0);d('blend','source-over');d('fx',{...FX0});d('look','none');d('motion','none');d('motionAmt',.15);
     L.fx={...FX0,...L.fx};L.key={...KEY0,...(L.key||{})};L.cut={...CUT0,...(L.cut||{})};}
   if(isMedia(L)){d('speed',1);d('volume',1);d('muted',false);d('aFadeIn',0);d('aFadeOut',0);d('trimIn',0);d('trimOut',0);}
   if(L.type==='video')d('endMode','hide');
@@ -662,7 +671,7 @@ function norm(L){
     if(L.font==='impact')L.font='anton';if(!FONTS[L.font])L.font='grotesk';
     if(L.box!==undefined){const b=L.box;L.tbg=b==='soft'||b==='solid'?'box':'none';L.bgOpacity=b==='soft'?.55:1;if(b==='outline'){L.stroke=.08;L.strokeColor='#000000';}if(L.boxColor)L.bgColor=L.boxColor;delete L.box;delete L.boxColor;}
     if(typeof L.shadow==='boolean'){L.shadowFx=L.shadow?'soft':'none';delete L.shadow;}
-    d('text','Your text here');d('size',.07);d('color','#FFFFFF');d('tbg','none');d('bgColor','#000000');d('bgOpacity',.6);d('stroke',0);d('strokeColor','#000000');d('shadowFx','soft');
+    d('text','Your text here');d('size',.07);d('color','#FFFFFF');d('tbg','none');d('bgColor','#000000');d('bgOpacity',.6);d('stroke',0);d('strokeColor','#000000');d('shadowFx','soft');d('tshStr',.5);d('tshColor','');
     d('align','center');d('italic',false);d('caps',false);d('ls',0);d('lh',1.18);d('w',.8);d('name','Text');}
   if(L.type!=='audio'){d('kf',[]);d('kfEase','smooth');d('shake',0);d('shakeKind','hand');d('glitch',0);L.gx={...GX0,...(L.gx||{})};L.shx={...SHX0,...(L.shx||{})};L.ef={...EF0,...(L.ef||{})};}
   return L;}
@@ -831,11 +840,12 @@ function drawVisual(L,t,b,W){
   if(ef.echo>0&&L.type==='video'){if(ECHO.on){const hf=echoFrame(L,ECHO.t);if(hf){src=hf;sx=0;sy=0;sw=hf.width;sh=hf.height;}}else echoKeep(L,t,src,sx,sy,sw,sh);}
   /* stutter, mirror and color pop change the picture itself, before anything else */
   {const q=prepPic(L,t,{src,sx,sy,sw,sh});src=q.src;sx=q.sx;sy=q.sy;sw=q.sw;sh=q.sh;}
-  if(L.shadow&&L.blend==='source-over'){const sb=Math.min(b.w,b.h)*.06,so=Math.min(b.w,b.h)*.02;ctx.save();ctx.shadowColor='rgba(0,0,0,.5)';ctx.shadowBlur=sb;
+  if(L.shadow&&L.blend==='source-over'){const mn=Math.min(b.w,b.h),sb=mn*.24*L.shSoft*L.shSoft,so=mn*.08*L.shDist*L.shDist,an=(L.shAng==null?90:L.shAng)*Math.PI/180,sox=Math.cos(an)*so,soy=Math.sin(an)*so;
+    ctx.save();ctx.shadowColor=rgbaHex(L.shColor||'#000000',clamp(L.shStr==null?.5:L.shStr,0,1));ctx.shadowBlur=sb;
     if(m.alpha||kc||(cc&&L.cut.bg==='remove')){/* draw the picture far off to the side and pull only its shadow back into place */
-      const D=Math.max(W,b.w)*3+2000,T=ctx.getTransform();ctx.shadowOffsetX=-T.a*D;ctx.shadowOffsetY=-T.b*D+so;ctx.translate(D,0);
+      const D=Math.max(W,b.w)*3+2000,T=ctx.getTransform();ctx.shadowOffsetX=-T.a*D+sox;ctx.shadowOffsetY=-T.b*D+soy;ctx.translate(D,0);
       if(L.flipX||L.flipY)ctx.scale(L.flipX?-1:1,L.flipY?-1:1);try{ctx.drawImage(src,sx,sy,sw,sh,x,y,b.w,b.h);}catch(e){}}
-    else{ctx.shadowOffsetY=so;ctx.fillStyle='#000';shapePath(L,x,y,b.w,b.h);ctx.fill();}
+    else{ctx.shadowOffsetX=sox;ctx.shadowOffsetY=soy;ctx.fillStyle='#000';shapePath(L,x,y,b.w,b.h);ctx.fill();}
     ctx.restore();}
   /* outline: follows the picture's own see-through edges, like a sticker, drawn behind it so it can reach past its box */
   if(L.ol>0)alphaOutline(L,m,src,sx,sy,sw,sh,b,W);
@@ -902,9 +912,11 @@ function drawText(L,b,st,W){
   else if(L.tbg==='bar'){ctx.fillStyle=bg;ctx.fillRect(x0,y0,b.w,b.h);}
   else if(L.tbg==='line'){ctx.fillStyle=bg;const pw=T.px*.35;T.lines.forEach((s,i)=>{if(!s.trim()||!visW[i])return;rr(lx(i)-pw,ly(i)-T.lh/2-T.px*.04,visW[i]+pw*2,T.lh+T.px*.08,T.px*.22);ctx.fill();});}
   const A0=ctx.globalAlpha,shx=L.shadowFx||'none';
-  const setSh=()=>{if(shx==='soft'){ctx.shadowColor='rgba(0,0,0,.6)';ctx.shadowBlur=T.px*.25;ctx.shadowOffsetX=0;ctx.shadowOffsetY=T.px*.05;}
-    else if(shx==='hard'){ctx.shadowColor='rgba(0,0,0,.85)';ctx.shadowBlur=0;ctx.shadowOffsetX=T.px*.06;ctx.shadowOffsetY=T.px*.06;}
-    else if(shx==='glow'){ctx.shadowColor=L.color;ctx.shadowBlur=T.px*.6;ctx.shadowOffsetX=0;ctx.shadowOffsetY=0;}};
+  /* strength .5 is the usual shadow; the color is black for soft and hard shadows and the text's own color for a glow, unless one is picked */
+  const tk=(L.tshStr==null?.5:L.tshStr)*2,tcol=L.tshColor||(shx==='glow'?L.color:'#000000');
+  const setSh=()=>{if(shx==='soft'){ctx.shadowColor=rgbaHex(tcol,Math.min(1,.6*tk));ctx.shadowBlur=T.px*.25*(.6+tk*.4);ctx.shadowOffsetX=0;ctx.shadowOffsetY=T.px*.05*(.6+tk*.4);}
+    else if(shx==='hard'){ctx.shadowColor=rgbaHex(tcol,Math.min(1,.85*tk));ctx.shadowBlur=0;ctx.shadowOffsetX=T.px*.06*(.6+tk*.4);ctx.shadowOffsetY=T.px*.06*(.6+tk*.4);}
+    else if(shx==='glow'){ctx.shadowColor=rgbaHex(tcol,Math.min(1,tk));ctx.shadowBlur=T.px*.6*(.5+tk*.5);ctx.shadowOffsetX=0;ctx.shadowOffsetY=0;}};
   const clrSh=()=>{ctx.shadowColor='transparent';ctx.shadowBlur=0;ctx.shadowOffsetX=0;ctx.shadowOffsetY=0;};
   const each=fn=>{
     if(rev&&rev.mode==='words'){let g=0;const N=Math.max(1,words);
@@ -1076,7 +1088,7 @@ function vhsPic(L,t,s,dw,dh,ox,oy,W){const e=L.ef,v=e.vhs,r=prng(seedOf(L)+Math.
   const hb=dh*.035;strip(Y+dh-hb,hb,dw*(.02+r()*.025)*v);
   ctx.restore();}
 function vhsOver(L,t,x,y,w,hh){const e=L.ef,v=e.vhs,step=Math.max(2,hh/360);ctx.save();ctx.fillStyle=`rgba(0,0,0,${.16*v})`;for(let yy=y;yy<y+hh;yy+=step*2)ctx.fillRect(x,yy,w,step);
-  if(e.vhsLabel){const fs=Math.min(w,hh)*.055,m=fs*.9;ctx.font=`700 ${fs}px "Space Mono",ui-monospace,monospace`;ctx.fillStyle='#FFFFFF';ctx.shadowColor='rgba(0,0,0,.6)';ctx.shadowBlur=fs*.15;ctx.shadowOffsetX=fs*.06;ctx.textBaseline='top';
+  if(e.vhsLabel){const fs=Math.min(w,hh)*.055,m=fs*.9;ctx.font=`700 ${fs}px "Space Mono",ui-monospace,monospace`;ctx.fillStyle=e.vhsCol||'#FFFFFF';ctx.shadowColor='rgba(0,0,0,.6)';ctx.shadowBlur=fs*.15;ctx.shadowOffsetX=fs*.06;ctx.textBaseline='top';
     ctx.textAlign='left';if(e.vhsTop)ctx.fillText(e.vhsTop,x+m,y+m);ctx.textBaseline='bottom';ctx.textAlign='right';ctx.fillText(e.vhsDate||vhsToday(),x+w-m,y+hh-m);}
   ctx.restore();}
 const vhsToday=()=>{const d=new Date();return`${['JAN.','FEB.','MAR.','APR.','MAY','JUN.','JUL.','AUG.','SEP.','OCT.','NOV.','DEC.'][d.getMonth()]} ${String(d.getDate()).padStart(2,'0')} ${d.getFullYear()}`;};
@@ -1154,10 +1166,12 @@ function glitchAmt(L,t,st){let v=0;const g=L.glitch||0,o=L.gx||GX0;
 /* red one way, cyan the other, and torn strips when it's strong */
 /* the two colors a glitch splits a picture into; each pair adds back up to white, so the picture is whole where they overlap */
 const GX_COLS={rc:['#ff0000','#00ffff'],mg:['#ff00ff','#00ff00'],by:['#0000ff','#ffff00']};
+/* your own pair: the color you pick and its opposite, so the two still add back up to the whole picture */
+function gxPair(o){if(o.cols!=='own')return GX_COLS[o.cols]||GX_COLS.rc;const n=parseInt(String(o.ownCol||'#FF6A00').slice(1),16)||0;const op=(0xFFFFFF^n).toString(16).padStart(6,'0');return['#'+n.toString(16).padStart(6,'0'),'#'+op];}
 function glitchComposite(W,H,v,t,L){const o=L.gx||GX0;
   const r=prng((seedOf(L)^Math.floor(t*24)*2654435761)>>>0),sh=Math.round(v*W*.018*(.6+r()*.8)*o.split*2);
   const go=room(GO,W,H);go.setTransform(1,0,0,1,0,0);go.globalAlpha=1;go.globalCompositeOperation='source-over';go.filter='none';go.clearRect(0,0,W,H);
-  if(sh>=1){const cols=GX_COLS[o.cols]||GX_COLS.rc,[ux,uy]=o.dir==='v'?[0,1]:o.dir==='d'?[.72,.72]:[1,0];
+  if(sh>=1){const cols=gxPair(o),[ux,uy]=o.dir==='v'?[0,1]:o.dir==='d'?[.72,.72]:[1,0];
     [[GR,cols[0]],[GCY,cols[1]]].forEach(([c,col])=>{const g=room(c,W,H);g.setTransform(1,0,0,1,0,0);g.globalAlpha=1;g.globalCompositeOperation='source-over';g.clearRect(0,0,W,H);g.drawImage(GLC,0,0,W,H,0,0,W,H);
       g.globalCompositeOperation='multiply';g.fillStyle=col;g.fillRect(0,0,W,H);g.globalCompositeOperation='destination-in';g.drawImage(GLC,0,0,W,H,0,0,W,H);g.globalCompositeOperation='source-over';});
     go.drawImage(GR,0,0,W,H,-sh*ux,-sh*uy,W,H);go.globalCompositeOperation='lighter';go.drawImage(GCY,0,0,W,H,sh*ux,sh*uy,W,H);go.globalCompositeOperation='source-over';}
@@ -1237,6 +1251,8 @@ function bgSrc(base){if(!P.bgStill||base.type!=='video')return bgLive(base);
   return bgLive(base);}
 /* the layer whose frame fills the empty space at a moment */
 const bgBaseAt=t=>P.layers.find(L=>VIS(L)&&!(L.key&&L.key.on)&&!(L.cut&&L.cut.on&&L.cut.bg==='remove')&&visibleAt(L,t)&&frameReady(L));
+/* a #RRGGBB color with some see-through */
+function rgbaHex(hex,a){const n=parseInt(String(hex).slice(1),16)||0;return`rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;}
 function drawBackground(W,H,t){
   if(P.bg==='grad'){ctx.fillStyle=gradFill(W,H,P.bgGrad||{});ctx.fillRect(0,0,W,H);return;}
   ctx.fillStyle=P.bg==='color'?P.bgColor:'#000';ctx.fillRect(0,0,W,H);
@@ -1480,8 +1496,18 @@ function segF(id,label,opts,val,on){const g=h('div',{class:'seg',role:'group',id
 function rangeF(id,label,min,max,step,val,fmt,on){const out=h('output',{class:'rv',for:id},fmt(val)),inp=h('input',{type:'range',id,min,max,step,value:val});inp.oninput=()=>{out.textContent=fmt(+inp.value);on(+inp.value);};return h('div',{class:'field'},h('label',{for:id},label,out),inp);}
 function checkF(id,label,val,on){const c=h('input',{type:'checkbox',id});c.checked=val;c.onchange=()=>on(c.checked);return h('label',{class:'chk',for:id},c,label);}
 const SWATCH=['#FFFFFF','#000000','#FFE14D','#FF3B30','#FF5BD8','#5DE8F5','#34C759','#5B3DF5'];
-function colorF(id,label,val,on){const inp=h('input',{type:'color',id,value:String(val).toLowerCase()});inp.oninput=()=>on(inp.value);
-  return h('div',{class:'field'},h('label',{for:id},label),h('div',{class:'swatches'},inp,...SWATCH.map(c=>h('button',{type:'button',style:`background:${c}`,title:c,'aria-label':'Use '+c,onclick:()=>{inp.value=c.toLowerCase();on(c);}}))));}
+/* a color written any usual way (#abc, abc, #aabbcc) as #AABBCC, or null */
+function normHex(s){s=String(s||'').trim().replace(/^#/,'');if(/^[0-9a-f]{3}$/i.test(s))s=s.split('').map(c=>c+c).join('');return/^[0-9a-f]{6}$/i.test(s)?'#'+s.toUpperCase():null;}
+function colorF(id,label,val,on){const v0=normHex(val)||'#000000';
+  const inp=h('input',{type:'color',id,value:v0.toLowerCase(),'aria-label':label+': pick any color'}),chip=h('span',{class:'cp-chip',style:`background:${v0}`,'aria-hidden':'true'});
+  const hex=h('input',{type:'text',class:'cp-hex',value:v0,maxlength:7,spellcheck:'false',autocomplete:'off',inputmode:'text','aria-label':label+' as a color code, like #FF3B30'});
+  const set=(c,from)=>{c=normHex(c);if(!c)return;chip.style.background=c;if(from!=='inp')inp.value=c.toLowerCase();if(from!=='hex')hex.value=c;on(c);};
+  inp.oninput=()=>set(inp.value,'inp');
+  hex.oninput=()=>{const c=normHex(hex.value);if(c&&hex.value.replace('#','').length===6)set(c,'hex');};hex.onchange=()=>{const c=normHex(hex.value);if(c)set(c,'hex');else hex.value=normHex(inp.value);};
+  const row=h('div',{class:'cp'},h('label',{class:'cp-pick',title:'Opens your device’s color picker'},chip,'Pick a color',inp),hex);
+  /* pick a color from anywhere on the screen, where the browser can (Chrome and Edge on a computer) */
+  if(window.EyeDropper)row.append(h('button',{type:'button',class:'cp-eye',title:'Pick a color from anywhere on the screen','aria-label':'Pick a color from anywhere on the screen',onclick:async()=>{try{const r=await new EyeDropper().open();set(r.sRGBHex);}catch(e){}}},'💧'));
+  return h('div',{class:'field'},h('span',{class:'flabel'},label),row,h('div',{class:'swatches'},...SWATCH.map(c=>h('button',{type:'button',style:`background:${c}`,title:c,'aria-label':'Use '+c,onclick:()=>set(c)}))));}
 const btn=(lab,fn,title)=>h('button',{type:'button',title:title||null,onclick:fn},lab);
 const pct=v=>Math.round(v*100)+'%',deg=v=>Math.round(v)+'°';
 const soft=()=>{drawNow();renderTimeline();save();};
@@ -1576,7 +1602,15 @@ function lookPanel(p,L){
   if(L.ol>0){p.append(colorF('p-olc','Outline color',L.olColor,v=>{L.olColor=v;drawNow();save();}));
     p.append(rangeF('p-ols','Outline softness',0,1,.01,L.olSoft,v=>v?pct(v):'Sharp',v=>{L.olSoft=v;drawNow();save();}));}
   p.append(h('p',{class:'help'},seeThrough?'Border goes round the layer’s box. Outline follows the edge of the picture itself, round its see-through parts, like a sticker.':'Border goes round the layer’s box. Outline follows the edge of the picture itself: use it on pictures with see-through backgrounds (PNG), or after Remove background or green screen. On a picture with no see-through parts it looks like a border just outside the box.'));
-  p.append(checkF('p-sh','Drop shadow',L.shadow,v=>{L.shadow=v;soft();}));
+  p.append(checkF('p-sh','Drop shadow',L.shadow,v=>{L.shadow=v;renderSide();soft();}));
+  if(L.shadow){const ds=fn=>v=>{fn(v);drawNow();save();};
+    p.append(rangeF('p-shs','How strong',.05,1,.01,L.shStr,pct,ds(v=>{L.shStr=v;})),
+      rangeF('p-shb','Softness',0,1,.01,L.shSoft,v=>v<.05?'Sharp':pct(v),ds(v=>{L.shSoft=v;})),
+      rangeF('p-shd','Distance',0,1,.01,L.shDist,v=>v<.02?'Right behind':pct(v),ds(v=>{L.shDist=v;})),
+      rangeF('p-sha','Direction',0,359,1,L.shAng,v=>{const k=['Right','Down and right','Down','Down and left','Left','Up and left','Up','Up and right'][Math.round(((v%360)+360)%360/45)%8];return k;},ds(v=>{L.shAng=v;})),
+      colorF('p-shc','Shadow color',L.shColor,v=>{L.shColor=v;drawNow();save();}),
+      h('div',{class:'row'},btn('Back to the usual shadow',()=>{Object.assign(L,{shStr:.5,shSoft:.5,shDist:.5,shAng:90,shColor:'#000000'});renderSide();soft();})));
+    p.append(h('p',{class:'help'},'Stronger and sharper makes it look like it’s floating close above; softer and further away, higher up. A colored shadow works like a glow.'));}
   p.append(segF('p-blend','Blend with what’s underneath',BLENDS,L.blend,v=>{L.blend=v;renderSide();soft();}));
   p.append(h('p',{class:'help'},'Screen hides black backgrounds (sparkles, fire, light leaks). Multiply hides white backgrounds (logos, drawings, signatures).'));
   cutPanel(p,L);
@@ -1694,7 +1728,9 @@ function effectsPanel(p,L){
     p.append(rangeF('e-glo','How often it breaks up',0,1,.01,g.often,x=>x<.25?'Now and then':x>.75?'All the time':'Often',set(x=>{g.often=x;})));
     p.append(rangeF('e-gls','How fast it flickers',0,1,.01,g.speed,x=>x<.34?'Slow':x>.66?'Fast':'Medium',set(x=>{g.speed=x;})));
     p.append(rangeF('e-glsp','Colors pulled apart',0,1,.01,g.split,x=>x?pct(x):'Off',set(x=>{g.split=x;})));
-    if(g.split>0){p.append(seg('e-glc','Split into',[['rc','Red and blue'],['mg','Pink and green'],['by','Blue and yellow']],g.cols,x=>{g.cols=x;}));
+    if(g.split>0){p.append(seg('e-glc','Split into',[['rc','Red and blue'],['mg','Pink and green'],['by','Blue and yellow'],['own','Your own color']],g.cols,x=>{g.cols=x;if(x==='own'&&!g.ownCol)g.ownCol='#FF6A00';}));
+      if(g.cols==='own'){p.append(colorF('e-glown','First color',g.ownCol||'#FF6A00',x=>{g.ownCol=x;drawNow();save();}));const pr=gxPair(g);
+        p.append(h('p',{class:'help'},'The second color is always its opposite (',h('span',{style:`display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;background:${pr[1]}`}),' here), so the two add back up to the real picture wherever they overlap.'));}
       p.append(seg('e-gld','Pulled',[['h','Sideways'],['v','Up and down'],['d','Corner to corner']],g.dir,x=>{g.dir=x;}));}
     p.append(rangeF('e-glt','Torn strips',0,1,.01,g.tear,x=>x?pct(x):'Off',set(x=>{g.tear=x;})));
     p.append(rangeF('e-glb','Jumping blocks',0,1,.01,g.blocks,x=>x?pct(x):'Off',set(x=>{g.blocks=x;})));
@@ -1770,7 +1806,7 @@ function effectsPanel(p,L){
       p.append(checkF('e-vhl','Words on screen',!!e.vhsLabel,c=>{e.vhsLabel=c;re();}));
       if(e.vhsLabel){const ti=h('input',{type:'text',id:'e-vht',value:e.vhsTop||'',maxlength:24});ti.oninput=()=>{e.vhsTop=ti.value;drawNow();save();};
         const di=h('input',{type:'text',id:'e-vhd',value:e.vhsDate||'',maxlength:24,placeholder:vhsToday()});di.oninput=()=>{e.vhsDate=di.value;drawNow();save();};
-        p.append(h('div',{class:'field'},h('label',{for:'e-vht'},'Top left'),ti),h('div',{class:'field'},h('label',{for:'e-vhd'},'Bottom right'),di));}
+        p.append(h('div',{class:'field'},h('label',{for:'e-vht'},'Top left'),ti),h('div',{class:'field'},h('label',{for:'e-vhd'},'Bottom right'),di),colorF('e-vhc','Color of the words',e.vhsCol||'#FFFFFF',x=>{e.vhsCol=x;drawNow();save();}));}
       p.append(h('p',{class:'help'},'Soft, over-bright color that bleeds to one side, a tracking band drifting up the picture, torn rows at the bottom and screen lines, like a home video on tape.'));}
     /* ---- color pop ---- */
     p.append(h('h4',{class:'fhead'},'Color pop'));
@@ -2024,6 +2060,9 @@ function stylePanel(p,L){
     p.append(h('p',{class:'help'},L.room?'The video is made taller by the height of the bar, and everything else moves to make space. If the words need more lines, the space grows with them.':'Tick this for the caption-meme look: the words on their own bar, with the whole video showing underneath.'));}
   p.append(h('h4',{class:'fhead'},'Shadow'));
   p.append(segF('p-shf','Style',[['none','None'],['soft','Soft'],['hard','Hard'],['glow','Glow']],L.shadowFx,v=>{L.shadowFx=v;renderSide();soft();}));
+  if(L.shadowFx&&L.shadowFx!=='none'){p.append(rangeF('p-tshs','How strong',.05,1,.01,L.tshStr==null?.5:L.tshStr,pct,v=>{L.tshStr=v;drawNow();save();}));
+    p.append(colorF('p-tshc',L.shadowFx==='glow'?'Glow color':'Shadow color',L.tshColor||(L.shadowFx==='glow'?L.color:'#000000'),v=>{L.tshColor=v;drawNow();save();}));
+    if(L.tshColor)p.append(h('div',{class:'row'},btn(L.shadowFx==='glow'?'Glow in the text’s own color':'Back to a black shadow',()=>{L.tshColor='';renderSide();soft();})));}
   p.append(h('p',{class:'help'},'Glow uses the text color, so it works best with bright colors on a dark video.'));
 }
 function placePanel(p,L){
@@ -2659,8 +2698,8 @@ function keyPanel(p,L){const k=L.key;
   p.append(h('h4',{class:'fhead',id:'p-key-h'},'Green screen'));
   p.append(checkF('p-key','Remove a background color',k.on,v=>{if(v)keyOn(L);else k.on=false;renderSide();soft();}));
   if(!k.on){p.append(h('p',{class:'help'},'For a video shot in front of a green or blue screen, or a picture on a flat colored background. The color you choose turns see-through so the layers underneath show.'));return;}
-  const ci=h('input',{type:'color',id:'p-kc',value:k.color.toLowerCase()});ci.oninput=()=>{k.color=ci.value;k.picked=true;drawNow();save();};
-  p.append(h('div',{class:'field'},h('label',{for:'p-kc'},'Color to remove'),h('div',{class:'row'},ci,
+  p.append(colorF('p-kc','Color to remove',k.color,v=>{k.color=v;k.picked=true;drawNow();save();}));
+  p.append(h('div',{class:'field'},h('div',{class:'row'},
     btn('Green',()=>{k.color='#00B140';k.picked=true;renderSide();soft();},'A standard green screen'),btn('Blue',()=>{k.color='#0047BB';k.picked=true;renderSide();soft();},'A standard blue screen'),
     h('button',{type:'button',class:picking===L.id?'tog':'','aria-pressed':String(picking===L.id),onclick:()=>{picking=picking===L.id?null:L.id;pickFor='key';stageEl.style.cursor=picking?'crosshair':'';renderSide();if(picking)toast('Now tap the background in the preview to pick its color.');}},'🎯 Pick from the preview'))));
   if(picking===L.id)p.append(h('p',{class:'kfnote'},'Tap the green (or other) background in the preview. Press Escape to stop.'));

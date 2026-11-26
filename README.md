@@ -123,6 +123,13 @@ The frames sit in four categories: **Social & phone**, **Cameras**, **Prints** a
 - **Settings:** speed, typing dots, which photo opens, how long to hold at the end, and looping.
 - **Make video:** saves it as **WebM**, **MP4** or **GIF**, at best quality, half size, or under a size limit you choose (for example, under 5 MB).
 
+### Taking the shot (camera frames)
+- **Play it:** the Phone camera and Camera viewfinder frames can play the moment a photo is taken. The camera moves over your photo, focuses, and takes the shot, ending on the framing you set by dragging and zooming the photo.
+- **Camera moves:** wander, sweep in from the side, or hold still. Handheld shake off, a little or a lot, with a small jolt when the shutter fires.
+- **Focus:** a quick pull from blurry to sharp, hunting back and forth first, or off. The focus box blinks while it focuses and turns green when it locks (the phone shows a yellow square you can drag), with a beep.
+- **The shot:** one shot or a burst of 3, a screen blackout and an optional flash, and a shutter sound. The viewfinder's shots-remaining count goes down; on the phone the shot flies into the last-photo thumbnail.
+- **Settings:** speed and looping. **Make video** saves it as WebM, MP4 (with the sounds) or GIF.
+
 ### Videos in a frame
 - **Any frame takes a video:** add one in place of the photo and it plays inside the frame. **Play** and the slider under the preview watch it in place.
 - **Frames that move with it:** the progress bar on **Short video** and **Video page** (with the player's time), the recording timer on **Phone camera**, the timestamp on **Security camera**, the tape counter on **VHS camcorder** and the time played on **Now playing** all count along with the video.

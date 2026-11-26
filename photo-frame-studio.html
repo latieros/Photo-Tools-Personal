@@ -782,6 +782,56 @@ function storyStickers(W,H){
   const em=emojiList(fv('emoji')),es=SZ[fv('emojiSize')],spots=[[.2,.46],[.82,.52],[.22,.8],[.8,.82]];
   em.forEach((e,i)=>stk(W,H,'em'+i,spots[i],es,(i%2?.12:-.12),()=>{ctx.font=EMOJI_F(170);ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(e,0,10);return[200,200];}));
 }
+/* ---------- the shooting animation for the camera frames: the camera moves over your photo, focuses and takes the shot ---------- */
+const SHOT_FIELDS=[
+  {type:'head',label:'Shooting animation'},
+  {id:'sMove',label:'Camera moves',type:'seg',options:['Wander','Sweep','Hold still'],def:'Wander'},
+  {id:'sShake',label:'Handheld shake',type:'seg',options:['Off','A little','A lot'],def:'A little'},
+  {id:'sFocus',label:'Focus',type:'seg',options:['Quick','Hunts first','Off'],def:'Quick'},
+  {id:'sSpeed',label:'Speed',type:'seg',options:['Slow','Normal','Fast'],def:'Normal'},
+  {id:'sShots',label:'Shots',type:'seg',options:['One','Burst of 3'],def:'One'},
+  {id:'sFlash',label:'Flash',type:'seg',options:['Off','On'],def:'Off'},
+  {id:'sSound',label:'Focus beep and shutter sound',type:'seg',options:['On','Off'],def:'On'},
+  {id:'aLoop',label:'Loop the preview (and GIF)',type:'seg',options:['On','Off'],def:'On'}];
+function shotPlan(){const k={Slow:1.4,Normal:1,Fast:.7}[fv('sSpeed')]||1,still=fv('sMove')==='Hold still',fm=fv('sFocus');
+  const mv=(still?.9:2.4)*k,foc=fm==='Off'?0:fm==='Hunts first'?1.5*k:.6*k,fa=Math.max(.2,mv-.35*k),fEnd=fa+foc,s0=fEnd+(fm==='Off'?.2:.35)*k;
+  const shots=fv('sShots')==='Burst of 3'?[s0,s0+.22,s0+.44]:[s0];return{k,mv,fa,fEnd,shots,end:shots[shots.length-1]+1.7};}
+const shotSounds=()=>{const p=shotPlan(),s=[];if(fv('sFocus')!=='Off')s.push([p.fEnd,'beep']);p.shots.forEach(t=>s.push([t,S.tpl==='camera'?'click':'shutter']));return s;};
+const SMOOTH=p=>{p=Math.max(0,Math.min(1,p));return p*p*(3-2*p);};
+/* where the camera is pointing at time t (or null for the still picture) */
+function camAnim(){if(S.anim.t===null)return null;const p=shotPlan(),t=Math.min(S.anim.t,p.end),mvS=fv('sMove');
+  const u=SMOOTH(t/p.mv),cl=v=>Math.max(-1,Math.min(1,v)),fx=S.panX,fy=S.panY;let px=fx,py=fy,ez;
+  if(mvS==='Sweep'){const d=fx>0?-1:1;px=cl(fx+d*1.7*(1-u));py=cl(fy+.35*(1-u));ez=.3*(1-u);}
+  else if(mvS==='Wander'){const a=[cl(fx+.95),cl(fy-.8)],b=[cl(fx-.85),cl(fy+.6)],e=u;px=(1-e)*(1-e)*a[0]+2*(1-e)*e*b[0]+e*e*fx;py=(1-e)*(1-e)*a[1]+2*(1-e)*e*b[1]+e*e*fy;ez=.32*(1-u);}
+  else ez=.05*(1-u);
+  /* out of focus until it locks: a quick pull to sharp, or a hunt back and forth first */
+  const B=cv.width*.007,fm=fv('sFocus');let blur=0;
+  if(fm!=='Off'){if(t<p.fa)blur=B;else if(t<p.fEnd){const q=(t-p.fa)/(p.fEnd-p.fa);blur=fm==='Hunts first'?B*Math.abs(Math.cos(q*Math.PI*2.5))*(1-q*.85):B*(1-SMOOTH(q));}}
+  ez=Math.max(ez,.035*(blur/(B||1)));
+  const sh={'Off':0,'A little':.02,'A lot':.05}[fv('sShake')]||0,calm=t<p.fEnd?1:t<p.shots[p.shots.length-1]+.2?.45:.15;
+  const last=p.shots.filter(s=>t>=s),since=last.length?t-last[last.length-1]:-1,jolt=since>=0&&since<.25?(1-since/.25)*.03:0;
+  /* shake is measured against the photo's size, then turned into how far the frame can slide at this zoom */
+  if(sh||jolt){ez=Math.max(ez,sh*1.6+jolt*1.2);const k2=.5/ez;px=cl(px+k2*(sh*.5*calm*(Math.sin(t*6.3)+Math.sin(t*10.7+1.3)*.6)/1.6+jolt*.3*Math.sin(since*70)));py=cl(py+k2*(sh*.5*calm*(Math.sin(t*5.1+2)+Math.sin(t*9.4)*.6)/1.6+jolt*.4));}
+  return{p,t,z:S.zoom*(1+ez),px,py,blur,taken:last.length,since,phase:t<p.fa?'move':t<p.fEnd?'focus':'locked',focusQ:p.fEnd>p.fa?Math.max(0,Math.min(1,(t-p.fa)/(p.fEnd-p.fa))):1};}
+/* draws the main photo where the camera points */
+function camPhoto(r,A,o={}){if(!A){drawPhoto(r,o);return;}const keep=[S.zoom,S.panX,S.panY];S.zoom=A.z;S.panX=A.px;S.panY=A.py;
+  try{drawPhoto(r,{...o,filter:A.blur>.3?`blur(${A.blur.toFixed(1)}px)`:o.filter});}finally{[S.zoom,S.panX,S.panY]=keep;}}
+/* the shutter: a quick blackout, then the flash if it's on */
+function camShutter(A,r,dark){if(!A||A.since<0)return;const s=A.since;
+  if(s<.1){ctx.fillStyle=`rgba(0,0,0,${dark})`;ctx.fillRect(r.x,r.y,r.w,r.h);}
+  if(fv('sFlash')==='On'&&s<.45){ctx.fillStyle=`rgba(255,255,255,${.92*(1-s/.45)})`;ctx.fillRect(r.x,r.y,r.w,r.h);}}
+/* sounds for the shot, made in the browser */
+let SFXG=null;const sfxLive=[];
+function sfxOut(){try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;if(!VAC)VAC=new C();if(VAC.state==='suspended')VAC.resume();if(!SFXG){SFXG=VAC.createGain();SFXG.connect(VAC.destination);}return VAC;}catch(e){return null;}}
+const hasSfx=()=>!!T[S.tpl].sounds&&fv('sSound')!=='Off';
+function sfxNoise(ac,when,dur,peak,freq){const n=ac.createBufferSource(),b=ac.createBuffer(1,Math.max(1,Math.round(ac.sampleRate*dur)),ac.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,2.2);
+  n.buffer=b;const f=ac.createBiquadFilter();f.type='bandpass';f.frequency.value=freq;f.Q.value=.8;const g=ac.createGain();g.gain.value=peak;n.connect(f);f.connect(g);g.connect(SFXG);n.start(when);sfxLive.push(n);}
+function sfxTone(ac,f,when,dur,peak){const o=ac.createOscillator(),g=ac.createGain();o.type='square';o.frequency.value=f;g.gain.setValueAtTime(.0001,when);g.gain.exponentialRampToValueAtTime(peak,when+.005);g.gain.exponentialRampToValueAtTime(.0001,when+dur);o.connect(g);g.connect(SFXG);o.start(when);o.stop(when+dur+.02);sfxLive.push(o);}
+function sfxPlay(k,when){const ac=VAC;if(k==='beep'){sfxTone(ac,2700,when,.06,.05);sfxTone(ac,2700,when+.09,.06,.05);}
+  else if(k==='click'){sfxNoise(ac,when,.05,.7,3500);sfxNoise(ac,when+.07,.06,.5,2600);}
+  else{sfxNoise(ac,when,.04,.9,2200);sfxNoise(ac,when+.09,.07,.8,1500);sfxNoise(ac,when+.1,.03,.4,5000);}}
+function sfxStop(){sfxLive.splice(0).forEach(n=>{try{n.stop(0);}catch(e){}});}
+function sfxSchedule(from){sfxStop();if(!hasSfx())return;const ac=sfxOut();if(!ac)return;const base=ac.currentTime+.03;T[S.tpl].sounds().forEach(([t,k])=>{if(t>=from-1e-3)sfxPlay(k,base+t-from);});}
 /* ---------- templates ---------- */
 const T={
 story:{group:'Social & phone',name:'Story caption',sub:'Caption, stickers, weather, time',w:1080,h:1920,
@@ -1012,7 +1062,7 @@ short:{group:'Social & phone',name:'Short video',sub:'TikTok-style feed',
       homeBar(W,H,'#fff');}
   }},
 camera:{group:'Social & phone',name:'Phone camera',sub:'Viewfinder screen',w:1080,h:2340,
-  note:'Makes the photo look like it’s on a phone camera viewfinder, with modes, zoom buttons and shutter.',
+  note:'Makes the photo look like it’s on a phone camera viewfinder, with modes, zoom buttons and shutter. Press Play to watch the camera move over your photo, focus and take the shot; it ends on the framing you set, and the yellow focus square can be dragged.',
   fields:[
     {id:'mode',label:'Camera mode',type:'seg',options:['PHOTO','PORTRAIT','VIDEO','CINEMATIC','PANO'],def:'PHOTO'},
     {id:'zoom',label:'Zoom button',type:'seg',options:['.5','1','3'],def:'1'},
@@ -1030,8 +1080,16 @@ camera:{group:'Social & phone',name:'Phone camera',sub:'Viewfinder screen',w:108
     else{ctx.beginPath();ctx.moveTo(W/2-20,ty+9);ctx.lineTo(W/2,ty-9);ctx.lineTo(W/2+20,ty+9);ctx.stroke();}
     ctx.fillStyle='rgba(255,255,255,.14)';ctx.beginPath();ctx.arc(W-90,ty,40,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff';
     ctx.setLineDash([4,6]);ctx.beginPath();ctx.arc(W-90,ty,26,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);ctx.beginPath();ctx.arc(W-90,ty,15,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.arc(W-90,ty,5,0,Math.PI*2);ctx.fill();
-    const ph={x:0,y:290,w:W,h:1440};drawPhoto(ph);
+    const A=camAnim(),ph={x:0,y:290,w:W,h:1440};camPhoto(ph,A);
     if(fv('grid')==='On'){ctx.strokeStyle='rgba(255,255,255,.45)';ctx.lineWidth=2;ctx.beginPath();for(let i=1;i<3;i++){ctx.moveTo(W*i/3,ph.y);ctx.lineTo(W*i/3,ph.y+ph.h);ctx.moveTo(0,ph.y+ph.h*i/3);ctx.lineTo(W,ph.y+ph.h*i/3);}ctx.stroke();}
+    /* the yellow focus square: it appears where you put it, pulses while it focuses, then holds */
+    {const tp=pos('tap',[.5,.42]),fx=tp.x*W,fy=ph.y+tp.y*ph.h,fs=190;box('tap',fx-fs/2-10,fy-fs/2-10,fs+20,fs+20);
+      if(A&&fv('sFocus')!=='Off'&&A.t>=A.p.fa){const age=A.t-A.p.fa,last=A.p.shots[A.p.shots.length-1],out=A.t>last+.9?Math.max(0,1-(A.t-last-.9)/.4):1,sc=1+.45*(1-SMOOTH(age/.22));
+        const pulse=A.phase==='focus'?.55+.45*Math.abs(Math.cos(age*9)):A.phase==='locked'?1:1;ctx.save();ctx.globalAlpha=out*pulse;ctx.translate(fx,fy);ctx.scale(sc,sc);ctx.strokeStyle='#FFD60A';ctx.lineWidth=3.5;ctx.strokeRect(-fs/2,-fs/2,fs,fs);
+        ctx.beginPath();[[0,-fs/2,0,-fs/2+16],[0,fs/2,0,fs/2-16],[-fs/2,0,-fs/2+16,0],[fs/2,0,fs/2-16,0]].forEach(([a,b,c,d])=>{ctx.moveTo(a,b);ctx.lineTo(c,d);});ctx.stroke();
+        ctx.fillStyle='#FFD60A';ctx.beginPath();ctx.arc(fs/2+34,0,13,0,Math.PI*2);ctx.fill();ctx.lineWidth=3;[0,1,2,3,4,5,6,7].forEach(i=>{const an=i*Math.PI/4;ctx.beginPath();ctx.moveTo(fs/2+34+Math.cos(an)*19,Math.sin(an)*19);ctx.lineTo(fs/2+34+Math.cos(an)*25,Math.sin(an)*25);ctx.stroke();});
+        ctx.restore();}}
+    camShutter(A,ph,.85);
     ctx.textAlign='center';ctx.textBaseline='middle';
     ['.5','1','3'].forEach((z,i)=>{const sel=fv('zoom')===z,x=W/2+(i-1)*112,y=ph.y+ph.h-92;ctx.fillStyle='rgba(20,20,20,.55)';ctx.beginPath();ctx.arc(x,y,sel?50:40,0,Math.PI*2);ctx.fill();
       ctx.fillStyle=sel?'#FFD60A':'#fff';ctx.font=F(sel?30:26,600,'sys');ctx.fillText(sel?z+'×':z,x,y);});
@@ -1040,8 +1098,12 @@ camera:{group:'Social & phone',name:'Phone camera',sub:'Viewfinder screen',w:108
     for(let i=ai-1;i>=0;i--)xs[i]=xs[i+1]-ws[i+1]/2-gap-ws[i]/2;for(let i=ai+1;i<modes.length;i++)xs[i]=xs[i-1]+ws[i-1]/2+gap+ws[i]/2;
     modes.forEach((m,i)=>{ctx.fillStyle=i===ai?'#FFD60A':'#fff';ctx.fillText(m,xs[i],1850);});spacing('0px');
     ctx.strokeStyle='#fff';ctx.lineWidth=10;ctx.beginPath();ctx.arc(W/2,2065,104,0,Math.PI*2);ctx.stroke();
-    ctx.fillStyle=vid?'#FF3B30':'#fff';ctx.beginPath();ctx.arc(W/2,2065,86,0,Math.PI*2);ctx.fill();
-    ctx.save();rr(110,2005,120,120,16);ctx.clip();drawPhoto({x:110,y:2005,w:120,h:120},S.src2?{src:S.src2}:{pan:false});ctx.restore();
+    const press=A&&A.since>=0&&A.since<.2?1-A.since/.2:0;ctx.fillStyle=vid?'#FF3B30':'#fff';ctx.beginPath();ctx.arc(W/2,2065,86*(1-.14*press),0,Math.PI*2);ctx.fill();
+    /* the last-photo thumbnail: once a shot is taken, it shows that shot, flying down into place */
+    const shotOpt={pan:false,z:S.zoom,px:S.panX,py:S.panY},thumb={x:110,y:2005,w:120,h:120};
+    ctx.save();rr(110,2005,120,120,16);ctx.clip();drawPhoto(thumb,A&&A.taken?(A.since<.55&&A.taken===1?(S.src2?{src:S.src2}:{pan:false}):shotOpt):(S.src2?{src:S.src2}:{pan:false}));ctx.restore();
+    if(A&&A.taken&&A.since>=.1&&A.since<.55){const q=SMOOTH((A.since-.1)/.45),lr=(a,b)=>a+(b-a)*q,r={x:lr(ph.x+60,thumb.x),y:lr(ph.y+60,thumb.y),w:lr(ph.w-120,thumb.w),h:lr(ph.h-120,thumb.h)};
+      ctx.save();rr(r.x,r.y,r.w,r.h,lr(4,16));ctx.clip();drawPhoto(r,shotOpt);ctx.restore();}
     ctx.fillStyle='#1d1d1f';ctx.beginPath();ctx.arc(W-170,2065,62,0,Math.PI*2);ctx.fill();
     ctx.strokeStyle='#fff';ctx.lineWidth=5;ctx.beginPath();ctx.arc(W-170,2065,30,Math.PI*1.1,Math.PI*1.9);ctx.stroke();ctx.beginPath();ctx.arc(W-170,2065,30,Math.PI*.1,Math.PI*.9);ctx.stroke();
     arrowHead(W-170+30*Math.cos(Math.PI*1.9),2065+30*Math.sin(Math.PI*1.9),Math.PI*.4);arrowHead(W-170+30*Math.cos(Math.PI*.9),2065+30*Math.sin(Math.PI*.9),Math.PI*1.4);
@@ -1431,7 +1493,7 @@ lock:{group:'Social & phone',name:'Lock screen',sub:'Notifications over a wallpa
     else{icon('call',110,H-150,52,'#fff');icon('camera',W-110,H-150,52,'#fff');icon('lock',W/2,H-160,44,'#fff');ctx.fillStyle='#fff';rr(W/2-110,H-36,220,9,5);ctx.fill();}
   }},
 viewfinder:{group:'Cameras',name:'Camera viewfinder',sub:'Fuji, Canon or Nikon style',w:1500,h:1000,
-  note:'A mirrorless or DSLR live-view screen with exposure settings, shots remaining, battery and a focus box you can drag. Each style follows the layout one camera brand uses.',
+  note:'A mirrorless or DSLR live-view screen with exposure settings, shots remaining, battery and a focus box you can drag. Each style follows the layout one camera brand uses. Press Play to watch the camera move over your photo, focus and take the shot; it ends on the framing you set.',
   fields:[
     {id:'style',label:'Style',type:'seg',options:['Fuji-style','Canon-style','Nikon-style'],def:'Fuji-style'},
     {id:'mode',label:'Mode',type:'seg',options:['A','S','M','P'],def:'A'},
@@ -1444,19 +1506,23 @@ viewfinder:{group:'Cameras',name:'Camera viewfinder',sub:'Fuji, Canon or Nikon s
     {id:'overlay',label:'Overlay',type:'seg',options:['None','Grid','Crop'],def:'Crop'},
     {id:'focus',label:'Focus box',type:'seg',options:['On','Off'],def:'On'}],
   draw(W,H){
-    const st=fv('style'),r={x:0,y:0,w:W,h:H};drawPhoto(r);
+    const st=fv('style'),r={x:0,y:0,w:W,h:H},A=camAnim();camPhoto(r,A);
+    const n0=parseInt(String(fv('shots')).replace(/[^\d]/g,'')),shotsT=A&&A.taken&&isFinite(n0)?String(Math.max(0,n0-A.taken)):fv('shots');
     const ov=fv('overlay');
     if(ov==='Crop'){const c={x:278,y:148,w:944,h:708};ctx.fillStyle='rgba(0,0,0,.42)';ctx.fillRect(0,0,W,c.y);ctx.fillRect(0,c.y+c.h,W,H-c.y-c.h);ctx.fillRect(0,c.y,c.x,c.h);ctx.fillRect(c.x+c.w,c.y,W-c.x-c.w,c.h);ctx.strokeStyle='rgba(200,210,230,.7)';ctx.lineWidth=3;ctx.strokeRect(c.x,c.y,c.w,c.h);}
     if(ov==='Grid'){ctx.strokeStyle='rgba(30,30,30,.7)';ctx.lineWidth=3;ctx.beginPath();for(let i=1;i<3;i++){ctx.moveTo(W*i/3,0);ctx.lineTo(W*i/3,H);ctx.moveTo(0,H*i/3);ctx.lineTo(W,H*i/3);}ctx.stroke();}
-    if(fv('focus')==='On'){const p=pos('focus',[.43,.6]),fx=p.x*W,fy=p.y*H,s=150;
-      if(st==='Nikon-style'){ctx.strokeStyle='#3CE36B';ctx.lineWidth=5;const k=34;[[-1,-1],[1,-1],[1,1],[-1,1]].forEach(([a,b])=>{const cx=fx+a*s/2,cy=fy+b*s/2;ctx.beginPath();ctx.moveTo(cx,cy-b*k);ctx.lineTo(cx,cy);ctx.lineTo(cx-a*k,cy);ctx.stroke();});}
-      else{ctx.strokeStyle=st==='Canon-style'?'#FFFFFF':'rgba(255,255,255,.9)';ctx.lineWidth=3;ctx.strokeRect(fx-s/2,fy-s/2,s,s);}
-      box('focus',fx-s/2-10,fy-s/2-10,s+20,s+20);}
+    if(fv('focus')==='On'){const p=pos('focus',[.43,.6]),fx=p.x*W,fy=p.y*H;
+      /* while playing: white as it moves, blinking while it focuses, green once it locks */
+      const hunting=A&&A.phase==='focus',lockedA=A&&A.phase==='locked'&&fv('sFocus')!=='Off',s=150*(hunting?1+.05*Math.sin(A.t*30):1);
+      ctx.save();if(hunting&&Math.floor(A.t*8)%2)ctx.globalAlpha=.35;
+      if(st==='Nikon-style'){ctx.strokeStyle=A&&!lockedA?'#FFFFFF':'#3CE36B';ctx.lineWidth=5;const k=34;[[-1,-1],[1,-1],[1,1],[-1,1]].forEach(([a,b])=>{const cx=fx+a*s/2,cy=fy+b*s/2;ctx.beginPath();ctx.moveTo(cx,cy-b*k);ctx.lineTo(cx,cy);ctx.lineTo(cx-a*k,cy);ctx.stroke();});}
+      else{ctx.strokeStyle=lockedA?'#3CE36B':st==='Canon-style'?'#FFFFFF':'rgba(255,255,255,.9)';ctx.lineWidth=lockedA?5:3;ctx.strokeRect(fx-s/2,fy-s/2,s,s);}
+      ctx.restore();box('focus',fx-75-10,fy-75-10,170,170);}
     const ev=parseInt(fv('ev'))||0,W_='#FFFFFF';
     if(st==='Fuji-style'){
       const os='osw';hudText('1.4x',405,52,54,os,400,W_,'center');
       ctx.fillStyle='#fff';rr(552,24,86,26,3);ctx.fill();ctx.fillStyle='#111';ctx.font=F(24,700,'osw');ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('4K',595,38);hudText('24',595,66,26,os,700,W_,'center');
-      hudText('9h20m45s',815,52,54,os,400,W_,'center');hudText(fv('shots'),1172,52,50,os,400,W_,'right');
+      hudText('9h20m45s',815,52,54,os,400,W_,'center');hudText(shotsT,1172,52,50,os,400,W_,'right');
       ctx.strokeStyle='#E8C547';ctx.fillStyle='#E8C547';ctx.lineWidth=3;rr(1190,20,62,56,6);ctx.stroke();ctx.font=F(19,700,'osw');ctx.textAlign='center';ctx.fillText('RAW',1221,33);rr(1201,45,40,24,3);ctx.fill();ctx.fillStyle='#111';ctx.fillText('M',1221,58);
       hudText('F HEIF',1266,52,46,os,400,W_,'left');
       ctx.fillStyle='rgba(60,60,60,.55)';rr(1418,96,76,190,8);ctx.fill();ctx.strokeStyle='rgba(255,255,255,.4)';ctx.lineWidth=2;ctx.stroke();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(1456,160,15,0,Math.PI*2);ctx.fill();hudText('SHOT',1456,232,28,os,400,W_,'center');
@@ -1474,7 +1540,7 @@ viewfinder:{group:'Cameras',name:'Camera viewfinder',sub:'Fuji, Canon or Nikon s
       batt(1225,946,62,30,fv('battery'),'#fff');
     }else if(st==='Canon-style'){
       const f='rob';ctx.fillStyle='rgba(28,38,52,.72)';ctx.fillRect(38,28,1424,82);ctx.fillRect(38,880,1424,80);
-      hudText(fv('shots'),66,70,56,f,400,W_);batt(360,50,94,40,fv('battery'),'#fff');
+      hudText(shotsT,66,70,56,f,400,W_);batt(360,50,94,40,fv('battery'),'#fff');
       ctx.strokeStyle='#fff';ctx.fillStyle='#fff';ctx.lineWidth=5;ctx.lineCap='round';[30,20].forEach(rad=>{ctx.beginPath();ctx.arc(520,86,rad,Math.PI*1.22,Math.PI*1.78);ctx.stroke();});ctx.beginPath();ctx.arc(520,86,5,0,Math.PI*2);ctx.fill();hudText('OFF',548,82,24,f,500,W_);
       ctx.strokeStyle='rgba(255,255,255,.35)';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(694,54);ctx.lineTo(714,72);ctx.lineTo(704,82);ctx.lineTo(704,46);ctx.lineTo(714,56);ctx.lineTo(694,74);ctx.stroke();
       ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.strokeRect(1098,46,40,48);hudText('1',1118,72,30,f,500,W_,'center');hudText('100-1587',1440,70,56,f,400,W_,'right');
@@ -1494,8 +1560,9 @@ viewfinder:{group:'Cameras',name:'Camera viewfinder',sub:'Fuji, Canon or Nikon s
       for(let i=0;i<=12;i++){const x=mx+i*mw/12,big=i%4===0;ctx.fillRect(x-1.5,big?924:930,3,big?28:16);}
       ctx.fillStyle=Y;const ex=mx+mw/2+ev*mw/6;ctx.beginPath();ctx.moveTo(ex,960);ctx.lineTo(ex-10,976);ctx.lineTo(ex+10,976);ctx.closePath();ctx.fill();
       hudText('ISO',1050,958,26,f,500,Y);hudText(fv('iso'),1105,952,58,f,500,W_);
-      ctx.font=F(48,500,'rob');const sw=ctx.measureText(fv('shots')).width,rx=W-40;hudText(']',rx,952,54,f,400,W_,'right');hudText(fv('shots'),rx-26,952,48,f,500,W_,'right');hudText('r',rx-36-sw,968,22,f,500,W_,'right');hudText('[',rx-62-sw,952,54,f,400,W_,'right');
+      ctx.font=F(48,500,'rob');const sw=ctx.measureText(shotsT).width,rx=W-40;hudText(']',rx,952,54,f,400,W_,'right');hudText(shotsT,rx-26,952,48,f,500,W_,'right');hudText('r',rx-36-sw,968,22,f,500,W_,'right');hudText('[',rx-62-sw,952,54,f,400,W_,'right');
     }
+    camShutter(A,{x:0,y:0,w:W,h:H},1);
   }},
 cctv:{group:'Cameras',name:'Security camera',sub:'Single, split or quad CCTV',w:1600,h:1200,
   note:'A grainy security camera feed with timestamp, camera name and REC light. Split shows two cameras and Quad shows four; camera 1 is your main photo and you can add a photo for each of the others.',
@@ -1876,6 +1943,7 @@ news:{group:'Covers & comics',name:'Newspaper',sub:'Front page',w:1200,h:1800,
   }}
 };
 ['ichat','achat','dm'].forEach(k=>{T[k].fields.push(...ANIM_FIELDS);T[k].anim=true;});
+['camera','viewfinder'].forEach(k=>{T[k].fields.push(...SHOT_FIELDS);T[k].anim=true;T[k].animLen=()=>shotPlan().end;T[k].sounds=shotSounds;});
 
 /* ---------- helpers for the newer frames ---------- */
 FAM.vt='VT323,"Share Tech Mono","Courier New",monospace';FAM.frak='UnifrakturMaguntia,"Old English Text MT",serif';FAM.geo='Georgia,"Times New Roman",serif';
@@ -2218,7 +2286,7 @@ const animBar=document.getElementById('animBar'),aPlay=document.getElementById('
 const isAnim=()=>!!T[S.tpl].anim;
 const hasTime=()=>isAnim()||!!S.vid;
 /* the length to play: the chat, the video, or whichever is longer (the video loops under a longer chat) */
-function animDur(){return Math.max(isAnim()?chatTimeline(parseChat(fv('chat'))).dur:0,S.vid?S.vid.dur:0)||1;}
+function animDur(){return Math.max(isAnim()?(T[S.tpl].animLen?T[S.tpl].animLen():chatTimeline(parseChat(fv('chat'))).dur):0,S.vid?S.vid.dur:0)||1;}
 function syncAnimUI(){
   if(!animBar)return;animBar.hidden=!hasTime();if(!hasTime())return;
   const aSound=document.getElementById('aSound');aSound.hidden=!S.vid;aSound.textContent=S.vidSound?'🔊 Sound on':'🔇 Sound off';aSound.setAttribute('aria-pressed',String(!!S.vidSound));
@@ -2232,20 +2300,20 @@ function syncAnimUI(){
 let lastDraw=0;
 function tick(){
   if(!S.anim.playing)return;const d=animDur();let t=(performance.now()-S.anim.startAt)/1000;
-  if(t>=d){if(fv('aLoop')!=='Off'){S.anim.startAt=performance.now();t=0;}else{S.anim.t=d;S.anim.playing=false;vidSync(d-.05,false);render();return;}}
+  if(t>=d){if(fv('aLoop')!=='Off'){S.anim.startAt=performance.now();t=0;sfxSchedule(0);}else{S.anim.t=d;S.anim.playing=false;vidSync(d-.05,false);render();return;}}
   S.anim.t=t;vidSync(t,true);
   /* heavy frames (like the VHS look) redraw at most about 30 times a second */
   const now=performance.now();if(!S.vid||now-lastDraw>30){lastDraw=now;render();}
   requestAnimationFrame(tick);
 }
 aPlay.onclick=()=>{
-  if(S.anim.playing){S.anim.playing=false;vidSync(S.anim.t||0,false);render();return;}
+  if(S.anim.playing){S.anim.playing=false;sfxStop();vidSync(S.anim.t||0,false);render();return;}
   const d=animDur();let t=S.anim.t===null||S.anim.t>=d-.01?0:S.anim.t;
   if(S.vid)vidAudio();
-  S.anim.t=t;S.anim.startAt=performance.now()-t*1000;S.anim.playing=true;vidSync(t,true);render();requestAnimationFrame(tick);
+  S.anim.t=t;S.anim.startAt=performance.now()-t*1000;S.anim.playing=true;sfxSchedule(t);vidSync(t,true);render();requestAnimationFrame(tick);
 };
-aScrub.oninput=()=>{S.anim.playing=false;S.anim.t=+aScrub.value;vidSync(S.anim.t,false);render();};
-aStill.onclick=()=>{S.anim.playing=false;S.anim.t=null;vidSync(0,false);render();};
+aScrub.oninput=()=>{S.anim.playing=false;sfxStop();S.anim.t=+aScrub.value;vidSync(S.anim.t,false);render();};
+aStill.onclick=()=>{S.anim.playing=false;sfxStop();S.anim.t=null;vidSync(0,false);render();};
 document.getElementById('aSound').onclick=()=>{S.vidSound=!S.vidSound;if(S.vid){if(S.vid.gain)S.vid.gain.gain.value=S.vidSound?1:0;else S.vid.el.muted=!S.vidSound;}render();};
 document.getElementById('aRemove').onclick=()=>{dropVideo();toast('Video removed.');};
 
@@ -2297,7 +2365,7 @@ function openVideo(){
   qualityOptions(vFormat).forEach(([k,l])=>{const b=document.createElement('button');b.type='button';b.textContent=l;b.setAttribute('aria-pressed',k===vq);b.onclick=()=>{if(busy)return;vQual=k;openVideo();};vs.appendChild(b);});
   document.getElementById('vlimF').hidden=vq!=='limit';
   const d=animDur().toFixed(0);document.getElementById('vTitle').textContent=S.vid&&!isAnim()?'Save your framed video':'Make a video';
-  document.getElementById('vSoundL').hidden=!S.vid||vFormat==='gif';
+  document.getElementById('vSoundL').hidden=!(S.vid||hasSfx())||vFormat==='gif';
   vHelp.textContent={webm:`Full color and a small file. Plays in Chrome, Firefox, Edge and on Android. Recording runs in real time, so it takes about ${d} seconds. Keep this tab in front while it records.`,
     mp4:`Plays almost everywhere, including iPhone and most social apps. Recording runs in real time, so it takes about ${d} seconds. Keep this tab in front while it records.`,
     gif:'Works anywhere images do and loops on its own. GIFs are limited to 256 colors, so photos can look a little blotchy, and the file is bigger. Made at half size.'}[vFormat]+qualityNote(vq);
@@ -2312,7 +2380,7 @@ vStart.onclick=async()=>{
   try{
     const q=vFormat==='gif'&&vQual==='half'?'best':vQual,limit=q==='limit'?Math.max(.5,parseFloat(document.getElementById('vlim').value)||5)*MB:0,say=m=>{vStatus.textContent=m;};
     if(vFormat==='gif')vResult=await gifFit(limit,say,prog);
-    else{const snd=!!S.vid&&document.getElementById('vSoundChk').checked,mime=pickMime(vFormat,snd)||pickMime(vFormat);if(!mime)throw new Error('This browser cannot record video');
+    else{const snd=!!(S.vid||hasSfx())&&document.getElementById('vSoundChk').checked,mime=pickMime(vFormat,snd)||pickMime(vFormat);if(!mime)throw new Error('This browser cannot record video');
       vResult=await videoFit(mime,limit,q,say,prog,animDur(),snd?128000:0,{withSound:snd});}
     const url=URL.createObjectURL(vResult);
     if(vFormat==='gif'){gOut.src=url;gOut.hidden=false;}else{vOut.src=url;vOut.hidden=false;vOut.play().catch(()=>{});}
@@ -2322,7 +2390,7 @@ vStart.onclick=async()=>{
   }catch(err){vStatus.textContent='That didn’t work: '+(err&&err.message||err)+'. Try GIF, or open the local copy in Chrome.';}
   finally{busy=false;vStart.disabled=false;vClose.disabled=false;S.exporting=false;S.anim.t=null;render();}
 };
-vDl.onclick=async()=>{if(!vResult)return;vStatus.textContent=await saveFile(vResult,`${S.tpl}-${S.vid&&!isAnim()?'video':'chat'}.${vFormat}`);};
+vDl.onclick=async()=>{if(!vResult)return;vStatus.textContent=await saveFile(vResult,`${S.tpl}-${S.vid&&!isAnim()?'video':T[S.tpl].animLen?'shot':'chat'}.${vFormat}`);};
 
 async function recordVideo(mime,onProg,o){
   o=o||{};const sc=o.scale||1;let src=cv,copy=null;
@@ -2330,14 +2398,16 @@ async function recordVideo(mime,onProg,o){
   const stream=src.captureStream(30),tracks=[...stream.getVideoTracks()];let dest=null;
   /* the video's own sound, taken before the preview's sound button so it records even when the preview is muted */
   if(o.withSound&&S.vid){const ac=vidAudio();if(ac){try{await ac.resume();dest=ac.createMediaStreamDestination();S.vid.node.connect(dest);tracks.push(...dest.stream.getAudioTracks());}catch(e){dest=null;}}}
+  /* the focus beep and shutter sound of the camera frames */
+  let sfxDest=false;if(o.withSound&&hasSfx()){const ac=sfxOut();if(ac){try{await ac.resume();if(!dest){dest=ac.createMediaStreamDestination();tracks.push(...dest.stream.getAudioTracks());}SFXG.connect(dest);sfxDest=true;}catch(e){}}}
   const ropts={mimeType:mime,videoBitsPerSecond:Math.round(o.vbps||8e6)};if(dest)ropts.audioBitsPerSecond=o.abps||128000;
   const rec=new MediaRecorder(new MediaStream(tracks),ropts),chunks=[];
   rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data);};
   const stopped=new Promise(r=>rec.onstop=r);
   S.exporting=true;S.anim.playing=false;const d=animDur();S.anim.t=0;if(S.vid)await vidSeek(0);render();
-  rec.start(250);const t0=performance.now();let tEnd=0;
+  rec.start(250);const t0=performance.now();let tEnd=0;if(sfxDest)sfxSchedule(0);
   await new Promise(res=>{const step=()=>{const t=(performance.now()-t0)/1000;S.anim.t=Math.min(t,d);vidSync(S.anim.t,t<d);render();if(copy)copy();onProg(Math.min(1,t/d));if(t>=d+.25)return res();requestAnimationFrame(step);};requestAnimationFrame(step);});
-  tEnd=performance.now();if(S.vid)S.vid.el.pause();rec.stop();await stopped;if(dest){try{S.vid.node.disconnect(dest);}catch(e){}}tracks.forEach(tr=>tr.stop());
+  tEnd=performance.now();if(S.vid)S.vid.el.pause();rec.stop();await stopped;if(dest){try{S.vid.node.disconnect(dest);}catch(e){}}tracks.forEach(tr=>tr.stop());if(sfxDest){sfxStop();try{SFXG.disconnect(dest);}catch(e){}}
   const blob=new Blob(chunks,{type:mime.split(';')[0]});
   return cleanOut(mime.includes('webm')?await fixWebmDuration(blob,tEnd-t0):blob);
 }

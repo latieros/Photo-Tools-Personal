@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="en">
+<head>
+<title>Logo Stamp</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#F7F3E8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A1630" media="(prefers-color-scheme: dark)">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Photo Tools">
+<script>try{if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')&&window.top===window.self)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}catch(e){}</script>
+<style id="pt-theme-css">
+/* light/dark switch, added next to each page's name; same on every page */
+:root header button.pt-theme{flex:none;display:inline-grid;place-items:center;width:34px;height:34px;min-width:0;padding:0;margin:0;border:1px solid var(--line);border-radius:50%;background:var(--panel);color:var(--ink);cursor:pointer;align-self:center;box-shadow:none;font:inherit;line-height:0}
+:root header button.pt-theme:hover{border-color:var(--accent);color:var(--accent);background:var(--panel)}
+:root header button.pt-theme:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+:root header button.pt-theme svg{width:18px;height:18px;display:block}
+header:not(.top){position:relative;padding-right:46px}
+header:not(.top)>button.pt-theme{position:absolute;top:0;right:0}
+</style>
+<script id="pt-theme-js">/* light or dark: dark unless you pick light with the switch; the choice is kept for every tool */
+(function(){var K='pt-theme',d=document.documentElement,C={light:'#F7F3E8',dark:'#0A1630'},
+SUN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>',
+MOON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.5 8.5 0 1 0 10.7 10.7z"/></svg>';
+var mem=null;function saved(){try{var v=localStorage.getItem(K);if(v==='light'||v==='dark')return v;}catch(e){}return mem;}
+function now(){return saved()||'dark';}
+function apply(){var cur=now();d.setAttribute('data-theme',cur);
+  document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.content=C[cur];});
+  var b=document.getElementById('ptTheme');if(b){var n=cur==='dark'?'light':'dark';b.setAttribute('aria-label','Switch to '+n+' mode');b.title='Switch to '+n+' mode';b.innerHTML=cur==='dark'?SUN:MOON;}}
+window.ptTheme={get:now,set:function(t){mem=t;try{localStorage.setItem(K,t);}catch(e){}apply();}};
+apply();
+addEventListener('storage',function(e){if(e.key===K)apply();});
+document.addEventListener('DOMContentLoaded',function(){var h=document.querySelector('header');if(!h||document.getElementById('ptTheme'))return;
+  var b=document.createElement('button');b.type='button';b.id='ptTheme';b.className='pt-theme';
+  b.addEventListener('click',function(){ptTheme.set(now()==='dark'?'light':'dark');});
+  var t=h.querySelector('h1');if(t&&h.classList.contains('top'))t.after(b);else h.prepend(b);apply();});
+})();</script>
+<style id="pt-switch-css">
+/* the All tools menu next to each tool's name; same on every tool page */
+:root nav.switch{position:relative;display:inline-block;width:auto;order:0;max-width:100%;padding:0;border:0;border-radius:0;background:none;overflow:visible;align-self:center}
+:root nav.switch .sw-btn{display:inline-flex;align-items:center;gap:9px;width:auto;min-width:0;margin:0;padding:9px 13px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);font:500 14px/1 var(--f-body,system-ui,sans-serif);cursor:pointer;box-shadow:none;white-space:nowrap}
+:root nav.switch .sw-btn:hover,:root nav.switch .sw-btn[aria-expanded="true"]{border-color:var(--accent);background:var(--panel);color:var(--ink)}
+:root nav.switch .sw-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+:root nav.switch .sw-chev{width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-2px) rotate(45deg);opacity:.7}
+:root nav.switch .sw-btn[aria-expanded="true"] .sw-chev{transform:translateY(2px) rotate(225deg)}
+:root nav.switch .sw-menu{position:absolute;z-index:70;top:calc(100% + 6px);left:0;display:grid;grid-template-columns:repeat(4,auto);gap:4px 16px;width:max-content;max-width:calc(100vw - 16px);max-height:min(72vh,600px);overflow:auto;overscroll-behavior:contain;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--panel);box-shadow:0 14px 40px rgba(0,0,0,.3);text-align:left}
+:root nav.switch .sw-menu[hidden]{display:none}
+:root nav.switch .sw-g{display:flex;flex-direction:column;gap:1px;min-width:0}
+:root nav.switch .sw-g>span{padding:6px 10px 7px;font:600 11px/1 var(--f-body,system-ui,sans-serif);text-transform:uppercase;letter-spacing:.1em;color:var(--accent)}
+:root nav.switch .sw-g a{display:block;padding:8px 10px;border-radius:7px;font:500 14px/1.15 var(--f-body,system-ui,sans-serif);text-decoration:none;white-space:nowrap}
+:root nav.switch .sw-g a:not([aria-current]):hover{background:rgba(128,128,128,.16)}
+@media (max-width:760px){
+  :root nav.switch .sw-menu{grid-template-columns:1fr 1fr;width:calc(100vw - 24px);gap:10px 8px}
+  :root nav.switch .sw-g a{padding:10px;white-space:normal}
+}
+</style>
+<script id="pt-switch-js">/* opens and closes the All tools menu, and keeps it on the screen */
+(function(){document.addEventListener('DOMContentLoaded',function(){var n=document.querySelector('nav.switch');if(!n)return;var b=n.querySelector('.sw-btn'),m=n.querySelector('.sw-menu');if(!b||!m)return;
+  function set(open){m.hidden=!open;b.setAttribute('aria-expanded',String(open));if(!open)return;
+    m.style.left='0px';var r=m.getBoundingClientRect(),w=document.documentElement.clientWidth,dx=0;if(r.right>w-8)dx=w-8-r.right;if(r.left+dx<8)dx=8-r.left;m.style.left=dx+'px';}
+  b.addEventListener('click',function(){set(m.hidden);});
+  document.addEventListener('click',function(e){if(!m.hidden&&!n.contains(e.target))set(false);});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!m.hidden){set(false);b.focus();}});
+  n.addEventListener('focusout',function(e){if(!m.hidden&&e.relatedTarget&&!n.contains(e.relatedTarget))set(false);});
+  addEventListener('pageshow',function(){set(false);});
+});})();</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&family=Lora:wght@500;600;700&family=Unbounded:wght@600&display=swap">
+<style>
+/* Layout: settings on the left, the glitched photo on the right with the save buttons under it; on phones the photo comes first */
+:root{
+  --bg:#F7F3E8; --panel:#FFFDF7; --ink:#0A1630; --muted:#4A5368; --line:#E2DAC4;
+  --accent:#8A6A1F; --accent-ink:#FFFFFF; --soft:#F1E7CC; --stage:#ECE5D2; --check:#E2DAC4;
+  --f-display:"Lora","Familjen Grotesk",system-ui,sans-serif;
+  --f-body:"Familjen Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0A1630; --panel:#111F3D; --ink:#F7F3E8; --muted:#C9C5B9; --line:#24365A;
+  --accent:#C8A24A; --accent-ink:#0A1630; --soft:#233457; --stage:#060E20; --check:#111F3D; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0A1630; --panel:#111F3D; --ink:#F7F3E8; --muted:#C9C5B9; --line:#24365A;
+  --accent:#C8A24A; --accent-ink:#0A1630; --soft:#233457; --stage:#060E20; --check:#111F3D; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body);padding-inline:16px;padding-block:18px 40px}
+[hidden]{display:none!important}
+.top{max-width:1400px;margin:0 auto 16px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px}
+.brand{font:600 22px/1.1 var(--f-display);letter-spacing:-.01em;margin:0}
+.brand span{color:var(--accent)}
+.top p{margin:0;color:var(--muted)}
+.spacer{flex:1}
+.switch{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:10px;background:var(--panel);align-self:center;max-width:100%;overflow-x:auto}
+.switch a{font:500 14px/1 var(--f-body);color:var(--muted);text-decoration:none;padding:8px 12px;border-radius:7px;white-space:nowrap}
+.switch a:hover{color:var(--ink)}
+.switch a[aria-current="page"]{background:var(--ink);color:var(--bg)}
+.switch a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.app{max-width:1400px;margin:0 auto;display:grid;grid-template-columns:330px minmax(0,1fr);grid-template-areas:"opts stage" "opts save";gap:16px;align-items:start}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
+.label{font:600 11px/1 var(--f-body);text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin:0}
+button,.btn{font:500 14px/1 var(--f-body);border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:9px 13px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;position:relative}
+button:hover,.btn:hover{border-color:var(--muted)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.primary:hover{border-color:var(--accent);filter:brightness(1.08)}
+.btn input{position:absolute;opacity:0;width:1px;height:1px}
+button:focus-visible,.btn:focus-within,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.row button,.row .btn{font-size:13px;padding:8px 11px}
+.opts{grid-area:opts;display:flex;flex-direction:column;gap:14px;position:sticky;top:16px;max-height:calc(100vh - 32px);overflow:auto}
+.grp{display:flex;flex-direction:column;gap:14px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field>label,.flabel{font-size:13px;font-weight:500;display:flex;justify-content:space-between;gap:8px}
+.rv{font-variant-numeric:tabular-nums;color:var(--muted);font-weight:400}
+.field input[type=range]{accent-color:var(--accent);width:100%}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{padding:7px 10px;font-size:13px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chk{display:inline-flex;align-items:center;gap:7px;font-size:13px;cursor:pointer}
+.chk input{accent-color:var(--accent);width:16px;height:16px;flex:none}
+.help{font-size:12px;color:var(--muted);margin:0}
+.fhead{font:600 13px/1.2 var(--f-display);margin:4px 0 -4px;padding-top:12px;border-top:1px solid var(--line)}
+.photo{display:flex;align-items:center;gap:10px}
+.photo .thumb{width:52px;height:52px;border-radius:8px;object-fit:cover;background:var(--bg);border:1px solid var(--line);flex:none}
+.photo .info{min-width:0;font-size:13px}
+.photo .info b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.sw{display:inline-flex;gap:2px;margin-left:2px}
+.sw i{display:block;width:8px;height:12px;border-radius:2px}
+.stage{grid-area:stage;display:flex;flex-direction:column;gap:8px;min-width:0}
+.canvas-wrap{position:relative;display:grid;place-items:center;padding:16px;border-radius:12px;min-height:300px;
+  background:var(--stage) conic-gradient(var(--check) 25%,transparent 0 50%,var(--check) 0 75%,transparent 0) 0 0/22px 22px}
+.canvas-wrap.drop{outline:3px dashed var(--accent);outline-offset:-8px}
+canvas#cv{display:block;max-width:100%;max-height:min(74vh,900px);width:auto;height:auto;touch-action:none;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.18)}
+canvas#cv.movable{cursor:grab}
+canvas#cv.dragging{cursor:grabbing}
+.cta{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.under{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.under .help{flex:1;min-width:200px}
+.save{grid-area:save;display:flex;flex-direction:column;gap:12px}
+.phead{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.status{min-height:1.2em;font-size:13px;color:var(--accent);margin:0}
+.bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--accent)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;z-index:30;max-width:calc(100% - 32px);box-shadow:0 8px 24px rgba(0,0,0,.25)}
+@media (max-width:900px){
+  .app{grid-template-columns:minmax(0,1fr);grid-template-areas:"stage" "save" "opts"}
+  .opts{position:static;max-height:none}
+  .canvas-wrap{padding:10px;min-height:220px}
+  canvas#cv{max-height:62vh}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* phone touches */
+@media (max-width:900px){
+  body{padding-inline:12px}
+  .top p{display:none}
+  .seg button,.row button{padding:10px 12px;font-size:14px}
+  .field input[type=range]{height:30px}
+}
+/* folding sections (phones and wide screens) */
+.fsec{border-top:1px solid var(--line);margin:4px -16px 0;padding:0 16px}
+.fold{width:100%;justify-content:space-between;border:0;background:transparent;padding:14px 0;font:600 14px/1.2 var(--f-display);border-radius:0;color:var(--ink)}
+.fold .chev{width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .15s;margin-right:4px;flex:none}
+.fold[aria-expanded="true"] .chev{transform:rotate(45deg)}
+.foldbody{display:flex;flex-direction:column;gap:14px;padding-bottom:14px}
+/* wide screens: the whole width, settings on both sides of the picture */
+@media (min-width:1440px){
+  body{padding-inline:20px;padding-block:14px 24px}
+  .top,.app{max-width:none}
+  .top{margin-bottom:12px}
+  .app{grid-template-columns:380px minmax(0,1fr) 380px;grid-template-areas:"left stage opts" "left save opts";gap:16px 20px}
+  .pt-left{grid-area:left}
+  .opts,.pt-left{position:sticky;top:14px;max-height:calc(100vh - 28px);overflow:auto;overscroll-behavior:contain}
+  .stage{gap:10px}
+  .stage>.phead{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+  .stage>.phead .label{margin-right:4px}
+  .canvas-wrap{min-height:360px}
+  canvas#cv{max-height:calc(100vh - 250px)}
+}
+
+/* Logo Stamp: the strip of photos, the nine spots for the watermark, and the color picker */
+.strip{display:flex;gap:10px;overflow-x:auto;padding:8px 8px 6px 2px}
+.shot{position:relative;flex:none}
+.shot .pick{width:62px;height:62px;padding:0;border-radius:9px;overflow:hidden;border:2px solid transparent;background:var(--bg)}
+.shot.on .pick{border-color:var(--accent)}
+.shot .pick img{width:100%;height:100%;object-fit:cover;display:block}
+.shot .x{position:absolute;top:-6px;right:-6px;width:22px;height:22px;padding:0;border-radius:50%;justify-content:center;font-size:14px;line-height:1;background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.posgrid{display:grid;grid-template-columns:repeat(3,44px);gap:5px}
+.posgrid button{height:40px;padding:0;justify-content:center;font-size:16px}
+.posgrid button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.wm-row{display:flex;align-items:center;gap:10px}
+.wm-thumb{width:84px;height:52px;object-fit:contain;border-radius:8px;border:1px solid var(--line);background:var(--stage) conic-gradient(var(--check) 25%,transparent 0 50%,var(--check) 0 75%,transparent 0) 0 0/12px 12px;flex:none}
+.cp{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cp-pick{position:relative;display:inline-flex;align-items:center;gap:8px;padding:5px 12px 5px 5px;border:1px solid var(--line);border-radius:10px;background:var(--panel);font:500 13px/1 var(--f-body);cursor:pointer;color:var(--ink)}
+.cp-pick:hover,.cp-pick:focus-within{border-color:var(--accent)}
+.cp-pick input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0;padding:0}
+.cp-chip{width:28px;height:28px;border-radius:7px;border:1px solid var(--line);flex:none}
+.cp-hex{width:6.4em;flex:none;font:500 13px/1 ui-monospace,"SF Mono",Menlo,monospace;text-transform:uppercase;padding:9px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+.cp-eye{width:38px;height:38px;padding:0;justify-content:center;font-size:16px}
+.swatches{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.swatches button{width:26px;height:26px;border-radius:50%;padding:0;border:1px solid var(--line);box-shadow:inset 0 0 0 2px rgba(255,255,255,.25)}
+@media (max-width:900px){.cp-hex{font-size:16px}.shot .pick{width:56px;height:56px}}
+</style>
+
+</head>
+<body>
+<header class="top">
+  <h1 class="brand">Logo <span>Stamp</span></h1>
+  <nav class="switch" aria-label="Switch tool"><button type="button" class="sw-btn" aria-expanded="false" aria-haspopup="true">All tools<span class="sw-chev" aria-hidden="true"></span></button><div class="sw-menu" hidden><div class="sw-g" role="group" aria-label="Photos"><span aria-hidden="true">Photos</span><a href="photo-frame-studio.html">Photo Frame Studio</a><a href="photo-splitter.html">Photo Splitter</a><a href="watermark.html">Watermark</a><a href="logo-stamp.html" aria-current="page">Logo Stamp</a><a href="metadata-scrubber.html">Metadata Scrubber</a><a href="background-remover.html">Background Remover</a><a href="outfit-tags.html">Outfit Tags</a></div><div class="sw-g" role="group" aria-label="Photo effects"><span aria-hidden="true">Photo effects</span><a href="glitch-filter.html">Glitch Filter</a><a href="double-exposure.html">Double Exposure</a><a href="duotone.html">Duotone</a><a href="light-leaks.html">Light Leaks</a><a href="tilt-shift.html">Tilt-Shift</a><a href="particle-overlay.html">Particle Overlay</a><a href="reveal.html">Reveal</a><a href="layer-reveal.html">Layer Reveal</a><a href="jigsaw-puzzle.html">Jigsaw Puzzle</a></div><div class="sw-g" role="group" aria-label="Words and comics"><span aria-hidden="true">Words and comics</span><a href="caption-maker.html">Caption Maker</a><a href="sfx-maker.html">SFX Maker</a><a href="effect-lines.html">Effect Lines</a><a href="panel-layouts.html">Panel Layouts</a><a href="bubble-maker.html">Bubble Maker</a><a href="motion-comic.html">Motion Comic</a><a href="visual-novel.html">Visual Novel</a></div><div class="sw-g" role="group" aria-label="Video"><span aria-hidden="true">Video</span><a href="video-layers.html">Video Layers</a><a href="chat-reel.html">Chat Reel</a><a href="delivery-reel.html">Delivery Reel</a><a href="live-stream.html">Live Stream</a></div></div></nav>
+  <p>Crop your photos, fade the bottom into a color, and put your watermark on top.</p>
+</header>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<main class="app">
+  <section class="card opts" aria-label="Settings">
+    <div class="field">
+      <span class="flabel">Photos</span>
+      <div class="strip" id="strip"></div>
+      <span class="help" id="pInfo"></span>
+      <div class="row"><label class="btn primary" for="pick">Add photos<input type="file" id="pick" accept="image/*" multiple></label></div>
+    </div>
+    <h4 class="fhead">Crop</h4>
+    <div class="grp" id="cropF"></div>
+    <h4 class="fhead">Fade at the bottom</h4>
+    <div class="grp" id="fadeF"></div>
+    <h4 class="fhead">Watermark</h4>
+    <div class="grp" id="wmF"></div>
+    <h4 class="fhead">Saving</h4>
+    <div class="grp" id="fmtF"></div>
+  </section>
+
+  <section class="stage" aria-label="Preview">
+    <div class="canvas-wrap" id="drop">
+      <canvas id="cv" class="movable" width="1200" height="800" aria-label="Your photo, cropped, with the fade and watermark. Drag to move the photo or the watermark; scroll or pinch to zoom."></canvas>
+      <label class="btn primary cta" id="cta" for="pick2">Choose your photos<input type="file" id="pick2" accept="image/*" multiple></label>
+    </div>
+    <div class="under">
+      <p class="help" id="dragHelp"></p>
+      <button type="button" id="compare" aria-pressed="false">See it without</button>
+    </div>
+  </section>
+
+  <section class="card save" aria-label="Saving">
+    <div class="phead">
+      <h2 class="label">Save it</h2>
+      <span class="spacer"></span>
+      <button type="button" id="shareBtn" hidden>Share</button>
+      <button type="button" id="copyBtn" hidden>Copy image</button>
+      <button type="button" id="saveAll" hidden>Save all</button>
+      <button type="button" id="saveBtn" class="primary">Save this photo</button>
+    </div>
+    <p class="help" id="saveHelp"></p>
+    <p class="status" id="status" role="status"></p>
+  </section>
+</main>
+
+<script>
+/* ================= phones and wide screens: fold-out sections ================= */
+const phoneMQ=matchMedia('(max-width:900px)'),isPhone=()=>phoneMQ.matches;
+const openSecs=new Set();
+/* ================= wide screens: full width, settings on both sides of the picture, sections fold ================= */
+const wideMQ=matchMedia('(min-width:1440px)'),isWide=()=>wideMQ.matches;
+const ptMoves=[];
+function ptMove(el,parent,before){if(!el||!parent)return;ptMoves.push({el,p:el.parentNode,n:el.nextSibling});parent.insertBefore(el,before||null);}
+function ptUnmove(){while(ptMoves.length){const m=ptMoves.pop();m.p.insertBefore(m.el,m.n);}}
+/* everything in the settings panel before the section called firstRight moves to a second panel on the left */
+function ptSplit(panel,firstRight){if(!panel)return;let left=document.querySelector('.pt-left');
+  if(isWide()){if(!left){left=document.createElement('aside');left.className=panel.className+' pt-left';left.setAttribute('aria-label','Settings');left.id='';panel.before(left);}
+    for(const el of[...panel.children]){const f=el.querySelector&&(el.querySelector('.fold')||el.querySelector(':scope>h2'));if(f&&f.firstChild.textContent.trim()===firstRight)break;left.append(el);}}
+  else if(left){panel.prepend(...left.children);left.remove();}}
+/* o: {panel, key, open:[sections open the first time], firstRight, fold(panel), wide(), narrow()} */
+function ptWide(o){globalThis.ptKey=o.key||'';const p=o.panel;const apply=()=>{
+  if(isWide()&&!apply.loaded){apply.loaded=true;let v=null;try{v=JSON.parse(localStorage.getItem(o.key)||'null');}catch(e){}(Array.isArray(v)?v:o.open||[]).forEach(n=>openSecs.add(n));}
+  if(isWide()&&p&&!p.querySelector('.fsec'))(o.fold||(x=>foldSections(x,'h4.fhead')))(p);
+  ptUnmove();if(o.firstRight)ptSplit(p,o.firstRight);if(isWide()&&o.wide)o.wide();if(!isWide()&&o.narrow)o.narrow();};
+  apply();wideMQ.addEventListener('change',apply);return apply;}
+function keepOpen(){if(isWide()&&globalThis.ptKey)try{localStorage.setItem(globalThis.ptKey,JSON.stringify([...openSecs]));}catch(e){}}
+/* section headings (sel) fold their section away on a phone; tap one to open it */
+function foldSections(p,sel,stop){let body=null;
+  for(const el of[...p.children]){
+    if(el.matches(sel)){const name=el.textContent.trim(),open=openSecs.has(name);
+      const b=document.createElement('button');b.type='button';b.className='fold';b.setAttribute('aria-expanded',String(open));if(el.id)b.id=el.id;b.append(name);
+      const ch=document.createElement('span');ch.className='chev';ch.setAttribute('aria-hidden','true');ch.textContent='';b.append(ch);
+      body=document.createElement('div');body.className='foldbody';body.hidden=!open;const bd=body;
+      b.onclick=()=>{const o=bd.hidden;bd.hidden=!o;b.setAttribute('aria-expanded',String(o));if(o)openSecs.add(name);else openSecs.delete(name);keepOpen();};
+      const sec=document.createElement('div');sec.className='fsec';sec.append(b,body);el.replaceWith(sec);continue;}
+    if(body&&!(stop&&el.matches(stop)))body.append(el);}}
+
+if(isPhone())foldSections(document.querySelector('.opts'),'h4.fhead');
+ptWide({panel:document.querySelector('.opts'),key:'ls-open',open:['Crop','Fade at the bottom','Watermark','Saving'],firstRight:'Watermark',
+  wide(){const st=document.querySelector('.stage');ptMove(document.querySelector('.phead'),st,st.firstElementChild);}});
+
+/* ================= basics ================= */
+const $=id=>document.getElementById(id);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function h(tag,props,...kids){const e=document.createElement(tag);for(const[k,v]of Object.entries(props||{})){if(k==='class')e.className=v;else if(k==='text')e.textContent=v;else if(k==='style')e.style.cssText=v;else if(k.startsWith('on'))e[k]=v;else if(v===true)e.setAttribute(k,'');else if(v!==false&&v!=null)e.setAttribute(k,v);}
+  kids.flat().forEach(c=>{if(c!=null&&c!==false)e.append(c.nodeType?c:document.createTextNode(c));});return e;}
+function toast(msg){const t=$('toast');t.textContent=msg;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>{t.hidden=true;},4500);}
+function segF(id,label,opts,val,on){const g=h('div',{class:'seg',role:'group','aria-labelledby':id+'-l'});opts.forEach(([v,l])=>g.append(h('button',{type:'button','aria-pressed':String(v===val),onclick:()=>on(v)},l)));return h('div',{class:'field'},h('span',{class:'flabel',id:id+'-l'},label),g);}
+function rangeF(id,label,min,max,step,val,fmt,on){const out=h('output',{class:'rv',for:id},fmt(val)),inp=h('input',{type:'range',id,min,max,step,value:val});inp.oninput=()=>{out.textContent=fmt(+inp.value);on(+inp.value);};return h('div',{class:'field'},h('label',{for:id},label,out),inp);}
+const HAS_FILTER=(()=>{try{const g=document.createElement('canvas').getContext('2d');g.filter='blur(2px)';return g.filter==='blur(2px)';}catch(e){return false;}})();
+const cv=$('cv'),ctx=cv.getContext('2d');
+const mkCanvas=(w,hh)=>{const c=document.createElement('canvas');c.width=w;c.height=hh;return c;};
+
+/* ================= leaving nothing behind in what you save ================= */
+/* random short codes for file names, so names don't carry your original file name or the time */
+const rndCode=(n=6)=>{const a='abcdefghjkmnpqrstuvwxyz23456789',u=new Uint8Array(n);crypto.getRandomValues(u);return[...u].map(x=>a[x%a.length]).join('');};
+/* JPG: keep the picture, drop everything else the browser adds (its color profile, notes) */
+async function cleanJpeg(blob){try{const b=new Uint8Array(await blob.arrayBuffer());if(b[0]!==0xFF||b[1]!==0xD8)return blob;const parts=[b.subarray(0,2)];let p=2;
+  while(p+4<=b.length&&b[p]===0xFF){const m=b[p+1];if(m===0xDA){parts.push(b.subarray(p));return new Blob(parts,{type:'image/jpeg'});}
+    const n=(b[p+2]<<8)|b[p+3];if(!((m>=0xE1&&m<=0xEF)||m===0xFE))parts.push(b.subarray(p,p+2+n));p+=2+n;}
+  return blob;}catch(e){return blob;}}
+
+/* ================= Logo Stamp: crop, a colored fade at the bottom, and your watermark on top ================= */
+/* S holds the settings shared by every photo; each photo keeps its own crop. */
+const ASPECTS=[['orig','Original'],['1:1','Square'],['4:5','4:5'],['3:4','3:4'],['2:3','2:3'],['9:16','9:16'],['16:9','16:9'],['3:2','3:2']];
+const POS=[['tl','↖'],['tc','↑'],['tr','↗'],['ml','←'],['c','•'],['mr','→'],['bl','↙'],['bc','↓'],['br','↘']];
+const DEF=()=>({v:1,aspect:'orig',fadeOn:true,fadeCol:'#000000',fadeH:.32,fadeStr:.75,fadeSoft:.55,
+  wmPos:'bc',wmX:.5,wmY:.88,wmSize:.26,wmOp:1,wmMargin:.05,wmTint:false,wmCol:'#FFFFFF',wmShadow:false,fmt:'jpg'});
+let S=DEF(),PH=[],CUR=0,WM=null,SAMPLE=null,NAMECODE=rndCode();
+const cur=()=>PH[CUR]||null;
+const picOf=p=>p?p.img:SAMPLE;
+const crop0=()=>({z:1,x:.5,y:.5});
+
+/* ---------- the crop: the biggest box of the chosen shape, made smaller by zoom, centred where you put it ---------- */
+function aspectOf(img){if(S.aspect==='orig')return img.width/img.height;const[a,b]=S.aspect.split(':').map(Number);return a/b;}
+function cropBox(p){const img=picOf(p),c=(p&&p.crop)||crop0(),A=aspectOf(img),iw=img.width,ih=img.height;
+  let cw,ch;if(iw/ih>A){ch=ih;cw=ih*A;}else{cw=iw;ch=iw/A;}cw/=c.z;ch/=c.z;
+  const cx=clamp(c.x*iw,cw/2,iw-cw/2),cy=clamp(c.y*ih,ch/2,ih-ch/2);return{x:cx-cw/2,y:cy-ch/2,w:cw,h:ch};}
+/* the size a photo is saved at: its cropped pixels, up to 6000 on the long side */
+function outSize(p){const b=cropBox(p),k=Math.min(1,6000/Math.max(b.w,b.h));return[Math.max(1,Math.round(b.w*k)),Math.max(1,Math.round(b.h*k))];}
+
+/* ---------- where the watermark goes ---------- */
+function wmRect(W,H){if(!WM)return null;const w=W*S.wmSize,hh=w*WM.height/WM.width,m=S.wmMargin*Math.min(W,H);let x,y;
+  if(S.wmPos==='free'){x=S.wmX*W-w/2;y=S.wmY*H-hh/2;}
+  else{const c=S.wmPos[1]||'c',r=S.wmPos[0];x=c==='l'?m:c==='r'?W-w-m:(W-w)/2;y=r==='t'?m:r==='b'?H-hh-m:(H-hh)/2;if(S.wmPos==='c'){x=(W-w)/2;y=(H-hh)/2;}}
+  return{x,y,w,h:hh};}
+let WMC=null;
+/* the watermark, recolored to one color if you like */
+function wmArt(){if(!S.wmTint)return WM;const k=WM.width+'|'+WM.height+'|'+S.wmCol;if(WMC&&WMC.k===k)return WMC.c;
+  const c=mkCanvas(WM.width,WM.height),g=c.getContext('2d');g.drawImage(WM,0,0);g.globalCompositeOperation='source-in';g.fillStyle=S.wmCol;g.fillRect(0,0,c.width,c.height);WMC={k,c};return c;}
+
+/* ---------- the picture ---------- */
+function rgbaHex(hex,a){const n=parseInt(String(hex).slice(1),16)||0;return`rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;}
+function stamp(p,W,H){const c=mkCanvas(W,H),g=c.getContext('2d'),img=picOf(p),b=cropBox(p);g.imageSmoothingQuality='high';
+  g.drawImage(img,b.x,b.y,b.w,b.h,0,0,W,H);
+  /* the fade: clear at its top, strongest at the bottom edge, easing in so there's no line where it starts */
+  if(S.fadeOn&&S.fadeH>0&&S.fadeStr>0){const top=H*(1-S.fadeH),gr=g.createLinearGradient(0,top,0,H),pw=.5+S.fadeSoft*2.5;
+    for(let i=0;i<=12;i++){const t=i/12;gr.addColorStop(t,rgbaHex(S.fadeCol,(S.fadeStr*Math.pow(t,pw)).toFixed(4)));}g.fillStyle=gr;g.fillRect(0,top,W,H-top);}
+  const r=wmRect(W,H);
+  if(r){g.save();g.globalAlpha=S.wmOp;if(S.wmShadow){g.shadowColor='rgba(0,0,0,.45)';g.shadowBlur=Math.max(2,r.h*.08);g.shadowOffsetY=Math.max(1,r.h*.025);}
+    g.drawImage(wmArt(),r.x,r.y,r.w,r.h);g.restore();}
+  return c;}
+
+/* ---------- preview ---------- */
+let PV=null,showOrig=false,raf=0,hint=false,hintT=0;
+function pvSize(){const[W,H]=outSize(cur()),k=Math.min(1,1200/Math.max(W,H));return[Math.max(1,Math.round(W*k)),Math.max(1,Math.round(H*k))];}
+function render(){const[W,H]=pvSize();if(PV)PV.width=PV.height=0;PV=stamp(cur(),W,H);paint();}
+function paint(){if(!PV)return;const W=PV.width,H=PV.height;if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H;}
+  if(showOrig){const img=picOf(cur()),b=cropBox(cur());ctx.imageSmoothingQuality='high';ctx.drawImage(img,b.x,b.y,b.w,b.h,0,0,W,H);return;}
+  ctx.drawImage(PV,0,0);
+  /* while you move the watermark, a dashed box shows where it is */
+  if(hint){const r=wmRect(W,H);if(r){const lw=Math.max(2,W/400);ctx.save();ctx.setLineDash([lw*5,lw*4]);ctx.lineWidth=lw;ctx.strokeStyle='rgba(0,0,0,.6)';ctx.strokeRect(r.x,r.y,r.w,r.h);ctx.lineDashOffset=lw*4.5;ctx.strokeStyle='rgba(255,255,255,.9)';ctx.strokeRect(r.x,r.y,r.w,r.h);ctx.restore();}}}
+function showHint(){hint=true;clearTimeout(hintT);hintT=setTimeout(()=>{hint=false;paint();},1400);}
+function schedule(){if(raf)return;raf=requestAnimationFrame(()=>{raf=0;render();});}
+function changed(){schedule();save();}
+$('compare').onclick=()=>{showOrig=!showOrig;$('compare').setAttribute('aria-pressed',String(showOrig));$('compare').textContent=showOrig?'See it stamped':'See it without';paint();};
+
+/* ---------- settings ---------- */
+const pct=v=>Math.round(v*100)+'%';
+function sl(key,label,min,max,fmt,help){const f=rangeF('o-'+key,label,min,max,.01,S[key],fmt||pct,v=>{S[key]=v;changed();});return help?[f,h('p',{class:'help'},help)]:[f];}
+function checkF(id,label,on,fn){const c=h('input',{type:'checkbox',id});c.checked=on;c.onchange=()=>fn(c.checked);return h('label',{class:'chk'},c,' '+label);}
+const SWATCH=['#000000','#FFFFFF','#1B2030','#3A1E5C','#7A1F2B','#0B4F55','#C8A24A','#FF5BD8'];
+function normHex(s){s=String(s||'').trim().replace(/^#/,'');if(/^[0-9a-f]{3}$/i.test(s))s=s.split('').map(c=>c+c).join('');return/^[0-9a-f]{6}$/i.test(s)?'#'+s.toUpperCase():null;}
+/* a color: the device's own picker, the color as a code, an eyedropper where the browser has one, and quick swatches */
+function colorF(id,label,val,on){const v0=normHex(val)||'#000000',inp=h('input',{type:'color',id,value:v0.toLowerCase(),'aria-label':label+': pick any color'}),chip=h('span',{class:'cp-chip',style:`background:${v0}`,'aria-hidden':'true'}),
+    hex=h('input',{type:'text',class:'cp-hex',value:v0,maxlength:7,spellcheck:'false',autocomplete:'off','aria-label':label+' as a color code, like #FF3B30'});
+  const set=(c,from)=>{c=normHex(c);if(!c)return;chip.style.background=c;if(from!=='inp')inp.value=c.toLowerCase();if(from!=='hex')hex.value=c;on(c);};
+  inp.oninput=()=>set(inp.value,'inp');hex.oninput=()=>{const c=normHex(hex.value);if(c&&hex.value.replace('#','').length===6)set(c,'hex');};hex.onchange=()=>{const c=normHex(hex.value);if(c)set(c,'hex');else hex.value=normHex(inp.value);};
+  const row=h('div',{class:'cp'},h('label',{class:'cp-pick',title:'Opens your device’s color picker'},chip,'Pick a color',inp),hex);
+  if(window.EyeDropper)row.append(h('button',{type:'button',class:'cp-eye',title:'Pick a color from anywhere on the screen','aria-label':'Pick a color from anywhere on the screen',onclick:async()=>{try{const r=await new EyeDropper().open();set(r.sRGBHex);}catch(e){}}},'💧'));
+  return h('div',{class:'field'},h('span',{class:'flabel'},label),row,h('div',{class:'swatches'},...SWATCH.map(c=>h('button',{type:'button',style:`background:${c}`,title:c,'aria-label':'Use '+c,onclick:()=>set(c)}))));}
+function renderStrip(){const s=$('strip');s.innerHTML='';
+  PH.forEach((p,i)=>s.append(h('div',{class:'shot'+(i===CUR?' on':'')},h('button',{type:'button',class:'pick','aria-label':`Photo ${i+1}: ${p.name}`,'aria-pressed':String(i===CUR),onclick:()=>{CUR=i;outCache=null;renderOpts();render();save();}},h('img',{src:p.url,alt:''})),
+    h('button',{type:'button',class:'x','aria-label':`Remove photo ${i+1}`,title:'Remove',onclick:()=>{URL.revokeObjectURL(p.url);PH.splice(i,1);if(CUR>=PH.length)CUR=Math.max(0,PH.length-1);outCache=null;renderOpts();render();save();}},'×'))));
+  $('pInfo').textContent=PH.length?`${PH.length} photo${PH.length>1?'s':''}. Each keeps its own crop; the fade and watermark are the same on all of them.`:'A sample picture for now. Choose your photos, drop them here, or paste one.';
+  $('cta').hidden=PH.length>0;}
+function renderOpts(){renderStrip();
+  const p=cur(),c=(p&&p.crop)||crop0();
+  const cf=$('cropF');cf.innerHTML='';
+  cf.append(segF('o-asp','Shape',ASPECTS,S.aspect,v=>{S.aspect=v;outCache=null;renderOpts();changed();}),
+    rangeF('o-z','Zoom',1,5,.01,c.z,v=>Math.round(v*100)+'%',v=>{if(!p)return;p.crop.z=v;outCache=null;changed();}),
+    h('div',{class:'row'},h('button',{type:'button',disabled:!p,onclick:()=>{if(!p)return;p.crop=crop0();outCache=null;renderOpts();changed();}},'Reset the crop'),
+      h('button',{type:'button',disabled:PH.length<2||!p,onclick:()=>{PH.forEach(q=>{if(q!==p)q.crop={...p.crop};});save();toast('Every photo now has this crop. You can still move each one.');}},'Same crop on every photo')),
+    h('p',{class:'help'},'Drag the photo to choose what’s in the frame. Scroll or pinch to zoom.'));
+  const ff=$('fadeF');ff.innerHTML='';
+  ff.append(checkF('o-fade','Fade at the bottom',S.fadeOn,v=>{S.fadeOn=v;renderOpts();changed();}));
+  if(S.fadeOn)ff.append(colorF('o-fcol','Color of the fade',S.fadeCol,v=>{S.fadeCol=v;changed();}),...sl('fadeH','How far up it reaches',.05,1),...sl('fadeStr','How strong it is at the bottom',.05,1),
+    ...sl('fadeSoft','How gently it starts',0,1,v=>v<.34?'Quickly':v>.66?'Very gently':'Gently','It gives the watermark something calm to sit on, so it reads on any photo.'));
+  const wf=$('wmF');wf.innerHTML='';
+  const pk=h('input',{type:'file',id:'pickWm',accept:'image/png,image/webp,image/svg+xml,image/*'});pk.onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)loadWm(f);};
+  wf.append(h('div',{class:'field'},h('span',{class:'flabel'},'Your watermark'),
+    h('div',{class:'wm-row'},WM?h('img',{class:'wm-thumb',src:WM.url,alt:'Your watermark'}):null,h('p',{class:'help'},WM?'Kept for next time.':'A PNG with a see-through background works best, like a logo or a signature.')),
+    h('div',{class:'row'},h('label',{class:'btn'+(WM?'':' primary'),for:'pickWm'},WM?'Use a different one':'Choose a PNG',pk),WM?h('button',{type:'button',onclick:()=>{WM=null;WMC=null;DB.tx('readwrite',s=>s.delete('wm'));renderOpts();changed();}},'Remove it'):null)));
+  if(WM){const pg=h('div',{class:'posgrid',role:'group','aria-label':'Where it goes'});
+    POS.forEach(([k,l])=>pg.append(h('button',{type:'button','aria-pressed':String(S.wmPos===k),'aria-label':{tl:'Top left',tc:'Top middle',tr:'Top right',ml:'Middle left',c:'Middle',mr:'Middle right',bl:'Bottom left',bc:'Bottom middle',br:'Bottom right'}[k],onclick:()=>{S.wmPos=k;renderOpts();showHint();changed();}},l)));
+    wf.append(h('div',{class:'field'},h('span',{class:'flabel'},'Where it goes',h('span',{class:'rv'},S.wmPos==='free'?'Where you dragged it':'')),pg),
+      ...sl('wmSize','Size',.04,.9),...sl('wmOp','How solid',.1,1,v=>v>=.995?'Solid':pct(v)));
+    if(S.wmPos!=='free'&&S.wmPos!=='c')wf.append(...sl('wmMargin','Space from the edge',0,.2));
+    wf.append(checkF('o-wmt','All one color',S.wmTint,v=>{S.wmTint=v;renderOpts();changed();}));
+    if(S.wmTint)wf.append(colorF('o-wmc','Watermark color',S.wmCol,v=>{S.wmCol=v;changed();}));
+    wf.append(checkF('o-wms','Soft shadow under it',S.wmShadow,v=>{S.wmShadow=v;changed();}),
+      h('p',{class:'help'},'You can also drag the watermark on the photo. Tap a spot above to snap it back.'));}
+  const sf=$('fmtF');sf.innerHTML='';
+  sf.append(segF('o-f','Save as',[['jpg','JPG'],['png','PNG']],S.fmt,v=>{S.fmt=v;renderOpts();save();}),
+    h('p',{class:'help'},S.fmt==='jpg'?'JPG is small and works everywhere.':'PNG is sharper but the files are much bigger.'));
+  const[W,H]=outSize(p);$('dragHelp').textContent=`${W} × ${H} pixels when saved. Drag to move the photo${WM?', or drag the watermark':''}. Scroll or pinch to zoom.`;
+  $('saveAll').hidden=PH.length<2;$('saveAll').textContent=`Save all ${PH.length}`;}
+
+/* ---------- dragging: the watermark if you grab it, otherwise the photo; scroll or pinch zooms ---------- */
+const ptrs=new Map();let drag=null;
+const cpt=e=>{const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width,y:(e.clientY-r.top)/r.height};};
+cv.addEventListener('pointerdown',e=>{if(showOrig)return;cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,cpt(e));const p=cpt(e),W=cv.width,H=cv.height,r=wmRect(W,H),q=cur();
+  if(ptrs.size===2&&q){const[a,b]=[...ptrs.values()];drag={pinch:Math.hypot(a.x-b.x,a.y-b.y)||.001,z:q.crop.z};}
+  else if(r&&p.x*W>=r.x&&p.x*W<=r.x+r.w&&p.y*H>=r.y&&p.y*H<=r.y+r.h){drag={wm:true,p,x:(r.x+r.w/2)/W,y:(r.y+r.h/2)/H};showHint();}
+  else if(q)drag={p,cx:q.crop.x,cy:q.crop.y};
+  cv.classList.add('dragging');e.preventDefault();});
+cv.addEventListener('pointermove',e=>{if(!ptrs.has(e.pointerId)||!drag)return;ptrs.set(e.pointerId,cpt(e));const q=cur();
+  if(drag.pinch&&ptrs.size>=2&&q){const[a,b]=[...ptrs.values()];q.crop.z=clamp(drag.z*Math.hypot(a.x-b.x,a.y-b.y)/drag.pinch,1,5);}
+  else if(drag.wm){const p=cpt(e);S.wmPos='free';S.wmX=clamp(drag.x+p.x-drag.p.x,0,1);S.wmY=clamp(drag.y+p.y-drag.p.y,0,1);showHint();}
+  else if(q&&!drag.pinch){const p=cpt(e),img=q.img,b=cropBox(q);
+    /* the photo follows your finger, so the crop moves the other way */
+    q.crop.x=clamp(drag.cx-(p.x-drag.p.x)*b.w/img.width,0,1);q.crop.y=clamp(drag.cy-(p.y-drag.p.y)*b.h/img.height,0,1);
+    const nb=cropBox(q);q.crop.x=(nb.x+nb.w/2)/img.width;q.crop.y=(nb.y+nb.h/2)/img.height;}
+  outCache=null;schedule();});
+const endPtr=e=>{ptrs.delete(e.pointerId);if(!ptrs.size){if(drag){drag=null;renderOpts();save();}cv.classList.remove('dragging');}};
+cv.addEventListener('pointerup',endPtr);cv.addEventListener('pointercancel',endPtr);
+cv.addEventListener('wheel',e=>{const q=cur();if(!q||showOrig)return;e.preventDefault();q.crop.z=clamp(q.crop.z*Math.exp(-e.deltaY*.0015),1,5);outCache=null;changed();clearTimeout(cv.wt);cv.wt=setTimeout(renderOpts,250);},{passive:false});
+
+/* ---------- photos and the watermark ---------- */
+async function openImg(blob){let im=null;try{im=await createImageBitmap(blob);}catch(e){im=await new Promise(res=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>res(null);i.src=URL.createObjectURL(blob);});}return im&&im.width?im:null;}
+async function addPhotos(files,quiet){let n=0;
+  for(const f of files){if(!/^image\//.test(f.type)&&!/\.(png|jpe?g|webp|gif|avif|bmp|heic)$/i.test(f.name||''))continue;const img=await openImg(f);if(!img){if(!quiet)toast(`${f.name||'A file'} couldn’t be opened. Try JPG or PNG.`);continue;}
+    PH.push({blob:f,name:f.name||'photo',img,url:URL.createObjectURL(f),crop:f.crop||crop0()});n++;}
+  if(n&&!quiet){CUR=PH.length-n;NAMECODE=rndCode();outCache=null;renderOpts();render();save();}
+  if(!n&&!quiet&&files.length)toast('Those aren’t pictures.');return n;}
+async function loadWm(f,quiet){const img=await openImg(f);if(!img){if(!quiet)toast('That watermark couldn’t be opened. Try a PNG.');return;}
+  WM=img;WM.url=URL.createObjectURL(f);WMC=null;if(!quiet){DB.tx('readwrite',s=>s.put({blob:f,name:f.name||'watermark'},'wm'));renderOpts();showHint();changed();}}
+['pick','pick2'].forEach(id=>{$(id).multiple=true;$(id).onchange=e=>{addPhotos([...e.target.files]);e.target.value='';};});
+const dropEl=$('drop');
+['dragenter','dragover'].forEach(ev=>dropEl.addEventListener(ev,e=>{e.preventDefault();dropEl.classList.add('drop');}));
+['dragleave','drop'].forEach(ev=>dropEl.addEventListener(ev,e=>{e.preventDefault();dropEl.classList.remove('drop');}));
+dropEl.addEventListener('drop',e=>{if(e.dataTransfer&&e.dataTransfer.files.length)addPhotos([...e.dataTransfer.files]);});
+document.addEventListener('paste',e=>{const fs=[...(e.clipboardData&&e.clipboardData.files)||[]].filter(x=>/^image\//.test(x.type));if(fs.length)addPhotos(fs);});
+
+/* ---------- saving ---------- */
+let outCache=null;
+async function makeFile(p,n){const[W,H]=outSize(p);let c;try{c=stamp(p,W,H);}catch(e){throw new Error('the photo is too big for this browser');}
+  const png=S.fmt==='png',type=png?'image/png':'image/jpeg';let blob=await new Promise(r=>c.toBlob(r,type,.92));c.width=c.height=0;
+  if(!blob)throw new Error('the photo is too big for this browser');if(!png)blob=await cleanJpeg(blob);
+  return new File([blob],`stamped-${NAMECODE}${n?'-'+String(n).padStart(2,'0'):''}.${png?'png':'jpg'}`,{type});}
+async function curFile(){const k=JSON.stringify([S,CUR,cur()&&cur().crop,!!WM]);if(outCache&&outCache.k===k)return outCache.f;const f=await makeFile(cur());outCache={k,f};return f;}
+let topLevel=false;try{topLevel=window.top===window.self;}catch(e){}
+let DL=null;try{if(window.claude&&typeof window.claude.use==='function')window.claude.use('downloads').then(d=>{DL=d||null;syncSave();}).catch(()=>{});}catch(e){}
+const canSave=()=>!!DL||topLevel;
+async function saveFile(blob,filename){
+  if(DL){try{await DL.save({filename,data:blob});return'Saved.';}catch(err){const c=err&&err.code;if(c==='declined')return'Not saved.';if(c==='rate_limited')return'A save prompt is already open.';if(c==='too_large')return'That file is too big to save here. Try JPG.';
+    if(!topLevel)return'Saving isn’t available here.';}}
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;document.body.append(a);a.click();a.remove();return'Saved to your downloads.';}
+const say=m=>{$('status').textContent=m;};
+let busy=false;
+async function job(msg,fn){if(busy)return;busy=true;say(msg);await new Promise(r=>setTimeout(r,30));try{await fn();}catch(err){say('That didn’t work: '+(err&&err.message||err)+'.');}finally{busy=false;}}
+$('saveBtn').onclick=()=>job('Making the full-size photo…',async()=>{if(!cur()){say('Choose a photo first.');return;}const f=await curFile();say(await saveFile(f,f.name));});
+$('saveAll').onclick=()=>job('Making your photos…',async()=>{let ok=0;for(let i=0;i<PH.length;i++){say(`Making photo ${i+1} of ${PH.length}…`);const f=await makeFile(PH[i],i+1);const m=await saveFile(f,f.name);if(/^Saved/.test(m))ok++;await new Promise(r=>setTimeout(r,350));}
+  say(`Saved ${ok} of ${PH.length}.`+(topLevel&&!DL&&ok<PH.length?' If your browser asked about saving several files, allow it and try again.':''));});
+$('shareBtn').onclick=()=>job('Getting it ready…',async()=>{if(!cur()){say('Choose a photo first.');return;}const fs=PH.length>1?await Promise.all(PH.map((p,i)=>makeFile(p,i+1))):[await curFile()];
+  try{await navigator.share({files:fs,title:'Stamped photos'});say('Shared.');}catch(err){say(err&&err.name==='AbortError'?'':'Sharing didn’t work here. Save them instead.');}});
+$('copyBtn').onclick=async()=>{if(!cur())return;say('Copying…');try{const[W,H]=outSize(cur()),c=stamp(cur(),W,H);
+  await navigator.clipboard.write([new ClipboardItem({'image/png':new Promise(r=>c.toBlob(r,'image/png'))})]);say('Copied. Paste it wherever you like.');}catch(e){say('Copying didn’t work here. Save the photo instead.');}};
+function syncSave(){let share=false;try{share=topLevel&&!!navigator.canShare&&navigator.canShare({files:[new File([new Blob(['x'],{type:'image/jpeg'})],'a.jpg',{type:'image/jpeg'})]});}catch(e){}
+  $('shareBtn').hidden=!share;$('saveBtn').hidden=!canSave();$('copyBtn').hidden=!(topLevel&&navigator.clipboard&&window.ClipboardItem);
+  $('saveHelp').textContent=canSave()?'Saved at full size, the same as the preview, with random names. Nothing about the original files is kept in them.':'Saving isn’t available here. Open the Photo Tools website or app to save.';}
+
+/* ---------- keeping your work: the photos, their crops, the settings, and the watermark for next time ---------- */
+const DB={db:null,
+  open(){if(DB.opening)return DB.opening;return DB.opening=new Promise(res=>{try{const r=indexedDB.open('logo-stamp',1);r.onupgradeneeded=()=>r.result.createObjectStore('state');
+    r.onsuccess=()=>{DB.db=r.result;res(r.result);};r.onerror=r.onblocked=()=>res(null);}catch(e){res(null);}});},
+  async tx(mode,fn){const db=DB.db||await DB.open();if(!db)return null;return new Promise(res=>{try{const t=db.transaction('state',mode),st=t.objectStore('state');const q=fn(st);t.oncomplete=()=>res(q&&'result' in q?q.result:true);t.onerror=t.onabort=()=>res(null);}catch(e){res(null);}});}};
+let restored=false,saveT=0;
+function writeState(){if(!restored)return Promise.resolve();return DB.tx('readwrite',s=>s.put({S,cur:CUR,photos:PH.map(p=>({blob:p.blob,name:p.name,crop:p.crop})),savedAt:Date.now()},'current'));}
+function save(){clearTimeout(saveT);saveT=setTimeout(writeState,500);}
+function flushAutosave(){clearTimeout(saveT);return writeState();}
+async function restore(){try{const st=await DB.tx('readonly',s=>s.get('current'));
+    if(st&&st.S){S={...DEF(),...st.S};for(const q of st.photos||[]){const b=q.blob;b.crop=q.crop;if(!b.name)try{Object.defineProperty(b,'name',{value:q.name});}catch(e){}await addPhotos([b],true);PH[PH.length-1].name=q.name;}CUR=clamp(st.cur|0,0,Math.max(0,PH.length-1));}
+    const w=await DB.tx('readonly',s=>s.get('wm'));if(w&&w.blob)await loadWm(w.blob,true);}catch(e){}
+  restored=true;renderOpts();render();}
+
+/* ================= passing files between tools, and from your gallery's Share menu (installed app only) ================= */
+const HANDOFF={name:'pt-handoff',
+  ok(){try{return window.top===window.self&&'caches' in window;}catch(e){return false;}},
+  async put(files){const c=await caches.open(this.name);for(const k of await c.keys())await c.delete(k);let i=0;
+    for(const f of files)await c.put(new Request(`handoff/${Date.now()}-${i++}`),new Response(f,{headers:{'content-type':f.type||'application/octet-stream','x-name':encodeURIComponent(f.name||'file')}}));},
+  async take(){if(!this.ok()||!/[?&]handoff\b/.test(location.search))return[];const out=[];
+    try{const c=await caches.open(this.name);for(const k of await c.keys()){const r=await c.match(k);if(r){const b=await r.blob();out.push(new File([b],decodeURIComponent(r.headers.get('x-name')||'file'),{type:b.type||r.headers.get('content-type')||''}));}await c.delete(k);}}catch(e){}
+    try{history.replaceState(null,'',location.pathname+location.hash);}catch(e){}return out;},
+  async send(files,page){try{await this.put(files);}catch(e){toast('Couldn’t pass it along. Save it and add it there instead.');return;}
+    try{await Promise.race([flushAutosave(),new Promise(r=>setTimeout(r,1500))]);}catch(e){}location.href=page+'?handoff=1';}};
+
+/* photos passed on from another tool, or from your gallery's Share menu */
+async function handoffIn(){const fs=(await HANDOFF.take()).filter(f=>/^image\//.test(f.type));if(!fs.length)return;await addPhotos(fs);toast(fs.length>1?`${fs.length} photos are in.`:'Your photo is in.');}
+/* ================= switching tools ================= */
+(function(){
+  const ART={'photo-frame-studio.html':'https://claude.ai/artifact/BTFF4oB7m8EHQMWNwCo2Uw','photo-splitter.html':'https://claude.ai/artifact/ENVcKXEpCdopL6rRfj1fT9','chat-reel.html':'https://claude.ai/artifact/Tzehgnj1qjBYtpZ6oxKAhG','metadata-scrubber.html':'https://claude.ai/artifact/8kwiNFdeFAR3uZ8NTzKVnX','watermark.html':'https://claude.ai/artifact/KY6NSnRSjL5vHT5tjTEZeu','logo-stamp.html':'https://claude.ai/artifact/2Yh6Fzeu5NreCt2QK42NRw','glitch-filter.html':'https://claude.ai/artifact/6BsRKvUZd7igd3rSDzzSTu','double-exposure.html':'https://claude.ai/artifact/RA4aWcy5aKKU527QE8vrFS','duotone.html':'https://claude.ai/artifact/LzJns4RqNHN6K98Pm8QpXX','light-leaks.html':'https://claude.ai/artifact/8hBfKBtiuFV1HJUqDeXJo1','tilt-shift.html':'https://claude.ai/artifact/7speobEVSoD4jTsFzp377n','particle-overlay.html':'https://claude.ai/artifact/6nkwzjmZrE5K8WAxCmADmR','reveal.html':'https://claude.ai/artifact/9QbHP5R5XowVMh1KMSiZtF','layer-reveal.html':'https://claude.ai/artifact/1ED1atdmE6Xwkr6g6YXxyH','jigsaw-puzzle.html':'https://claude.ai/artifact/DgQainthxf2euETN4TuHDc','caption-maker.html':'https://claude.ai/artifact/5E6VdnrgfSVCytQtsQUNVc','background-remover.html':'https://claude.ai/artifact/FzXZ8jMRnT8kFRFXS4G3wF','video-layers.html':'https://claude.ai/artifact/HMnHFrAaDUyaiSg7H8uxwN','delivery-reel.html':'https://claude.ai/artifact/4XzpUcdVZdRCviwGjyvTNQ','live-stream.html':'https://claude.ai/artifact/AbALQMhvHcXwMA7Kk2CThw','visual-novel.html':'https://claude.ai/artifact/GUKwPgmd3o8tZarDH4ygRx','motion-comic.html':'https://claude.ai/artifact/QA3g3sR3Jy4etrFoq8rNBD','outfit-tags.html':'https://claude.ai/artifact/3GUgfTcEMSDbgj5TMVuARd','sfx-maker.html':'https://claude.ai/artifact/REzZEE49rDGsJvLMiHU94S','effect-lines.html':'https://claude.ai/artifact/VjVk1Y38uReCEXRQm4Pkmo','panel-layouts.html':'https://claude.ai/artifact/RW5tZaV6fYwPoei7bXPpkh','bubble-maker.html':'https://claude.ai/artifact/QFhAdXvekc5mfPs9ynJyKX'};
+  document.querySelectorAll('.switch a').forEach(a=>{
+    if(a.getAttribute('aria-current')){a.addEventListener('click',e=>e.preventDefault());return;}
+    if(!topLevel){const u=ART[a.getAttribute('href')];if(u&&u.startsWith('https:')){a.href=u;a.target='_blank';a.rel='noopener';}return;}
+    a.addEventListener('click',async e=>{if(e.metaKey||e.ctrlKey||e.shiftKey||e.altKey||e.button)return;e.preventDefault();try{await Promise.race([flushAutosave(),new Promise(r=>setTimeout(r,1500))]);}catch(err){}location.href=a.href;});
+  });
+  addEventListener('pagehide',()=>{try{flushAutosave();}catch(e){}});
+})();
+
+
+/* ================= boot ================= */
+/* a made-up sunset to try it on before you choose your photos */
+const rnd=a=>()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};
+SAMPLE=(()=>{const W=1600,H=1100,c=mkCanvas(W,H),g=c.getContext('2d'),r=rnd(11);let gr=g.createLinearGradient(0,0,0,H);gr.addColorStop(0,'#2b2a6b');gr.addColorStop(.45,'#e9837a');gr.addColorStop(.7,'#ffe1a8');g.fillStyle=gr;g.fillRect(0,0,W,H);
+  gr=g.createRadialGradient(W*.62,H*.5,0,W*.62,H*.5,300);gr.addColorStop(0,'#fff');gr.addColorStop(.35,'rgba(255,244,214,.9)');gr.addColorStop(1,'rgba(255,244,214,0)');g.fillStyle=gr;g.fillRect(0,0,W,H);
+  ['#9a82b8','#66609a','#3a4474','#1b2244','#0b0f22'].forEach((col,i)=>{const base=H*(.58+i*.08),amp=90-i*8,f=.003+i*.001,ph=r()*9;g.fillStyle=col;g.beginPath();g.moveTo(0,H);for(let x=0;x<=W;x+=12)g.lineTo(x,base-amp*Math.sin(x*f+ph)-amp*.4*Math.sin(x*f*2.9+ph*2));g.lineTo(W,H);g.closePath();g.fill();});return c;})();
+syncSave();renderOpts();render();
+restore().then(handoffIn);
+</script>
+
+</body>
+</html>

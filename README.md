@@ -24,6 +24,7 @@ A small set of personal browser tools for dressing up photos, making short video
 | [Panel Layouts](#panel-layouts) | Manga and comic page layouts in batches of 12, 24 or 48 from a seed: orderly, standard, action or splash pages, slanted borders, bleeds and split panels, right-to-left or left-to-right. Drag borders, remove panels, mutate a layout into variations, and save as SVG or PNG with a clear, white or black background. |
 | [Bubble Maker](#bubble-maker) | Manga speech and thought bubbles: 15 styles (classic, thought, shout, whisper, shaky, radio, narration, shoujo, pop, echo, horror and more), any words in about 100 fonts or your own, tails you point by dragging, patterns, double lines, shadows and decorations. Several bubbles on a page, random ideas, a bubble sheet to cut up, and saving as see-through PNG, SVG or a ZIP of each bubble. |
 | [Watermark](#watermark) | Puts your name or logo on one photo or a whole batch, with ready-made looks (corner signature, label, stamp, proof band, tiled) or your own saved watermarks. |
+| [Logo Stamp](#logo-stamp) | Crops your photos, fades the bottom into a color you choose, and puts your watermark PNG on top. Several photos at once, each with its own crop; the watermark is remembered for next time. |
 | [Glitch Filter](#glitch-filter) | Gives a photo a broken-screen look: neon color bars, thin streaks, slices pushed sideways and colors pulled apart, with five ready-made looks, a clear area you place over a face, and a shuffle button for a new arrangement. |
 | [Double Exposure](#double-exposure) | Blends a second picture into the light or dark parts of a photo, like two shots on one piece of film. Five built-in second pictures (city, forest, hills, clouds, stars) or your own, five looks, and a fade toward any side. |
 | [Duotone](#duotone) | Turns a photo into two or three ink colors: smooth like a poster, or printed as speckled, slightly out-of-line layers like a riso print. Eight color pairs, your own colors, paper color and five looks. |
@@ -835,6 +836,19 @@ For videos, add your logo or text as a layer in [Video Layers](#video-layers).
 
 ---
 
+## Logo Stamp
+
+A quick way to brand photos: crop them, fade the bottom into a color, and put your watermark on top. It's simpler than Watermark: one look, made for a logo sitting on a calm band at the bottom of each photo.
+
+- **Photos:** add one or several (or drop or paste them). Each photo keeps its own crop; the fade and watermark are the same on all of them. Tap a thumbnail to work on it, or × to take it out.
+- **Crop:** pick a shape (Original, Square, 4:5, 3:4, 2:3, 9:16, 16:9 or 3:2), then drag the photo to choose what's in the frame and scroll or pinch to zoom. **Same crop on every photo** copies the current crop to the rest.
+- **Fade at the bottom:** its color, how far up it reaches, how strong it is at the bottom edge, and how gently it starts, so there's no line where it begins.
+- **Watermark:** choose a PNG (a logo or signature with a see-through background works best); it's kept for next time. Put it in one of nine spots or drag it anywhere on the photo, and set its size, how solid it is, the space from the edge, an optional single color (to make a logo white or gold, say) and a soft shadow.
+- **Colors:** pick any color with your device's color picker, type a color code, use the eyedropper where the browser has one, or tap a swatch.
+- **Saving:** **Save this photo** or **Save all**, as JPG or PNG, at the cropped size (up to 6000 pixels on the long side), with random names and nothing from the original files kept. **Copy image** and **Share** are there too. On the website your browser may ask once whether to allow several downloads.
+
+---
+
 ## Background Remover
 
 Takes the background out of photos and videos. Add one file or a whole batch; each one is done on your device, one after another.
@@ -1080,6 +1094,7 @@ Open each tool once while you're online so everything, fonts included, is saved 
 | `chat-reel.html` | Chat Reel |
 | `metadata-scrubber.html` | Metadata Scrubber |
 | `watermark.html` | Watermark |
+| `logo-stamp.html` | Logo Stamp |
 | `glitch-filter.html` | Glitch Filter |
 | `double-exposure.html` | Double Exposure |
 | `duotone.html` | Duotone |

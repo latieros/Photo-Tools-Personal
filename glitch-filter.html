@@ -205,6 +205,7 @@ canvas#cv.dragging{cursor:grabbing}
     <div class="field">
       <span class="flabel" id="look-l">Look</span>
       <div class="seg" id="looks" role="group" aria-labelledby="look-l"></div>
+      <div class="seg" id="looks2" role="group" aria-label="TV and screen looks" style="margin-top:6px"></div>
     </div>
     <div class="field" id="amtF"></div>
     <div class="row"><button type="button" id="shuffle">Shuffle the glitches</button></div>
@@ -213,6 +214,8 @@ canvas#cv.dragging{cursor:grabbing}
     <div class="grp" id="glF"></div>
     <h4 class="fhead">TV and tape</h4>
     <div class="grp" id="tvF"></div>
+    <h4 class="fhead">Screens</h4>
+    <div class="grp" id="scrF"></div>
     <h4 class="fhead">Colors</h4>
     <div class="grp" id="colF"></div>
     <h4 class="fhead">Keep an area clear</h4>
@@ -296,7 +299,7 @@ function foldSections(p,sel,stop){let body=null;
     if(body&&!(stop&&el.matches(stop)))body.append(el);}}
 
 if(isPhone())foldSections(document.querySelector('.opts'),'h4.fhead');
-ptWide({panel:document.querySelector('.opts'),key:'gl-open',open:['Glitches','TV and tape','Colors','Keep an area clear','Finish','Moving','Saving'],firstRight:'Keep an area clear',
+ptWide({panel:document.querySelector('.opts'),key:'gl-open',open:['Glitches','TV and tape','Screens','Colors','Keep an area clear','Finish','Moving','Saving'],firstRight:'Keep an area clear',
   wide(){const st=document.querySelector('.stage');ptMove(document.querySelector('.phead'),st,st.firstElementChild);}});
 
 /* ================= basics ================= */
@@ -314,15 +317,23 @@ const mkCanvas=(w,hh)=>{const c=document.createElement('canvas');c.width=w;c.hei
 /* ================= looks and colors ================= */
 /* every amount runs from 0 (off) to 1 (a lot) */
 /* the TV and tape effects, all off */
-const TV0={tvRoll:0,tvWobble:0,tvTrack:0,tvSmear:0,tvSnow:0,tvMask:0,tvCurve:0,osd:false};
+const TV0={tvRoll:0,tvWobble:0,tvTrack:0,tvSmear:0,tvSnow:0,tvPause:0,tvHold:0,tvMask:0,tvCurve:0,tvPix:0,tvDig:0,mono:'off',scr:'off'};
+/* what the video player words say at the top, for each kind */
+const SCR_TOP={play:'PLAY \u25B6',pause:'PAUSE \u275A\u275A',rec:'REC'};
 const LOOKS={
   neon:{name:'Neon streaks',v:{...TV0,bars:.7,streaks:.6,shift:.15,split:.25,noise:.55,blocks:.5,len:.5,thick:.5,pal:'neon',glow:.45,scan:.1,grain:.2,dark:.45,punch:.35}},
   signal:{name:'Lost signal',v:{...TV0,bars:.2,streaks:.3,shift:.75,split:.65,noise:.35,blocks:.2,len:.6,thick:.35,pal:'photo',glow:.2,scan:.25,grain:.3,dark:.15,punch:.25}},
   tape:{name:'Old tape',v:{...TV0,bars:.05,streaks:.2,shift:.3,split:.5,noise:.1,blocks:0,len:.8,thick:.2,pal:'white',glow:.3,scan:.65,grain:.55,dark:.25,punch:.1}},
-  vhs:{name:'VHS tape',v:{bars:.04,streaks:.12,shift:.1,split:.35,noise:.04,blocks:0,len:.6,thick:.25,pal:'white',glow:.25,scan:.3,grain:.35,dark:.12,punch:.05,tvRoll:.3,tvWobble:.25,tvTrack:.6,tvSmear:.55,tvSnow:.06,tvMask:0,tvCurve:0,osd:true}},
-  crt:{name:'Old TV',v:{bars:0,streaks:.06,shift:.04,split:.2,noise:0,blocks:0,len:.5,thick:.3,pal:'white',glow:.35,scan:.55,grain:.15,dark:.2,punch:.15,tvRoll:.5,tvWobble:.1,tvTrack:0,tvSmear:.2,tvSnow:.18,tvMask:.5,tvCurve:.6,osd:false}},
   soft:{name:'Light touch',v:{...TV0,bars:.2,streaks:.3,shift:.05,split:.12,noise:.2,blocks:.1,len:.4,thick:.3,pal:'photo',glow:.3,scan:0,grain:.1,dark:.15,punch:.15}},
-  melt:{name:'Meltdown',v:{...TV0,bars:1,streaks:1,shift:.6,split:.5,noise:.9,blocks:.9,len:.75,thick:.7,pal:'neon',glow:.6,scan:.2,grain:.3,dark:.55,punch:.5}}};
+  melt:{name:'Meltdown',v:{...TV0,bars:1,streaks:1,shift:.6,split:.5,noise:.9,blocks:.9,len:.75,thick:.7,pal:'neon',glow:.6,scan:.2,grain:.3,dark:.55,punch:.5}},
+  vhs:{tv:1,name:'VHS tape',v:{...TV0,bars:.04,streaks:.12,shift:.1,split:.35,noise:.04,blocks:0,len:.6,thick:.25,pal:'white',glow:.25,scan:.3,grain:.35,dark:.12,punch:.05,tvRoll:.3,tvWobble:.25,tvTrack:.6,tvSmear:.55,tvSnow:.06,scr:'play',osdTop:SCR_TOP.play}},
+  pause:{tv:1,name:'Paused tape',v:{...TV0,bars:0,streaks:.08,shift:.05,split:.35,noise:.05,blocks:0,len:.6,thick:.25,pal:'white',glow:.25,scan:.35,grain:.35,dark:.12,punch:.05,tvSmear:.45,tvPause:.7,tvTrack:.25,scr:'pause',osdTop:SCR_TOP.pause}},
+  cam:{tv:1,name:'Camcorder',v:{...TV0,bars:0,streaks:.05,shift:.03,split:.25,noise:0,blocks:0,len:.5,thick:.25,pal:'white',glow:.2,scan:.15,grain:.3,dark:.1,punch:.1,tvWobble:.12,tvSmear:.35,tvTrack:.15,scr:'rec',osdTop:SCR_TOP.rec}},
+  crt:{tv:1,name:'Old TV',v:{...TV0,bars:0,streaks:.06,shift:.04,split:.2,noise:0,blocks:0,len:.5,thick:.3,pal:'white',glow:.35,scan:.55,grain:.15,dark:.2,punch:.15,tvRoll:.5,tvWobble:.1,tvSmear:.2,tvSnow:.18,tvMask:.5,tvCurve:.6}},
+  term:{tv:1,name:'Old monitor',v:{...TV0,bars:0,streaks:.05,shift:.03,split:0,noise:0,blocks:0,len:.5,thick:.3,pal:'white',glow:.3,scan:.6,grain:.15,dark:.2,punch:.3,tvRoll:.2,tvCurve:.5,mono:'green'}},
+  pixel:{tv:1,name:'Pixel screen',v:{...TV0,bars:.1,streaks:.1,shift:.05,split:.1,noise:0,blocks:0,len:.5,thick:.4,pal:'photo',glow:.15,scan:0,grain:0,dark:.1,punch:.35,tvPix:.5}},
+  broken:{tv:1,name:'Broken stream',v:{...TV0,bars:.05,streaks:.1,shift:.15,split:.15,noise:.05,blocks:0,len:.5,thick:.3,pal:'photo',glow:.1,scan:0,grain:.1,dark:.05,punch:.2,tvDig:.7}},
+  sync:{tv:1,name:'Out of sync',v:{...TV0,bars:.05,streaks:.15,shift:.1,split:.3,noise:.05,blocks:0,len:.5,thick:.3,pal:'white',glow:.25,scan:.4,grain:.25,dark:.12,punch:.1,tvHold:.5,tvSnow:.08,tvRoll:.2}}};
 const PALS={
   neon:{name:'Neon',c:['#ff2d2d','#ff5a1f','#ff9d00','#ffe600','#9dff00','#00ffa6','#00e1ff','#3d7bff','#b44dff','#ff3dd0','#ffffff']},
   photo:{name:'From the photo',c:null},
@@ -330,7 +341,7 @@ const PALS={
   ice:{name:'Ice',c:['#00e1ff','#3d7bff','#7df9ff','#b44dff','#00ffa6','#ffffff']},
   rgb:{name:'Red, green, blue',c:['#ff0033','#00ff66','#0a5cff','#ffffff']},
   white:{name:'White',c:['#ffffff','#d8dde6','#9aa3b2']}};
-const DEF=()=>({v:1,look:'neon',amt:1,seed:20261,...LOOKS.neon.v,keep:true,fx:.5,fy:.42,fr:.36,osdTop:'PLAY \u25B6',osdBot:'JAN. 1 1999   12:00 AM',fmt:'jpg',speed:.5,surge:.6,loop:3,msize:720,vfmt:'webm'});
+const DEF=()=>({v:1,look:'neon',amt:1,seed:20261,...LOOKS.neon.v,keep:true,fx:.5,fy:.42,fr:.36,osdTop:SCR_TOP.play,osdBot:'JAN. 1 1999   12:00 AM',fmt:'jpg',speed:.5,surge:.6,loop:3,msize:720,vfmt:'webm'});
 /* the moving version counts time in ticks, 12 a second, and repeats after a loop of them */
 const TICKS=12,loopTicks=()=>Math.max(1,Math.round(S.loop*TICKS));
 let S=DEF(),IMG=null,BLOB=null,NAME='',SAMPLE=true;
@@ -393,13 +404,26 @@ function glitch(W,H,fr){
   if(trk>0){for(let y=H-hb;y<H;y++){const k=(y-(H-hb))/hb;sh[y]+=W*(.02+.05*trk)*k*k*(.7+.6*hsh(y,44+tk*3));lift[y]+=12*trk;}
     const a0=Math.max(0,Math.floor((trY-trH/2)*H)),b0=Math.min(H,Math.ceil((trY+trH/2)*H));
     for(let y=a0;y<b0;y++){sh[y]+=(hsh(y,46+tk)-.5)*W*.025*trk;lift[y]+=14*trk;}}
+  /* which row of the photo each row of the picture shows: moved about by a paused tape and by a picture that has lost its hold */
+  const srcRow=new Int32Array(H),hs=new Float32Array(H);for(let y=0;y<H;y++)srcRow[y]=y;
+  /* TV: lines out of sync. The picture slants into diagonal stripes and rolls, with the black bar between frames showing; moving, it slips out for a while and snaps back */
+  if(S.tvHold>0){const e=anim?(ph<.65?Math.min(1,ph/.12):0):1,hk=S.tvHold*Math.min(1.4,A)*e;
+    if(hk>0){const skew=W*3*hk,bend=W*.04*hk,turns=Math.max(1,Math.round(S.loop*.5)),voff=Math.round((anim?((ph/.65*turns)%1):.3)*H*Math.min(1,S.tvHold*1.6))%H,bar=Math.max(2,Math.round(H*.035));
+      for(let y=0;y<H;y++){hs[y]=skew*(y/H)+bend*Math.sin(y/H*TAU*3+ph*TAU*2);srcRow[y]=(y+voff)%H;}
+      if(voff){const y0=H-voff;for(let y=Math.max(0,y0-bar);y<Math.min(H,y0+(bar>>2));y++)lift[y]-=255;}}}
+  /* TV: a paused tape. The still picture shakes up and down, every other line jitters, and one or two bands of noise stay put */
+  const pauseBars=[];
+  if(S.tvPause>0){const P=S.tvPause,shake=anim?Math.round((hsh(tk,51)-.5)*2*H*.006*P):0,fo=Math.max(1,Math.round(H*.0025*P))*(anim&&tk%2?-1:1);
+    for(let y=0;y<H;y++)srcRow[y]=clamp(srcRow[y]+shake+(y&1?fo:0),0,H-1);
+    const nbar=P>.5?2:1,bh=.03+.03*P;for(let i=0;i<nbar;i++){const by=.15+hsh(i,52)*.75+(anim?(hsh(tk,54+i)-.5)*.01:0);pauseBars.push([by,bh]);
+      const a0=Math.max(0,Math.floor((by-bh/2)*H)),b0=Math.min(H,Math.ceil((by+bh/2)*H));for(let y=a0;y<b0;y++){sh[y]+=(hsh(y,53+tk)-.5)*W*.08*P;lift[y]+=25*P;}}}
   const sat=1+S.punch*.9,con=1+S.punch*.45;
-  for(let y=0;y<H;y++){const o=sh[y],p=sp[y]+baseSp,row=y*W*4,dy=y-fyp,dy2=dy*dy,lv=lift[y];
+  for(let y=0;y<H;y++){const o=sh[y],p=sp[y]+baseSp,row=y*W*4,srow=srcRow[y]*W*4,hr=Math.round(hs[y]),dy=y-fyp,dy2=dy*dy,lv=lift[y];
     for(let x=0;x<W;x++){
       let f=1;if(keep&&(o||p)){const dx=x-fxp;f=clamp((Math.sqrt(dx*dx+dy2)/R-.8)/.4,0,1);}
-      let xs=x;if(o){xs=x-Math.round(o*f);if(xs<0||xs>=W)xs=((xs%W)+W)%W;}
+      let xs=x-hr;if(o)xs-=Math.round(o*f);if(xs<0||xs>=W)xs=((xs%W)+W)%W;
       const q=p?Math.round(p*(keep?.3+.7*f:1)):0,xr=xs-q<0?0:xs-q,xb=xs+q>=W?W-1:xs+q;
-      let r=s[row+xr*4],gg=s[row+xs*4+1],b=s[row+xb*4+2];
+      let r=s[srow+xr*4],gg=s[srow+xs*4+1],b=s[srow+xb*4+2];
       const lum=.299*r+.587*gg+.114*b,i=row+x*4;
       d[i]=(lum+(r-lum)*sat-128)*con+128+lv;d[i+1]=(lum+(gg-lum)*sat-128)*con+128+lv;d[i+2]=(lum+(b-lum)*sat-128)*con+128+lv;}}
   /* TV: the colors smear sideways and trail to the right, while the light and dark stay sharp, like a worn video tape */
@@ -409,6 +433,19 @@ function glitch(W,H,fr){
         const i=row+x*4,f=keep?away(x,y):1;if(!f)continue;const bl=.299*br+.587*bg+.114*bb,L=.299*d[i]+.587*d[i+1]+.114*d[i+2],sat=.85;
         d[i]+=(L+(br-bl)*sat-d[i])*f;d[i+1]+=(L+(bg-bl)*sat-d[i+1])*f;d[i+2]+=(L+(bb-bl)*sat-d[i+2])*f;}}}
   g.putImageData(id,0,0);
+  /* Screens: a broken digital picture. Square blocks get copied from the wrong place, go flat, drip downward or turn green and pink, like a frozen video call */
+  if(S.tvDig>0){const B=Math.max(4,Math.round(Math.min(W,H)/36)),snap=mkCanvas(W,H),cols=Math.ceil(W/B),rows=Math.ceil(H/B),n=Math.round(90*S.tvDig*A);snap.getContext('2d').drawImage(c,0,0);g.imageSmoothingEnabled=false;
+    /* whole bands of blocks that slid together, each block a little differently */
+    const nb2=Math.round(1+4*S.tvDig*Math.min(1.4,A));
+    for(let i=0;i<nb2;i++){const k=take(i,10,8);if(!shown(i,10,k))continue;const r=rnd(seed*47+i*389+10+k),by=Math.floor(r()*rows),bh=Math.min(rows-by,1+Math.floor(r()*3)),x0=Math.floor(r()*cols*.6),x1=Math.min(cols,x0+3+Math.floor(r()*cols*.6)),vx=Math.round((r()-.5)*8),vy=Math.round((r()-.5)*4);
+      for(let bx=x0;bx<x1;bx++)for(let yy=by;yy<by+bh;yy++){const x=bx*B,y=yy*B;if(keep&&away(x+B/2,y+B/2)<.5)continue;const sx=clamp(x+(vx+(r()<.3?Math.round((r()-.5)*4):0))*B,0,W-B),sy=clamp(y+vy*B,0,H-B);g.drawImage(snap,sx,sy,B,B,x,y,B,B);}}
+    for(let i=0;i<n;i++){const k=take(i,9,6);if(!shown(i,9,k))continue;const r=rnd(seed*41+i*571+9+k),bx=Math.floor(r()*cols),by=Math.floor(r()*rows),bw=Math.min(cols-bx,1+Math.floor(r()*r()*10))*B,bh=Math.min(rows-by,1+Math.floor(r()*r()*4))*B,x=bx*B,y=by*B,t=r();
+      if(keep&&away(x+bw/2,y+bh/2)<.5)continue;
+      if(t<.4){const sx=clamp(x+Math.round((r()-.5)*12)*B,0,Math.max(0,W-bw)),sy=clamp(y+Math.round((r()-.5)*6)*B,0,Math.max(0,H-bh));g.drawImage(snap,sx,sy,bw,bh,x,y,bw,bh);}
+      else if(t<.65){for(let yy=y;yy<y+bh;yy+=B)for(let xx=x;xx<x+bw;xx+=B){const j=(Math.min(H-1,yy+(B>>1))*W+Math.min(W-1,xx+(B>>1)))*4;g.fillStyle=`rgb(${d[j]},${d[j+1]},${d[j+2]})`;g.fillRect(xx,yy,B,B);}}
+      else if(t<.88){g.drawImage(snap,x,y,bw,1,x,y,bw,Math.min(bh*(2+r()*4),H-y));}
+      else{g.save();g.globalCompositeOperation=r()<.5?'multiply':'screen';g.globalAlpha=.7;g.fillStyle=r()<.5?'#20ff60':'#ff40d0';g.fillRect(x,y,bw,bh);g.restore();}}
+    g.imageSmoothingEnabled=true;snap.width=snap.height=0;}
 
   /* 2. darken everything away from the clear area, so the colors stand out */
   if(S.dark>0){const far=Math.hypot(Math.max(fxp,W-fxp),Math.max(fyp,H-fyp)),r0=keep?Math.min(R*.8,far*.9):0,gr=g.createRadialGradient(fxp,fyp,r0,fxp,fyp,far);
@@ -433,6 +470,8 @@ function glitch(W,H,fr){
     let x=r()*W-len*.3+(anim?(hsh(i,8)-.5)*tk*u*36*S.speed:0);const end=x+len;
     while(x<end){const w=u*(1+r()*8),gap=u*(1+r()*6);if(col){a.globalAlpha=.5+.4*r();a.fillStyle=r()<.8?col:pick(r);}else{a.globalAlpha=.25+.4*r();a.fillStyle='#cfd8e6';}a.fillRect(Math.round(x),y,Math.max(1,Math.round(w)),hh);x+=w+gap;}}
   /* TV: the noisy white dashes in the tape strips */
+  if(pauseBars.length){const r=rnd(seed*43+tk*7+10);for(const[by,bh]of pauseBars){const n=Math.round(60+120*S.tvPause);a.fillStyle=`rgba(235,240,248,${.08*S.tvPause})`;a.fillRect(0,(by-bh/2)*H,W,bh*H);
+    for(let i=0;i<n;i++){const y=Math.round((by+(r()-.5)*bh)*H),len=(.01+r()*r()*.3)*W,x=r()*W-len*.3;a.globalAlpha=.35+.6*r();a.fillStyle='#eef1f6';a.fillRect(Math.round(x),y,Math.round(len),Math.max(1,Math.round(u*(1+r()*2))));}}a.globalAlpha=1;}
   if(trk>0){const r=rnd(seed*31+tk*7+9),n=Math.round(40+260*trk);a.fillStyle=`rgba(235,240,248,${.05*trk})`;a.fillRect(0,(trY-trH/2)*H,W,trH*H);
     for(let i=0;i<n;i++){const band=r()<.65,y=Math.round(band?(trY+(r()-.5)*trH)*H:H-hb*r()),len=(.01+r()*r()*.25)*W,x=r()*W-len*.3;
       a.globalAlpha=.3+.6*r();a.fillStyle=r()<.85?'#eef1f6':pick(r);a.fillRect(Math.round(x),y,Math.round(len),Math.max(1,Math.round(u*(1+r()*1.5))));}}
@@ -469,13 +508,35 @@ function glitch(W,H,fr){
     q.putImageData(nd,0,0);
     if(keep){const gr=q.createRadialGradient(fxp/k,fyp/k,R*.7/k,fxp/k,fyp/k,R*1.2/k);gr.addColorStop(0,'rgba(0,0,0,.85)');gr.addColorStop(1,'rgba(0,0,0,0)');q.globalCompositeOperation='destination-out';q.fillStyle=gr;q.fillRect(0,0,sw,shh);}
     g.save();g.imageSmoothingEnabled=false;g.globalAlpha=Math.min(.85,S.tvSnow*A*.6);g.drawImage(n,0,0,sw*k,shh*k);g.restore();n.width=n.height=0;}
+  /* Screens: big pixels with only a few colors, like an early handheld or a cheap LCD */
+  if(S.tvPix>0){const cells=Math.round(260-236*Math.pow(S.tvPix,.6)),cs=Math.min(W,H)/cells,sw=Math.max(1,Math.round(W/cs)),shh=Math.max(1,Math.round(H/cs)),n=mkCanvas(sw,shh),q=n.getContext('2d',{willReadFrequently:true});
+    q.imageSmoothingQuality='high';q.drawImage(c,0,0,sw,shh);const nd=q.getImageData(0,0,sw,shh),pd=nd.data,lv=Math.max(2,Math.round(16-13*S.tvPix)),st=255/(lv-1),BY=[0,2,3,1];
+    for(let y=0;y<shh;y++)for(let x=0;x<sw;x++){const i=(y*sw+x)*4,dt=(BY[(x&1)+(y&1)*2]/4-.375)*st;for(let ch=0;ch<3;ch++)pd[i+ch]=Math.round((pd[i+ch]+dt)/st)*st;}
+    q.putImageData(nd,0,0);g.save();g.imageSmoothingEnabled=false;g.drawImage(n,0,0,W,H);
+    const cw=W/sw,chh=H/shh;if(cw>=4){g.fillStyle=`rgba(0,0,0,${.18+.2*S.tvPix})`;const lw=Math.max(1,Math.round(cw*.12));for(let x=0;x<sw;x++)g.fillRect(Math.round(x*cw),0,lw,H);for(let y=0;y<shh;y++)g.fillRect(0,Math.round(y*chh),W,lw);}
+    g.restore();n.width=n.height=0;}
+  /* TV: the words a video player or camcorder puts on the screen */
+  if(S.scr&&S.scr!=='off'){const M=Math.min(W,H),fs=Math.max(8,Math.round(M*.065)),x=Math.round(W*.06),yT=Math.round(H*.07),yB=Math.round(H*.93),rec=S.scr==='rec',ink='#f4f6fa';
+    g.save();g.font=`700 ${fs}px "VT323","Courier New",ui-monospace,monospace`;g.fillStyle=g.strokeStyle=ink;g.shadowColor='rgba(0,0,0,.6)';g.shadowOffsetX=g.shadowOffsetY=Math.max(1,Math.round(fs*.07));
+    let tx=x;if(rec){const rr=fs*.32;if(!anim||(tk%TICKS)<TICKS*.6){g.fillStyle='#ff2a2a';g.beginPath();g.arc(x+rr,yT+fs*.42,rr,0,TAU);g.fill();g.fillStyle=ink;}tx=x+rr*2+fs*.3;}
+    if(S.osdTop){g.textBaseline='top';g.fillText(S.osdTop,tx,yT);}
+    if(S.osdBot){g.textBaseline='bottom';g.fillText(S.osdBot,x,yB);}
+    if(rec){const t=Math.floor(hsh(5,47)*3000+(anim?tk/TICKS:0)),p2=v=>String(v).padStart(2,'0');g.textAlign='right';g.textBaseline='bottom';g.fillText(`${p2(Math.floor(t/3600))}:${p2(Math.floor(t/60)%60)}:${p2(t%60)}`,W-x,yB);
+      /* a battery at the top right */
+      const bw=fs*1.6,bh=fs*.8,bx=W-x-bw-fs*.12,by=yT+fs*.08,pad=fs*.12,gap=fs*.08,seg=(bw-pad*2-gap*2)/3;g.lineWidth=Math.max(1,fs*.08);g.strokeRect(bx,by,bw,bh);g.fillRect(bx+bw,by+bh*.3,fs*.12,bh*.4);
+      for(let i=0;i<3;i++)g.fillRect(bx+pad+i*(seg+gap),by+pad,seg,bh-pad*2);
+      /* corner marks */
+      const m=M*.035,L=M*.08;g.lineWidth=Math.max(1,M*.006);g.beginPath();for(const[cx,cy,dx,dy]of[[m,m,1,1],[W-m,m,-1,1],[m,H-m,1,-1],[W-m,H-m,-1,-1]]){g.moveTo(cx+dx*L,cy);g.lineTo(cx,cy);g.lineTo(cx,cy+dy*L);}g.stroke();}
+    g.restore();}
+  /* Screens: a one-color monitor, green or amber, with a soft glow */
+  if(S.mono==='green'||S.mono==='amber'){const T=S.mono==='amber'?[255,170,0]:[60,255,110],im=g.getImageData(0,0,W,H),m=im.data;
+    for(let i=0;i<m.length;i+=4){let L=(.299*m[i]+.587*m[i+1]+.114*m[i+2])/255;L=L*L*(3-2*L)*.94+.03;const hi=L>.75?(L-.75)*2:0;
+      m[i]=T[0]*L+(255-T[0])*hi;m[i+1]=T[1]*L+(255-T[1])*hi;m[i+2]=T[2]*L+(255-T[2])*hi;}
+    g.putImageData(im,0,0);
+    if(HAS_FILTER){const gc=mkCanvas(W,H),q=gc.getContext('2d');q.filter=`blur(${Math.max(1,u*6).toFixed(1)}px)`;q.drawImage(c,0,0);g.save();g.globalCompositeOperation='lighter';g.globalAlpha=.35;g.drawImage(gc,0,0);g.restore();gc.width=gc.height=0;}}
   /* TV: the fine red, green and blue stripes of an old screen */
   if(S.tvMask>0){const p=Math.max(1,Math.round(u*1.3)),m=mkCanvas(p*3,1),q=m.getContext('2d');['#ff7070','#70ff70','#7a7aff'].forEach((col,i)=>{q.fillStyle=col;q.fillRect(i*p,0,p,1);});
     g.save();g.globalCompositeOperation='multiply';g.globalAlpha=S.tvMask*.85;g.fillStyle=g.createPattern(m,'repeat');g.fillRect(0,0,W,H);g.restore();}
-  /* TV: the words a video player puts on the screen */
-  if(S.osd&&(S.osdTop||S.osdBot)){const fs=Math.max(8,Math.round(Math.min(W,H)*.065)),x=Math.round(W*.06);g.save();g.font=`700 ${fs}px "VT323","Courier New",ui-monospace,monospace`;
-    g.fillStyle='#f4f6fa';g.shadowColor='rgba(0,0,0,.6)';g.shadowOffsetX=g.shadowOffsetY=Math.max(1,Math.round(fs*.07));
-    if(S.osdTop){g.textBaseline='top';g.fillText(S.osdTop,x,Math.round(H*.07));}if(S.osdBot){g.textBaseline='bottom';g.fillText(S.osdBot,x,Math.round(H*.93));}g.restore();}
   /* TV: bend the picture like the curved glass of an old TV, with dark rounded corners */
   if(S.tvCurve>0){const k=S.tvCurve*.14,sd=g.getImageData(0,0,W,H).data,out=g.createImageData(W,H),od=out.data,od32=new Uint32Array(od.buffer),edgeK=1/(Math.min(W,H)*.08),dk=.5*S.tvCurve;
     od32.fill(0xFF080505);
@@ -510,11 +571,11 @@ function changed(){schedule();save();}
 /* ================= settings panel ================= */
 const pct=v=>v<=0?'Off':Math.round(v*100)+'%';
 function sl(key,label,help){const f=rangeF('o-'+key,label,0,1,.01,S[key],pct,v=>{S[key]=v;if(S.look!=='own'){S.look='own';markLook();}changed();});return help?[f,h('p',{class:'help'},help)]:[f];}
-function markLook(){[...$('looks').children].forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.k===S.look)));}
+function markLook(){[...$('looks').children,...$('looks2').children].forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.k===S.look)));}
 function renderOpts(){
-  const lk=$('looks');lk.innerHTML='';
-  for(const[k,L]of Object.entries(LOOKS))lk.append(h('button',{type:'button','data-k':k,'aria-pressed':String(S.look===k),onclick:()=>{Object.assign(S,L.v);S.look=k;renderOpts();changed();}},L.name));
-  lk.append(h('button',{type:'button','data-k':'own','aria-pressed':String(S.look==='own'),onclick:()=>{S.look='own';markLook();save();}},'Your own'));
+  const lk=$('looks'),lk2=$('looks2');lk.innerHTML=lk2.innerHTML='';
+  for(const[k,L]of Object.entries(LOOKS))(L.tv?lk2:lk).append(h('button',{type:'button','data-k':k,'aria-pressed':String(S.look===k),onclick:()=>{Object.assign(S,L.v);S.look=k;renderOpts();changed();}},L.name));
+  lk2.append(h('button',{type:'button','data-k':'own','aria-pressed':String(S.look==='own'),onclick:()=>{S.look='own';markLook();save();}},'Your own'));
   const af=$('amtF');af.innerHTML='';af.append(...rangeF('o-amt','How much, overall',0,1.6,.02,S.amt,v=>v<=0?'None':Math.round(v*100)+'%',v=>{S.amt=v;changed();}).childNodes);
   const gl=$('glF');gl.innerHTML='';
   gl.append(...sl('bars','Color bars'),...sl('streaks','Thin streaks','Streaks pick up the colors of the photo under them.'),...sl('blocks','Striped blocks at the sides'),...sl('noise','Rows of dots'),
@@ -525,13 +586,21 @@ function renderOpts(){
     ...sl('tvWobble','Picture wobble','The picture sways and jitters from side to side.'),
     ...sl('tvTrack','Tape tracking lines','The ragged, noisy strip at the bottom of an old video tape, and a band of noise that drifts up the picture.'),
     ...sl('tvSmear','Color smear','The colors bleed and trail to the right while the picture stays sharp, like a worn VHS tape.'),
-    ...sl('tvSnow','TV static'),...sl('tvMask','TV pixels','The fine red, green and blue stripes of an old screen seen up close.'),
-    ...sl('tvCurve','Curved screen','Bends the picture like the glass of an old TV, with dark rounded corners.'));
-  const oc=h('input',{type:'checkbox',id:'o-osd'});oc.checked=S.osd;oc.onchange=()=>{S.osd=oc.checked;if(S.look!=='own')S.look='own';renderOpts();changed();};
-  tv.append(h('label',{class:'chk'},oc,' Video player words on the screen'));
-  if(S.osd){const tf=(id,label,key)=>{const inp=h('input',{type:'text',id,value:S[key],maxlength:40,autocomplete:'off'});inp.oninput=()=>{S[key]=inp.value;changed();};return h('div',{class:'field'},h('label',{for:id},label),inp);};
-    tv.append(tf('o-osdTop','At the top','osdTop'),tf('o-osdBot','At the bottom','osdBot'));}
+    ...sl('tvSnow','TV static'),
+    ...sl('tvPause','Paused tape','The shaky still picture of a paused video, with jittery lines and one or two bands of noise that stay put.'),
+    ...sl('tvHold','Lines out of sync','The picture slants into diagonal stripes and rolls, showing the black bar between frames. Moving, it slips out and snaps back.'));
+  const own=()=>{if(S.look!=='own')S.look='own';};
+  tv.append(segF('o-scr','Video player words on the screen',[['off','None'],['play','Playing'],['pause','Paused'],['rec','Recording']],S.scr,v=>{S.scr=v;if(SCR_TOP[v])S.osdTop=SCR_TOP[v];own();renderOpts();changed();}));
+  if(S.scr!=='off'){const tf=(id,label,key)=>{const inp=h('input',{type:'text',id,value:S[key]||'',maxlength:40,autocomplete:'off'});inp.oninput=()=>{S[key]=inp.value;changed();};return h('div',{class:'field'},h('label',{for:id},label),inp);};
+    tv.append(tf('o-osdTop','At the top','osdTop'),tf('o-osdBot','At the bottom','osdBot'));
+    if(S.scr==='rec')tv.append(h('p',{class:'help'},'Recording adds a blinking red dot, a battery, a running clock and corner marks.'));}
   tv.append(h('p',{class:'help'},'Tap Play it moving to watch the band roll and the tape lines drift.'));
+  const sc=$('scrF');sc.innerHTML='';
+  sc.append(...sl('tvMask','TV pixels','The fine red, green and blue stripes of an old screen seen up close.'),
+    ...sl('tvCurve','Curved screen','Bends the picture like the glass of an old TV, with dark rounded corners.'),
+    segF('o-mono','One-color monitor',[['off','Off'],['green','Green'],['amber','Amber']],S.mono,v=>{S.mono=v;own();renderOpts();changed();}),h('p',{class:'help'},'The glowing single color of an old computer screen.'),
+    ...sl('tvPix','Big pixels','Chunky pixels and only a few colors, like an early handheld game.'),
+    ...sl('tvDig','Broken digital picture','Blocks of the picture freeze, smear and drip, like a video call that’s breaking up.'));
   const cf=$('colF');cf.innerHTML='';
   const g=h('div',{class:'seg',role:'group','aria-labelledby':'o-pal-l'});
   for(const[k,P]of Object.entries(PALS)){const cols=(P.c||(IMG?photoColors():[])).slice(0,6);
@@ -757,7 +826,7 @@ function writeState(){if(!restored)return Promise.resolve();return DB.tx('readwr
 function save(){clearTimeout(saveT);saveT=setTimeout(writeState,500);}
 function flushAutosave(){clearTimeout(saveT);return writeState();}
 async function restore(){try{const st=await DB.tx('readonly',s=>s.get('current'));
-  if(st&&st.S){S={...DEF(),...st.S};if(st.blob)await loadBlob(st.blob,st.name,true);}}catch(e){}
+  if(st&&st.S){S={...DEF(),...st.S};if(st.S.osd===true&&!st.S.scr)S.scr='play';delete S.osd;if(st.blob)await loadBlob(st.blob,st.name,true);}}catch(e){}
   restored=true;renderOpts();render();}
 
 /* ================= passing files between tools, and from your gallery's Share menu (installed app only) ================= */

@@ -199,8 +199,9 @@ canvas#cv.dragging{cursor:grabbing}
   <section class="card opts" aria-label="Settings">
     <div class="field">
       <span class="flabel">Photo</span>
-      <div class="photo"><img class="thumb" id="thumb" alt=""><div class="info"><b id="pName">Sample picture</b><span class="help" id="pInfo">Choose yours, drop it here, or paste it.</span></div></div>
-      <div class="row"><label class="btn primary" for="pick">Choose photo<input type="file" id="pick" accept="image/*"></label></div>
+      <div class="photo"><img class="thumb" id="thumb" alt=""><div class="info"><b id="pName">Sample picture</b><span class="help" id="pInfo">Choose a photo, a video or a moving GIF, drop it here, or paste it.</span></div></div>
+      <div class="row"><label class="btn primary" for="pick">Choose photo or video<input type="file" id="pick" accept="image/*,video/*"></label></div>
+      <div class="grp" id="clipF" hidden></div>
     </div>
     <div class="field">
       <span class="flabel" id="look-l">Look</span>
@@ -231,7 +232,7 @@ canvas#cv.dragging{cursor:grabbing}
   <section class="stage" aria-label="Preview">
     <div class="canvas-wrap" id="drop">
       <canvas id="cv" width="1200" height="800" aria-label="Your photo with the glitch filter. Drag the circle to choose the part that stays clear. Play it moving to watch the glitches jump about."></canvas>
-      <label class="btn primary cta" id="cta" for="pick2">Choose your photo<input type="file" id="pick2" accept="image/*"></label>
+      <label class="btn primary cta" id="cta" for="pick2">Choose your photo or video<input type="file" id="pick2" accept="image/*,video/*"></label>
     </div>
     <div class="under">
       <p class="help" id="dragHelp"></p>
@@ -341,11 +342,16 @@ const PALS={
   ice:{name:'Ice',c:['#00e1ff','#3d7bff','#7df9ff','#b44dff','#00ffa6','#ffffff']},
   rgb:{name:'Red, green, blue',c:['#ff0033','#00ff66','#0a5cff','#ffffff']},
   white:{name:'White',c:['#ffffff','#d8dde6','#9aa3b2']}};
-const DEF=()=>({v:1,look:'neon',amt:1,seed:20261,...LOOKS.neon.v,keep:true,fx:.5,fy:.42,fr:.36,osdTop:SCR_TOP.play,osdBot:'JAN. 1 1999   12:00 AM',fmt:'jpg',speed:.5,surge:.6,loop:3,msize:720,vfmt:'webm'});
+const DEF=()=>({v:1,look:'neon',amt:1,seed:20261,...LOOKS.neon.v,keep:true,fx:.5,fy:.42,fr:.36,osdTop:SCR_TOP.play,osdBot:'JAN. 1 1999   12:00 AM',fmt:'jpg',speed:.5,surge:.6,loop:3,msize:720,vfmt:'webm',cstart:0,clen:0,sound:true});
 /* the moving version counts time in ticks, 12 a second, and repeats after a loop of them */
 const TICKS=12,loopTicks=()=>Math.max(1,Math.round(S.loop*TICKS));
 let S=DEF(),IMG=null,BLOB=null,NAME='',SAMPLE=true;
 const iw=()=>IMG.width,ih=()=>IMG.height;
+/* a video or a moving GIF: when one is open, IMG is a canvas holding one frame of it */
+let MEDIA=null;
+const CLIP_MAX=30,GIF_OUT_MAX=10,VID_FPS=30;
+const fmtT=v=>v<60?v.toFixed(1)+' s':Math.floor(v/60)+':'+(v%60).toFixed(1).padStart(4,'0');
+const clipLen=()=>MEDIA?clamp(S.clen||MEDIA.dur,.2,Math.max(.2,Math.min(CLIP_MAX,MEDIA.dur-S.cstart))):S.loop;
 
 /* the same seed always gives the same numbers, so the preview and the saved photo match */
 function rnd(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
@@ -365,7 +371,7 @@ const palette=()=>(PALS[S.pal]||PALS.neon).c||photoColors();
 /* ================= the filter ================= */
 /* Draws the photo at W × H with every glitch on it and returns the canvas. All places and sizes are worked out as
    parts of the picture, so a small preview and the full-size save look the same. */
-function glitch(W,H,fr){
+function glitch(W,H,fr,src){
   const u=Math.sqrt(W*H)/1000,pal=palette(),seed=S.seed|0;
   /* Moving: fr is the tick to draw. Every piece holds still for a few ticks and then jumps to a new "take" of itself,
      some pieces blink out for a take, and the whole effect surges and calms. A still photo (no fr) is take 0 of
@@ -376,7 +382,7 @@ function glitch(W,H,fr){
   const shown=(i,salt,k)=>!anim||hsh(i*131+k,salt+2)<.8;
   const surge=anim?(()=>{const b=hsh(Math.floor(tk/3),99);return 1+S.surge*(b<.2?1:b<.5?-.55:0);})():1,A=S.amt*surge;
   const c=mkCanvas(W,H),g=c.getContext('2d',{willReadFrequently:true});
-  g.imageSmoothingQuality='high';g.drawImage(IMG,0,0,W,H);
+  g.imageSmoothingQuality='high';g.drawImage(src||IMG,0,0,W,H);
   const keep=S.keep,fxp=S.fx*W,fyp=S.fy*H,R=S.fr*Math.min(W,H);
   /* how much a spot is away from the clear area: 0 inside it, 1 well outside */
   const away=(x,y)=>keep?clamp((Math.hypot(x-fxp,y-fyp)/R-.8)/.4,0,1):1;
@@ -521,7 +527,7 @@ function glitch(W,H,fr){
     let tx=x;if(rec){const rr=fs*.32;if(!anim||(tk%TICKS)<TICKS*.6){g.fillStyle='#ff2a2a';g.beginPath();g.arc(x+rr,yT+fs*.42,rr,0,TAU);g.fill();g.fillStyle=ink;}tx=x+rr*2+fs*.3;}
     if(S.osdTop){g.textBaseline='top';g.fillText(S.osdTop,tx,yT);}
     if(S.osdBot){g.textBaseline='bottom';g.fillText(S.osdBot,x,yB);}
-    if(rec){const t=Math.floor(hsh(5,47)*3000+(anim?tk/TICKS:0)),p2=v=>String(v).padStart(2,'0');g.textAlign='right';g.textBaseline='bottom';g.fillText(`${p2(Math.floor(t/3600))}:${p2(Math.floor(t/60)%60)}:${p2(t%60)}`,W-x,yB);
+    if(rec){const t=Math.floor(hsh(5,47)*3000+(anim?fr/TICKS:0)),p2=v=>String(v).padStart(2,'0');g.textAlign='right';g.textBaseline='bottom';g.fillText(`${p2(Math.floor(t/3600))}:${p2(Math.floor(t/60)%60)}:${p2(t%60)}`,W-x,yB);
       /* a battery at the top right */
       const bw=fs*1.6,bh=fs*.8,bx=W-x-bw-fs*.12,by=yT+fs*.08,pad=fs*.12,gap=fs*.08,seg=(bw-pad*2-gap*2)/3;g.lineWidth=Math.max(1,fs*.08);g.strokeRect(bx,by,bw,bh);g.fillRect(bx+bw,by+bh*.3,fs*.12,bh*.4);
       for(let i=0;i<3;i++)g.fillRect(bx+pad+i*(seg+gap),by+pad,seg,bh-pad*2);
@@ -552,7 +558,7 @@ function glitch(W,H,fr){
 /* ================= preview ================= */
 let PV=null,showOrig=false,raf=0,playing=false,playT0=0,playTick=0,playRaf=0;
 /* while it plays the preview is drawn smaller, so it keeps up */
-function pvSize(){const m=playing?720:1200,k=Math.min(1,m/Math.max(iw(),ih()));return[Math.max(1,Math.round(iw()*k)),Math.max(1,Math.round(ih()*k))];}
+function pvSize(){const m=playing?(MEDIA?560:720):1200,k=Math.min(1,m/Math.max(iw(),ih()));return[Math.max(1,Math.round(iw()*k)),Math.max(1,Math.round(ih()*k))];}
 function render(){if(!IMG)return;const[W,H]=pvSize();if(PV)PV.width=PV.height=0;PV=glitch(W,H,playing?playTick:undefined);paint();}
 function paint(){if(!PV)return;const W=PV.width,H=PV.height;if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H;}
   if(showOrig){ctx.imageSmoothingQuality='high';ctx.drawImage(IMG,0,0,W,H);return;}
@@ -562,9 +568,19 @@ function paint(){if(!PV)return;const W=PV.width,H=PV.height;if(cv.width!==W||cv.
 /* the dashed circle shows while you move it and for a moment after, then gets out of the way */
 let ringOn=false,ringT=0;
 function showRing(){ringOn=true;clearTimeout(ringT);ringT=setTimeout(()=>{ringOn=false;paint();},1600);}
-function playLoop(){if(!playing)return;const f=Math.floor((performance.now()-playT0)/1000*TICKS);if(f!==playTick){playTick=f;render();}playRaf=requestAnimationFrame(playLoop);}
+function playLoop(){if(!playing)return;
+  if(MEDIA){const len=clipLen(),g2=IMG.getContext('2d');let t;
+    if(MEDIA.kind==='video'){const el=MEDIA.el;if(el.currentTime>=S.cstart+len-.03||el.ended){try{el.currentTime=S.cstart;}catch(e){}if(el.paused)el.play().catch(()=>{});}
+      t=el.currentTime;if(el.readyState>=2)g2.drawImage(el,0,0,IMG.width,IMG.height);}
+    else{t=S.cstart+((performance.now()-playT0)/1000)%len;g2.clearRect(0,0,IMG.width,IMG.height);g2.drawImage(gifAt(t).c,0,0,IMG.width,IMG.height);}
+    playTick=Math.max(0,Math.floor((t-S.cstart)*TICKS));render();}
+  else{const f=Math.floor((performance.now()-playT0)/1000*TICKS);if(f!==playTick){playTick=f;render();}}
+  playRaf=requestAnimationFrame(playLoop);}
 function setPlay(on){playing=on;cancelAnimationFrame(playRaf);$('playBtn').setAttribute('aria-pressed',String(on));$('playBtn').textContent=on?'Stop':'Play it moving';
-  if(on){if(showOrig)$('compare').click();playT0=performance.now();playTick=0;render();playLoop();}else render();}
+  if(on){if(showOrig)$('compare').click();
+    if(MEDIA&&MEDIA.kind==='video'){const el=MEDIA.el;try{el.currentTime=S.cstart;}catch(e){}el.muted=!S.sound;const pr=el.play();if(pr&&pr.catch)pr.catch(()=>{el.muted=true;el.play().catch(()=>{});});}
+    playT0=performance.now();playTick=0;render();playLoop();}
+  else if(MEDIA){if(MEDIA.kind==='video')MEDIA.el.pause();showStill();}else render();}
 function schedule(){if(raf)return;raf=requestAnimationFrame(()=>{raf=0;render();});}
 function changed(){schedule();save();}
 
@@ -573,6 +589,13 @@ const pct=v=>v<=0?'Off':Math.round(v*100)+'%';
 function sl(key,label,help){const f=rangeF('o-'+key,label,0,1,.01,S[key],pct,v=>{S[key]=v;if(S.look!=='own'){S.look='own';markLook();}changed();});return help?[f,h('p',{class:'help'},help)]:[f];}
 function markLook(){[...$('looks').children,...$('looks2').children].forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.k===S.look)));}
 function renderOpts(){
+  const cl=$('clipF');cl.innerHTML='';cl.hidden=!MEDIA;$('saveBtn').textContent=MEDIA?'Save this frame':'Save the photo';
+  if(MEDIA){const maxStart=Math.max(0,MEDIA.dur-.2);
+    cl.append(rangeF('o-cstart','Start at',0,maxStart,.05,Math.min(S.cstart,maxStart),fmtT,v=>{S.cstart=v;const L=$('o-clen');if(L){L.max=Math.max(.2,Math.min(CLIP_MAX,MEDIA.dur-v));L.value=clipLen();L.previousSibling.querySelector('output').textContent=fmtT(clipLen());}showStill();save();}),
+      rangeF('o-clen','Length',.2,Math.max(.2,Math.min(CLIP_MAX,MEDIA.dur-S.cstart)),.05,clipLen(),fmtT,v=>{S.clen=v;save();}),
+      h('p',{class:'help'},`The GIF or video you save is as long as this, up to ${CLIP_MAX} seconds (GIFs stop at ${GIF_OUT_MAX}). Save this frame saves the picture at the start.`));
+    if(MEDIA.kind==='video'){const snd=h('input',{type:'checkbox',id:'o-sound'});snd.checked=S.sound;snd.onchange=()=>{S.sound=snd.checked;if(playing)MEDIA.el.muted=!S.sound;save();};
+      cl.append(h('label',{class:'chk'},snd,' Keep the sound in the saved video'),h('p',{class:'help'},'You hear it while it plays too. GIFs never have sound.'));}}
   const lk=$('looks'),lk2=$('looks2');lk.innerHTML=lk2.innerHTML='';
   for(const[k,L]of Object.entries(LOOKS))(L.tv?lk2:lk).append(h('button',{type:'button','data-k':k,'aria-pressed':String(S.look===k),onclick:()=>{Object.assign(S,L.v);S.look=k;renderOpts();changed();}},L.name));
   lk2.append(h('button',{type:'button','data-k':'own','aria-pressed':String(S.look==='own'),onclick:()=>{S.look='own';markLook();save();}},'Your own'));
@@ -617,10 +640,10 @@ function renderOpts(){
   const mf=$('movF');mf.innerHTML='';
   mf.append(rangeF('o-speed','Speed',0,1,.01,S.speed,v=>v<.34?'Slow':v>.66?'Fast':'Medium',v=>{S.speed=v;changed();}),
     rangeF('o-surge','Surges',0,1,.01,S.surge,pct,v=>{S.surge=v;changed();}),h('p',{class:'help'},'With surges the glitching flares up, tears the picture and calms down again. At zero it glitches steadily.'),
-    segF('o-loop','Length of the loop',[[2,'2 seconds'],[3,'3 seconds'],[4,'4 seconds'],[6,'6 seconds']],S.loop,v=>{S.loop=v;renderOpts();changed();}),
+    ...(MEDIA?[]:[segF('o-loop','Length of the loop',[[2,'2 seconds'],[3,'3 seconds'],[4,'4 seconds'],[6,'6 seconds']],S.loop,v=>{S.loop=v;renderOpts();changed();})]),
     segF('o-msize','Size of the GIF or video',[[480,'Small'],[720,'Medium'],[1080,'Large']],S.msize,v=>{S.msize=v;renderOpts();save();}));
   if(vidMime('webm')&&vidMime('mp4'))mf.append(segF('o-vfmt','Kind of video',[['webm','WebM'],['mp4','MP4']],S.vfmt,v=>{S.vfmt=v;renderOpts();save();}));
-  mf.append(h('p',{class:'help'},'Tap Play it moving under the photo to watch it. The GIF loops on its own and is made at up to 640 pixels to keep the file sensible. The video plays the loop twice and records as it plays, so keep this page in front.'));
+  mf.append(h('p',{class:'help'},MEDIA?'Tap Play it moving under the picture to watch your clip with the filter. The GIF is made at up to 640 pixels. The video is made frame by frame first and then recorded as it plays, so keep this page in front. A long clip takes a while.':'Tap Play it moving under the photo to watch it. The GIF loops on its own and is made at up to 640 pixels to keep the file sensible. The video plays the loop twice and records as it plays, so keep this page in front.'));
   const sf=$('fmtF');sf.innerHTML='';sf.append(segF('o-f','Save as',[['jpg','JPG'],['png','PNG']],S.fmt,v=>{S.fmt=v;renderOpts();save();}),
     h('p',{class:'help'},S.fmt==='jpg'?'JPG is small and works everywhere.':'PNG keeps every thin line perfectly sharp but the file is much bigger.'));
   $('dragHelp').textContent=S.keep?'Drag on the photo to move the clear area. Scroll or pinch to change its size.':'Tap Shuffle the glitches for a new arrangement.';
@@ -660,7 +683,7 @@ let NAMECODE=rndCode(),outCache=null;
 const sig=()=>JSON.stringify([S,NAME,iw(),ih(),SAMPLE]);
 /* the saved photo is as big as the one you chose, up to 5000 pixels on its long side */
 function outSize(){const k=Math.min(1,5000/Math.max(iw(),ih()));return[Math.max(1,Math.round(iw()*k)),Math.max(1,Math.round(ih()*k))];}
-async function makeFile(){const s=sig();if(outCache&&outCache.sig===s)return outCache.file;
+async function makeFile(){const s=sig();if(!MEDIA&&outCache&&outCache.sig===s)return outCache.file;
   const[W,H]=outSize();let c;try{c=glitch(W,H);}catch(e){throw new Error('the photo is too big for this browser');}
   const png=S.fmt==='png',type=png?'image/png':'image/jpeg';let blob=await new Promise(r=>c.toBlob(r,type,.93));c.width=c.height=0;
   if(!blob)throw new Error('the photo is too big for this browser');if(!png)blob=await cleanJpeg(blob);
@@ -763,16 +786,18 @@ function gifEncoder(w,h,pal,loop,nc){
 function movSize(cap){const m=Math.min(S.msize,cap||9999),k=Math.min(1,m/Math.max(iw(),ih()));return[Math.max(2,Math.round(iw()*k/2)*2),Math.max(2,Math.round(ih()*k/2)*2)];}
 const movProg=f=>{$('movBarW').hidden=false;$('movBar').style.width=Math.round(f*100)+'%';};
 const breathe=()=>new Promise(r=>setTimeout(r,0));
-function vidMime(kind){if(!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream)return null;
-  const c=kind==='mp4'?['video/mp4;codecs=avc1','video/mp4']:['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'];
+function vidMime(kind,withSound){if(!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream)return null;
+  const c=kind==='mp4'?(withSound?['video/mp4;codecs=avc1,mp4a.40.2','video/mp4']:['video/mp4;codecs=avc1','video/mp4']):(withSound?['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm']:['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm']);
   return c.find(m=>{try{return MediaRecorder.isTypeSupported(m);}catch(e){return false;}})||null;}
-async function makeGif(){const[W,H]=movSize(640),N=loopTicks(),hist=new Uint32Array(32768);
-  const grab=f=>{const c=glitch(W,H,f),d=c.getContext('2d').getImageData(0,0,W,H).data;c.width=c.height=0;return d;};
-  /* the 255 colors of the GIF are chosen from a few frames spread round the loop */
-  const ns=Math.min(N,8);for(let i=0;i<ns;i++){const px=grab(Math.floor(i*N/ns));for(let j=0;j<px.length;j+=8)hist[((px[j]>>3)<<10)|((px[j+1]>>3)<<5)|(px[j+2]>>3)]++;movProg((i+1)/ns*.15);await breathe();}
+async function makeGif(){const[W,H]=movSize(640),hist=new Uint32Array(32768);let N,grab,xs=null;
+  if(MEDIA){const el=MEDIA.kind==='video'?await exportEl():null;xs=mkCanvas(iw(),ih());N=Math.max(1,Math.round(Math.min(clipLen(),GIF_OUT_MAX)*TICKS));
+    grab=async f=>{await frameAt(S.cstart+f/TICKS,xs,el);const c=glitch(W,H,f,xs),d=c.getContext('2d').getImageData(0,0,W,H).data;c.width=c.height=0;return d;};}
+  else{N=loopTicks();grab=async f=>{const c=glitch(W,H,f),d=c.getContext('2d').getImageData(0,0,W,H).data;c.width=c.height=0;return d;};}
+  /* the 255 colors of the GIF are chosen from a few frames spread through it */
+  const ns=Math.min(N,8);for(let i=0;i<ns;i++){const px=await grab(Math.floor(i*N/ns));for(let j=0;j<px.length;j+=8)hist[((px[j]>>3)<<10)|((px[j+1]>>3)<<5)|(px[j+2]>>3)]++;movProg((i+1)/ns*.15);await breathe();}
   const enc=gifEncoder(W,H,gifPalette(hist,255),true,255);
-  for(let f=0;f<N;f++){const px=grab(f);await enc.add(new Uint8Array(px.buffer),Math.round((f+1)*100/TICKS)-Math.round(f*100/TICKS));movProg(.15+(f+1)/N*.82);await breathe();}
-  const blob=await enc.finish();movProg(1);return blob;}
+  for(let f=0;f<N;f++){const px=await grab(f);await enc.add(new Uint8Array(px.buffer),Math.round((f+1)*100/TICKS)-Math.round(f*100/TICKS));movProg(.15+(f+1)/N*.82);await breathe();}
+  if(xs)xs.width=xs.height=0;const blob=await enc.finish();movProg(1);return blob;}
 async function makeVideo(mime){const[W,H]=movSize(),rc=mkCanvas(W,H),rg=rc.getContext('2d'),d=S.loop*2;
   const draw=f=>{const c=glitch(W,H,f);rg.drawImage(c,0,0);c.width=c.height=0;};draw(0);
   const stream=rc.captureStream(30),rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:W*H>600000?12e6:8e6}),chunks=[];rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data);};
@@ -780,12 +805,18 @@ async function makeVideo(mime){const[W,H]=movSize(),rc=mkCanvas(W,H),rg=rc.getCo
   await new Promise(res=>{const step=()=>{const t=(performance.now()-t0)/1000,f=Math.floor(Math.min(t,d)*TICKS);if(f!==last){last=f;draw(f);}movProg(Math.min(1,t/d));if(t>=d+.2)return res();requestAnimationFrame(step);};requestAnimationFrame(step);});
   const ms=performance.now()-t0;rec.stop();await stopped;stream.getTracks().forEach(t=>t.stop());
   const blob=new Blob(chunks,{type:mime.split(';')[0]});return cleanOut(mime.includes('webm')?await fixWebmDuration(blob,ms):blob);}
-async function saveMoving(kind){if(busy)return;busy=true;const was=playing;if(was)setPlay(false);
-  say(kind==='gif'?'Making the GIF…':'Recording the video. Keep this page in front…');movProg(0);await new Promise(r=>setTimeout(r,30));
+async function saveMoving(kind){if(busy)return;
+  /* the sound has to be switched on while your tap is still fresh, or the browser keeps it quiet */
+  const ac=kind!=='gif'&&MEDIA&&MEDIA.kind==='video'&&S.sound?audioCtx():null;
+  busy=true;const was=playing;if(was)setPlay(false);
+  say(kind==='gif'?'Making the GIF…':MEDIA?'Making the frames. Keep this page in front…':'Recording the video. Keep this page in front…');movProg(0);await new Promise(r=>setTimeout(r,30));
   try{let blob,ext;
     if(kind==='gif'){blob=await makeGif();ext='gif';}
-    else{const mime=vidMime(S.vfmt)||vidMime('webm')||vidMime('mp4');if(!mime)throw new Error('this browser can’t record video. Save a GIF instead');blob=await makeVideo(mime);ext=mime.includes('mp4')?'mp4':'webm';}
-    const msg=await saveFile(blob,`glitch-${NAMECODE}.${ext}`);say(`${msg} ${(blob.size/1e6).toFixed(1)} MB.`);}
+    else{const snd=!!ac,mime=vidMime(S.vfmt,snd)||vidMime('webm',snd)||vidMime('mp4',snd);if(!mime)throw new Error('this browser can’t record video. Save a GIF instead');blob=MEDIA?await makeClipVideo(mime,ac):await makeVideo(mime);ext=mime.includes('mp4')?'mp4':'webm';}
+    const msg=await saveFile(blob,`glitch-${NAMECODE}.${ext}`);let note='';
+    if(kind==='gif'&&MEDIA&&clipLen()>GIF_OUT_MAX)note=` The GIF stops after ${GIF_OUT_MAX} seconds; save a video for the whole clip.`;
+    if(ac&&MEDIA&&MEDIA.sound===null)note=' This video has no sound that could be used, so the saved one is silent.';
+    say(`${msg} ${(blob.size/1e6).toFixed(1)} MB.${note}`);}
   catch(err){say('That didn’t work: '+(err&&err.message||err)+'.');}
   finally{busy=false;$('movBarW').hidden=true;if(was)setPlay(true);}}
 $('gifBtn').onclick=()=>saveMoving('gif');$('vidBtn').onclick=()=>saveMoving('video');
@@ -794,14 +825,127 @@ function syncSave(){
   $('shareBtn').hidden=!share;$('saveBtn').hidden=!canSave();$('copyBtn').hidden=!(topLevel&&navigator.clipboard&&window.ClipboardItem);$('sendRow').hidden=!HANDOFF.ok();$('movRow').hidden=!canSave();$('vidBtn').hidden=!(vidMime('webm')||vidMime('mp4'));
   $('saveHelp').textContent=canSave()?'The saved photo is full size and looks the same as the preview. It gets a random name, and nothing about the original file is kept in it.':'Saving isn’t available here. Open the Photo Tools website or app to save the photo.';}
 
+/* ================= videos and moving GIFs ================= */
+const waitEvt=(el,ev,ms)=>new Promise(res=>{let done=false;const f=()=>{if(done)return;done=true;el.removeEventListener(ev,f);res(true);};el.addEventListener(ev,f);setTimeout(()=>{if(!done){done=true;el.removeEventListener(ev,f);res(false);}},ms||3000);});
+const isVideoFile=f=>/^video\//.test(f.type||'')||/\.(mp4|mov|m4v|webm|mkv)$/i.test(f.name||'');
+const isGifFile=f=>/^image\/gif$/i.test(f.type||'')||/\.gif$/i.test(f.name||'');
+function newVideoEl(url){const el=document.createElement('video');el.playsInline=true;el.setAttribute('playsinline','');el.preload='auto';el.muted=true;el.src=url;return el;}
+async function videoReady(el){let ok=el.readyState>=2||await waitEvt(el,'loadeddata',12000);
+  if(!ok&&el.readyState<2){try{await el.play();el.pause();}catch(e){}ok=el.readyState>=2||await waitEvt(el,'loadeddata',3000);}return ok&&!!el.videoWidth;}
+async function openVideo(blob){const url=URL.createObjectURL(blob),el=newVideoEl(url);
+  if(!await videoReady(el)){URL.revokeObjectURL(url);return null;}
+  let dur=el.duration;if(!isFinite(dur)||dur<=0){el.currentTime=1e7;await waitEvt(el,'durationchange',4000);dur=isFinite(el.duration)?el.duration:0;el.currentTime=0;await waitEvt(el,'seeked',2000);}
+  return{kind:'video',el,url,blob,w:el.videoWidth,h:el.videoHeight,dur:Math.max(.2,dur||1)};}
+/* saving uses its own copy of the video, so the preview and the saving never fight over the same player */
+async function exportEl(){const m=MEDIA;if(m.xel)return m.xel;const el=newVideoEl(m.url);await videoReady(el);m.xel=el;return el;}
+
+/* reading a GIF's frames. Browsers only show GIFs, they don't hand over the frames, so this unpacks the file itself */
+function gifParse(b){const u16=p=>b[p]|b[p+1]<<8;if(b[0]!==71||b[1]!==73||b[2]!==70)return null;
+  const W=u16(6),H=u16(8),fl=b[10];let p=13,gct=null;if(fl&0x80){const n=2<<(fl&7);gct=b.subarray(p,p+n*3);p+=n*3;}
+  const frames=[];let gce={disp:0,delay:0,trans:-1};
+  while(p<b.length){const blk=b[p++];
+    if(blk===0x21){const lab=b[p++];if(lab===0xF9&&b[p]>=4){const pk=b[p+1];gce={disp:(pk>>2)&7,delay:u16(p+2),trans:pk&1?b[p+4]:-1};}while(p<b.length){const sz=b[p++];if(!sz)break;p+=sz;}}
+    else if(blk===0x2C){const x=u16(p),y=u16(p+2),w=u16(p+4),h=u16(p+6),f=b[p+8];p+=9;let lct=null;if(f&0x80){const n=2<<(f&7);lct=b.subarray(p,p+n*3);p+=n*3;}
+      const minCode=b[p++];let len=0,q=p;while(q<b.length){const sz=b[q++];if(!sz)break;len+=sz;q+=sz;}
+      const data=new Uint8Array(len);let o=0;while(p<b.length){const sz=b[p++];if(!sz)break;data.set(b.subarray(p,p+sz),o);o+=sz;p+=sz;}
+      frames.push({x,y,w,h,pal:lct||gct,inter:!!(f&0x40),minCode,data,...gce});gce={disp:0,delay:0,trans:-1};if(frames.length>=600)break;}
+    else break;}
+  return{W,H,frames};}
+function gifLzw(minCode,data,npix){const out=new Uint8Array(npix),clear=1<<minCode,eoi=clear+1,prefix=new Int16Array(4096),suffix=new Uint8Array(4096),stack=new Uint8Array(4097);
+  for(let i=0;i<clear;i++){prefix[i]=-1;suffix[i]=i;}
+  let size=minCode+1,mask=(1<<size)-1,next=eoi+1,old=-1,first=0,bits=0,cur=0,dp=0,op=0;
+  while(op<npix){while(bits<size){if(dp>=data.length)return out;cur|=data[dp++]<<bits;bits+=8;}
+    const code=cur&mask;cur>>>=size;bits-=size;
+    if(code===clear){size=minCode+1;mask=(1<<size)-1;next=eoi+1;old=-1;continue;}
+    if(code===eoi)break;
+    if(old===-1){if(code>=clear)break;out[op++]=suffix[code];old=first=code;continue;}
+    let c=code,sp=0;if(code>=next){stack[sp++]=first;c=old;}
+    while(c>=clear){stack[sp++]=suffix[c];c=prefix[c];if(sp>4096)return out;}
+    first=c;stack[sp++]=c;while(sp&&op<npix)out[op++]=stack[--sp];
+    if(next<4096){prefix[next]=old;suffix[next]=first;next++;if(next>mask&&size<12){size++;mask=(1<<size)-1;}}
+    old=code;}
+  return out;}
+async function decodeGif(blob){const g=gifParse(new Uint8Array(await blob.arrayBuffer()));if(!g||g.frames.length<2||!g.W||!g.H)return null;
+  const{W,H,frames}=g,k=Math.min(1,1080/Math.max(W,H),Math.sqrt(2.5e8/(W*H*frames.length))),ow=Math.max(1,Math.round(W*k)),oh=Math.max(1,Math.round(H*k));
+  const scr=new Uint8ClampedArray(W*H*4),tmp=mkCanvas(W,H),tg=tmp.getContext('2d'),out=[];let t=0;
+  for(const f of frames){if(!f.pal)continue;const prev=f.disp===3?scr.slice():null,px=gifLzw(f.minCode,f.data,f.w*f.h),pal=f.pal;
+    let rows=null;if(f.inter){rows=[];for(const[a,st]of[[0,8],[4,8],[2,4],[1,2]])for(let y=a;y<f.h;y+=st)rows.push(y);}
+    for(let j=0;j<f.h;j++){const y=f.y+(rows?rows[j]:j);if(y>=H)continue;
+      for(let x=0;x<f.w;x++){const ci=px[j*f.w+x],X=f.x+x;if(ci===f.trans||X>=W||ci*3+2>=pal.length)continue;const o=(y*W+X)*4;scr[o]=pal[ci*3];scr[o+1]=pal[ci*3+1];scr[o+2]=pal[ci*3+2];scr[o+3]=255;}}
+    tg.putImageData(new ImageData(scr.slice(),W,H),0,0);const c=mkCanvas(ow,oh),cg=c.getContext('2d');cg.imageSmoothingQuality='high';cg.drawImage(tmp,0,0,ow,oh);
+    const d=(f.delay<=1?10:f.delay)/100;out.push({c,t0:t,d});t+=d;
+    if(f.disp===2){for(let y=f.y;y<Math.min(H,f.y+f.h);y++)scr.fill(0,(y*W+f.x)*4,(y*W+Math.min(W,f.x+f.w))*4);}else if(prev)scr.set(prev);
+    if(out.length%15===0)await breathe();}
+  tmp.width=tmp.height=0;return out.length>1?{w:ow,h:oh,frames:out,dur:t}:null;}
+function gifAt(t){const m=MEDIA,fr=m.frames;t=((t%m.dur)+m.dur)%m.dur;let lo=0,hi=fr.length-1;while(lo<hi){const mid=(lo+hi+1)>>1;if(fr[mid].t0<=t)lo=mid;else hi=mid-1;}return fr[lo];}
+
+/* draws the frame at time t of the clip onto dst */
+async function frameAt(t,dst,el){const m=MEDIA,g=dst.getContext('2d');
+  if(m.kind==='video'){el=el||m.el;if(!el.paused)el.pause();const want=clamp(t,0,Math.max(0,m.dur-.02));
+    if(Math.abs(el.currentTime-want)>.002||el.seeking){el.currentTime=want;await waitEvt(el,'seeked',4000);}g.drawImage(el,0,0,dst.width,dst.height);}
+  else{g.clearRect(0,0,dst.width,dst.height);g.drawImage(gifAt(t).c,0,0,dst.width,dst.height);}}
+/* when stopped, the picture shows the frame at the start of the clip */
+let stillBusy=false,stillAgain=false;
+async function showStill(){if(!MEDIA)return;if(stillBusy){stillAgain=true;return;}stillBusy=true;const m=MEDIA;
+  try{do{stillAgain=false;await frameAt(S.cstart,IMG);}while(stillAgain&&MEDIA===m);}catch(e){}finally{stillBusy=false;}
+  if(!playing&&MEDIA===m)render();}
+async function useMedia(m,name,keep){dropMedia();if(playing)setPlay(false);
+  MEDIA=m;IMG=mkCanvas(m.w,m.h);BLOB=m.blob;NAME=name||(m.kind==='gif'?'animation':'video');SAMPLE=false;outCache=null;
+  if(!keep){NAMECODE=rndCode();S.cstart=0;S.clen=Math.min(CLIP_MAX,m.dur);DB.tx('readwrite',st=>st.put({blob:m.blob,name:NAME},'media'));}
+  S.cstart=clamp(S.cstart,0,Math.max(0,m.dur-.2));
+  await frameAt(S.cstart,IMG);photoPal=null;
+  const th=mkCanvas(160,Math.max(1,Math.round(160*m.h/m.w)));th.getContext('2d').drawImage(IMG,0,0,th.width,th.height);$('thumb').src=th.toDataURL('image/jpeg',.8);
+  $('pName').textContent=NAME;$('pInfo').textContent=`${m.kind==='gif'?'Moving GIF':'Video'}, ${fmtT(m.dur)}, ${m.w} × ${m.h} pixels`;$('cta').hidden=true;
+  renderOpts();render();if(!keep)save();return true;}
+function dropMedia(){const m=MEDIA;if(!m)return;MEDIA=null;
+  if(m.kind==='video'){for(const el of[m.el,m.xel])if(el){try{el.pause();el.removeAttribute('src');el.load();}catch(e){}}setTimeout(()=>URL.revokeObjectURL(m.url),1000);}
+  else m.frames.forEach(f=>{f.c.width=f.c.height=0;});}
+/* opens whatever was chosen: a video or moving GIF as a clip, anything else as a photo */
+async function loadAny(blob,name,keep){const f={type:blob.type,name:name||''};
+  if(isVideoFile(f)){if(!keep)say('Opening the video…');const m=await openVideo(blob);say('');if(!m){toast('That video couldn’t be opened here. Try an MP4 or WebM file.');return false;}return useMedia(m,name,keep);}
+  if(isGifFile(f)){let m=null;try{const g=await decodeGif(blob);if(g)m={kind:'gif',blob,...g};}catch(e){}if(m)return useMedia(m,name,keep);}
+  return loadBlob(blob,name,keep);}
+/* the sound of the clip, read from the video file once */
+let AC=null;
+function audioCtx(){try{if(!AC){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;AC=new C();}if(AC.state==='suspended')AC.resume();return AC;}catch(e){return null;}}
+async function clipSound(ac){const m=MEDIA;if(!m||m.kind!=='video')return null;if(m.sound!==undefined)return m.sound;m.sound=null;
+  if(m.blob.size>600e6)return null;try{const buf=await m.blob.arrayBuffer();m.sound=await new Promise((res,rej)=>{const p=ac.decodeAudioData(buf,res,rej);if(p&&p.then)p.then(res,rej);});}catch(e){m.sound=null;}return m.sound;}
+/* A clip's video is made in two goes: first every frame gets the filter and is kept as a JPG, then the frames are played back
+   in real time while the page records, with the clip's sound alongside, so the sound and picture stay together however slow the filter is. */
+async function makeClipVideo(mime,ac){const[W,H]=movSize(),len=clipLen(),n=Math.max(1,Math.round(len*VID_FPS)),el=MEDIA.kind==='video'?await exportEl():null,xs=mkCanvas(iw(),ih()),jpgs=[];
+  for(let i=0;i<n;i++){await frameAt(S.cstart+i/VID_FPS,xs,el);const c=glitch(W,H,Math.floor(i/VID_FPS*TICKS),xs);
+    const b=await new Promise(r=>c.toBlob(r,'image/jpeg',.9));c.width=c.height=0;if(!b)throw new Error('the frames are too big for this browser. Try a smaller size');jpgs.push(b);movProg(i/n*.7);if(i%3===0)await breathe();}
+  xs.width=xs.height=0;
+  let buf=null;if(ac){say('Getting the sound…');buf=await clipSound(ac);}
+  say('Recording the video. Keep this page in front…');
+  const rc=mkCanvas(W,H),rg=rc.getContext('2d'),first=await createImageBitmap(jpgs[0]);rg.drawImage(first,0,0);first.close&&first.close();
+  const vs=rc.captureStream(VID_FPS),tracks=[...vs.getVideoTracks()];let dest=null,node=null;
+  if(buf){dest=ac.createMediaStreamDestination();tracks.push(...dest.stream.getAudioTracks());}
+  const opts={mimeType:mime,videoBitsPerSecond:W*H>600000?12e6:8e6};if(dest)opts.audioBitsPerSecond=160000;
+  const rec=new MediaRecorder(new MediaStream(tracks),opts),chunks=[];rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data);};const stopped=new Promise(r=>rec.onstop=r);
+  const cache=new Map(),want=i=>{if(i<n&&!cache.has(i)){const e={b:null,dead:false};e.p=createImageBitmap(jpgs[i]).then(b=>{if(e.dead){b.close&&b.close();}else e.b=b;}).catch(()=>{});cache.set(i,e);}};
+  for(let i=0;i<10;i++)want(i);await Promise.all([...cache.values()].map(e=>e.p));
+  rec.start(250);let clock;
+  if(buf){node=ac.createBufferSource();node.buffer=buf;node.connect(dest);const a0=ac.currentTime+.05;node.start(a0,Math.min(S.cstart,Math.max(0,buf.duration-.01)),len);clock=()=>ac.currentTime-a0;}
+  else{const t0=performance.now();clock=()=>(performance.now()-t0)/1000;}
+  const tw=performance.now();let shown=0;
+  await new Promise(res=>{const step=()=>{const t=clock(),i=clamp(Math.floor(t*VID_FPS),0,n-1);for(let j=i;j<i+12;j++)want(j);
+      let k=i;while(k>shown&&!(cache.get(k)&&cache.get(k).b))k--;if(k>shown){rg.drawImage(cache.get(k).b,0,0);shown=k;}
+      for(const[j,e]of cache)if(j<shown){e.dead=true;if(e.b){e.b.close&&e.b.close();e.b=null;}cache.delete(j);}
+      movProg(.7+.3*clamp(t/len,0,1));if(t>=len+.15)return res();requestAnimationFrame(step);};requestAnimationFrame(step);});
+  const ms=performance.now()-tw;rec.stop();await stopped;tracks.forEach(t=>t.stop());if(node){try{node.disconnect();}catch(e){}}
+  for(const e of cache.values()){e.dead=true;if(e.b&&e.b.close)e.b.close();}rc.width=rc.height=0;
+  const blob=new Blob(chunks,{type:mime.split(';')[0]});return cleanOut(mime.includes('webm')?await fixWebmDuration(blob,ms):blob);}
+
 /* ================= the photo ================= */
 async function loadBlob(blob,name,keep){
   let im=null;try{im=await createImageBitmap(blob);}catch(e){im=await new Promise(res=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>res(null);i.src=URL.createObjectURL(blob);});}
   if(!im||!im.width){toast('That file couldn’t be opened as a picture. Try JPG or PNG.');return false;}
+  dropMedia();if(!keep)DB.tx('readwrite',s=>s.delete('media'));
   IMG=im;BLOB=blob;NAME=name||'photo';SAMPLE=false;photoPal=null;outCache=null;if(!keep)NAMECODE=rndCode();
   $('thumb').src=URL.createObjectURL(blob);$('pName').textContent=NAME;$('pInfo').textContent=`${im.width} × ${im.height} pixels`;$('cta').hidden=true;
   renderOpts();render();if(!keep)save();return true;}
-function addFile(f){if(!f)return;if(!/^image\//.test(f.type)&&!/\.(png|jpe?g|webp|gif|avif|bmp)$/i.test(f.name)){toast('That isn’t a picture.');return;}loadBlob(f,f.name);}
+function addFile(f){if(!f)return;if(!/^(image|video)\//.test(f.type)&&!/\.(png|jpe?g|webp|gif|avif|bmp|mp4|mov|m4v|webm|mkv)$/i.test(f.name)){toast('That isn’t a photo or a video.');return;}if(busy){toast('Wait until the saving is done.');return;}loadAny(f,f.name);}
 ['pick','pick2'].forEach(id=>$(id).onchange=e=>{addFile(e.target.files[0]);e.target.value='';});
 const dropEl=$('drop');
 ['dragenter','dragover'].forEach(ev=>dropEl.addEventListener(ev,e=>{e.preventDefault();dropEl.classList.add('drop');}));
@@ -822,11 +966,11 @@ const DB={db:null,
     r.onsuccess=()=>{DB.db=r.result;res(r.result);};r.onerror=r.onblocked=()=>res(null);}catch(e){res(null);}});},
   async tx(mode,fn){const db=DB.db||await DB.open();if(!db)return null;return new Promise(res=>{try{const t=db.transaction('state',mode),st=t.objectStore('state');const q=fn(st);t.oncomplete=()=>res(q&&'result' in q?q.result:true);t.onerror=t.onabort=()=>res(null);}catch(e){res(null);}});}};
 let restored=false,saveT=0;
-function writeState(){if(!restored)return Promise.resolve();return DB.tx('readwrite',s=>s.put({S,blob:SAMPLE?null:BLOB,name:NAME,savedAt:Date.now()},'current'));}
+function writeState(){if(!restored)return Promise.resolve();return DB.tx('readwrite',s=>s.put({S,blob:SAMPLE||MEDIA?null:BLOB,media:!!MEDIA,name:NAME,savedAt:Date.now()},'current'));}
 function save(){clearTimeout(saveT);saveT=setTimeout(writeState,500);}
 function flushAutosave(){clearTimeout(saveT);return writeState();}
 async function restore(){try{const st=await DB.tx('readonly',s=>s.get('current'));
-  if(st&&st.S){S={...DEF(),...st.S};if(st.S.osd===true&&!st.S.scr)S.scr='play';delete S.osd;if(st.blob)await loadBlob(st.blob,st.name,true);}}catch(e){}
+  if(st&&st.S){S={...DEF(),...st.S};if(st.S.osd===true&&!st.S.scr)S.scr='play';delete S.osd;if(st.media){const md=await DB.tx('readonly',s=>s.get('media'));if(md&&md.blob)await loadAny(md.blob,md.name||st.name,true);}else if(st.blob)await loadBlob(st.blob,st.name,true);}}catch(e){}
   restored=true;renderOpts();render();}
 
 /* ================= passing files between tools, and from your gallery's Share menu (installed app only) ================= */
@@ -839,8 +983,8 @@ const HANDOFF={name:'pt-handoff',
     try{history.replaceState(null,'',location.pathname+location.hash);}catch(e){}return out;},
   async send(files,page){try{await this.put(files);}catch(e){toast('Couldn’t pass it along. Save it and add it there instead.');return;}
     try{await Promise.race([flushAutosave(),new Promise(r=>setTimeout(r,1500))]);}catch(e){}location.href=page+'?handoff=1';}};
-async function handoffIn(){const fs=(await HANDOFF.take()).filter(f=>/^image\//.test(f.type));if(!fs.length)return;await loadBlob(fs[0],fs[0].name);
-  toast(fs.length>1?'Opened the first photo. The filter works on one photo at a time.':'Your photo is in. Pick a look, then save it.');}
+async function handoffIn(){const fs=(await HANDOFF.take()).filter(f=>/^(image|video)\//.test(f.type)||isVideoFile(f));if(!fs.length)return;await loadAny(fs[0],fs[0].name);
+  toast(fs.length>1?'Opened the first one. The filter works on one photo or video at a time.':MEDIA?'Your clip is in. Pick a look, then save it.':'Your photo is in. Pick a look, then save it.');}
 document.querySelectorAll('#sendRow button').forEach(b=>b.onclick=()=>withFile(async f=>{say('');await HANDOFF.send([f],b.dataset.to);}));
 
 /* ================= switching tools ================= */

@@ -25,7 +25,7 @@ A small set of personal browser tools for dressing up photos, making short video
 | [Bubble Maker](#bubble-maker) | Manga speech and thought bubbles: 15 styles (classic, thought, shout, whisper, shaky, radio, narration, shoujo, pop, echo, horror and more), any words in about 100 fonts or your own, tails you point by dragging, patterns, double lines, shadows and decorations. Several bubbles on a page, random ideas, a bubble sheet to cut up, and saving as see-through PNG, SVG or a ZIP of each bubble. |
 | [Watermark](#watermark) | Puts your name or logo on one photo or a whole batch, with ready-made looks (corner signature, label, stamp, proof band, tiled) or your own saved watermarks. |
 | [Logo Stamp](#logo-stamp) | Crops your photos, fades the bottom into a color you choose, and puts your watermark PNG on top. Several photos at once, each with its own crop; the watermark is remembered for next time. |
-| [Glitch Filter](#glitch-filter) | Gives a photo a broken-screen look: neon color bars, thin streaks, slices pushed sideways and colors pulled apart, with five ready-made looks, a clear area you place over a face, and a shuffle button for a new arrangement. |
+| [Glitch Filter](#glitch-filter) | Gives a photo, video or moving GIF a broken-screen look: neon color bars, thin streaks, slices pushed sideways, colors pulled apart and old TV and VHS tape effects, with thirteen ready-made looks, a clear area you place over a face, and a shuffle button for a new arrangement. |
 | [Double Exposure](#double-exposure) | Blends a second picture into the light or dark parts of a photo, like two shots on one piece of film. Five built-in second pictures (city, forest, hills, clouds, stars) or your own, five looks, and a fade toward any side. |
 | [Duotone](#duotone) | Turns a photo into two or three ink colors: smooth like a poster, or printed as speckled, slightly out-of-line layers like a riso print. Eight color pairs, your own colors, paper color and five looks. |
 | [Light Leaks](#light-leaks) | Gives a photo the look of old film: a glowing light leak you drag into place, extra leaks, a film burn on any side, faded and warmer or cooler color, dust, scratches, grain and a date stamp. |
@@ -438,12 +438,15 @@ Removes everything from a photo or video except the picture and sound themselves
 
 ## Glitch Filter
 
-Gives any photo a broken-screen look, like a picture coming through a bad signal.
+Gives any photo, video or moving GIF a broken-screen look, like a picture coming through a bad signal or an old TV.
 
-- **Looks:** Neon streaks, Lost signal, Old tape, Light touch and Meltdown set everything at once. Move any slider and it becomes your own look.
+- **Videos and moving GIFs:** choose one instead of a photo and every look and setting works on it. **Start at** and **Length** pick the part to use (up to 30 seconds), **Play it moving** shows it with the filter, **Save a video** keeps the whole part (with its sound if **Keep the sound** is ticked), **Save a GIF** keeps up to 10 seconds, and **Save this frame** saves the picture at the start. The video is made frame by frame and then recorded as it plays, so keep the page in front; a long clip takes a few minutes.
+- **Looks:** Neon streaks, Lost signal, Old tape, Light touch and Meltdown, plus the TV looks VHS tape, Paused tape, Camcorder, Old TV, Old monitor, Pixel screen, Broken stream and Out of sync, set everything at once. Move any slider and it becomes your own look.
 - **How much, overall:** one slider that turns the whole effect up or down.
 - **Shuffle the glitches:** keeps your settings and moves every streak and bar somewhere new. Keep tapping until you like it.
 - **Glitches:** color bars in bunches, thin streaks that pick up the colors of the photo under them, striped blocks at the sides, rows of dots like broken text, slices pushed sideways, and colors pulled apart (red one way, blue the other). Two more sliders set how long and how thick the bars and streaks are.
+- **TV and tape:** a band that rolls down the picture, wobble, the tracking lines of a video tape, color smear, static, a paused tape and lines out of sync, plus the words a video player or camcorder puts on the screen (Playing, Paused or Recording with a blinking dot, battery, clock and corner marks), with your own text at the top and bottom.
+- **Screens:** the red, green and blue stripes of an old TV, a curved screen with rounded corners, a green or amber one-color monitor, big pixels with few colors, and a broken digital picture where blocks freeze, smear and drip.
 - **Colors:** Neon, colors taken from the photo itself, Fire, Ice, red-green-blue or White, plus a slider for stronger colors in the photo.
 - **Keep an area clear:** drag the dashed circle onto a face or a detail and it stays clean, with only a few thin streaks getting through. Scroll or pinch to change its size, or switch it off to cover the whole photo.
 - **Finish:** darken around the clear area so the colors pop, glow, screen lines and grain.

@@ -1027,6 +1027,7 @@ Reads the outfit in a photo or a piece of anime art and turns it into tags and p
 - **Copy:** the whole prompt, the negative prompt, just the outfit, or any one group. Tap a tag to open its Danbooru wiki page; **×** leaves it out of the prompt.
 
 ### Your outfits
+- **Moving between computers:** export on one and import on the other. Importing only adds what's new (outfits you don't have, newer changes, and deletions made on the other computer), so nothing is doubled and deleted outfits stay deleted.
 - **Catalog:** every read is kept with a thumbnail and where it came from. Name it, add labels and notes, star it, mark it "to try" or "done", and search everything. Export and import it to move it between devices.
 - **Video prompts:** three ready-to-paste image-to-video prompts for MiniMax Hailuo (subtle, showcase, dynamic): a one-line anchor, the motion in order, one camera move, style and exclusions, plus matching sound and music, in Hailuo's three fields. 5, 6 or 10 seconds, with tips for that picture.
 - **Three new outfits:** three fresh takes on any outfit (a restyle, a different genre, a different season), or your own direction like "make it winter".

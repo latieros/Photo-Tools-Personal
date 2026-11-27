@@ -430,7 +430,8 @@ pre.out{font-family:var(--f-mono)}
         <input type="search" id="catSearch" placeholder="search name, labels, notes, source, tags" style="flex:1 1 180px">
         <span id="catViews"><button class="small on" data-view="all">all</button> <button class="small" data-view="fav">★</button> <button class="small" data-view="try">to try</button> <button class="small" data-view="done">done</button></span>
         <button class="small" id="selectCat" title="Pick several outfits to delete">Select</button>
-        <button class="small" id="exportCat">Export</button>
+        <button class="small" id="exportCat" title="Save the whole catalog as a file, to back it up or move it to another computer">Export</button>
+        <label class="chk small-chk" title="Put the kept pictures in the file too, so the Map and the big photo work on the other computer. Makes the file bigger."><input type="checkbox" id="exportPics" checked> with pictures</label>
         <label class="small" style="margin:0"><input type="file" id="importCat" accept="application/json" hidden><button class="small" type="button" id="importBtn">Import</button></label>
       </div>
       <div class="row tight selbar" id="selBar" hidden>
@@ -440,7 +441,7 @@ pre.out{font-family:var(--f-mono)}
         <button class="small" id="selCancel" type="button">Done</button>
       </div>
       <div class="catalog" id="catalog"></div>
-      <p class="tiny">Saved in this browser only. Export to keep a backup or move between devices; exports carry the tags and thumbnails, not the full pictures.</p>
+      <p class="tiny">Saved in this browser only. To use it on another computer, export here and import there. Importing only adds what is new: outfits you don't have yet, newer changes to ones you do, and outfits deleted on the other computer. Nothing you have is duplicated.</p>
     </div>
 
     <div class="tab stack" data-tab="settings" hidden>
@@ -1244,7 +1245,7 @@ window.OTI = (() => {
   const $ = (id) => document.getElementById(id);
   const T = window.OUTFIT_TAGS;
   const P = () => window.OTI_PROVIDER;
-  const LS = { catalog: "oti.history", fmt: "oti.fmt", minConf: "oti.minConf", preset: "oti.preset", overrides: "oti.presetOverrides" };
+  const LS = { catalog: "oti.history", deleted: "oti.deleted", fmt: "oti.fmt", minConf: "oti.minConf", preset: "oti.preset", overrides: "oti.presetOverrides" };
 
   const C = self.OTI_CORE;
   const { SCHEMA, VARIANTS_SCHEMA, interpretPrompt, variantsPrompt, normalizeResult } = C;
@@ -1517,7 +1518,7 @@ window.OTI = (() => {
       const r = await P().interpret({ image: img, prompt: C.videoPrompt(result, direction, seconds) + (img ? "" : "\n(No picture is attached this time; work from the breakdown alone.)"), schema: C.VIDEO_SCHEMA, fresh: true });
       const takes = (r.json.takes || []).slice(0, 3).map(t => ({ title: t.title || "Take", description: (t.description || "").trim(), soundscape: (t.soundscape || "").trim(), music: (t.music || "").trim(), camera: typeof t.camera === "string" ? t.camera : "", why: t.why || "" }));
       video = { seconds, direction, takes, tips: Array.isArray(r.json.tips) ? r.json.tips.slice(0, 5) : [], ts: Date.now() };
-      if (current) { current.video = clone(video); saveCatalog(); }   // keeps the prompts with the outfit
+      if (current) { current.video = clone(video); touch(current); saveCatalog(); }   // keeps the prompts with the outfit
       renderVideo();
     } catch (e) { console.error(e); $("videoOut").innerHTML = `<p class="tiny" style="color:var(--bad)">${esc(P().errorMessage ? P().errorMessage(e) : (e.message || e.code || "failed"))}</p>`; }
     finally { $("videoBtn").disabled = false; }
@@ -1862,10 +1863,10 @@ window.OTI = (() => {
   }
   function readHeader() { return { name: $("outfitName").value.trim() || "outfit", labels: $("outfitLabels").value.split(",").map(x => x.trim().toLowerCase()).filter(Boolean), notes: $("outfitNotes").value.trim(), status: $("statusSel").value }; }
   function bindCatalogUI() {
-    $("saveUpdate").addEventListener("click", () => { if (!current) return; Object.assign(current, readHeader(), { result: clone(result) }); saveCatalog(); renderCatalog(); setStatus(`Updated “${current.name}”.`, "ok"); });
+    $("saveUpdate").addEventListener("click", () => { if (!current) return; Object.assign(current, readHeader(), { result: clone(result) }); touch(current); saveCatalog(); renderCatalog(); setStatus(`Updated “${current.name}”.`, "ok"); });
     $("saveNew").addEventListener("click", () => { if (!result) return; const meta = readHeader(); const e = addEntry(Object.assign(meta, { name: current && meta.name === current.name ? meta.name + " (remix)" : meta.name, thumb: current?.thumb || image?.thumb || "", source: current ? "remix" : "photo", parentId: current?.id || null, fav: current?.fav || false, result: clone(result), sourceName: current?.sourceName || image?.name || "", sourceUrl: current?.sourceUrl || "" })); (async () => { const pic = await mapPicture(); if (pic) previews().put(e.id, pic); })(); current = e; headerFor = undefined; render(); setStatus(`Saved “${e.name}”.`, "ok"); });
-    $("favBtn").addEventListener("click", () => { if (!current) { $("favBtn").textContent = $("favBtn").textContent === "★" ? "☆" : "★"; return; } current.fav = !current.fav; saveCatalog(); $("favBtn").textContent = current.fav ? "★" : "☆"; renderCatalog(); });
-    $("statusSel").addEventListener("change", () => { if (current) { current.status = $("statusSel").value; saveCatalog(); renderCatalog(); } });
+    $("favBtn").addEventListener("click", () => { if (!current) { $("favBtn").textContent = $("favBtn").textContent === "★" ? "☆" : "★"; return; } current.fav = !current.fav; touch(current); saveCatalog(); $("favBtn").textContent = current.fav ? "★" : "☆"; renderCatalog(); });
+    $("statusSel").addEventListener("change", () => { if (current) { current.status = $("statusSel").value; touch(current); saveCatalog(); renderCatalog(); } });
     $("deleteBtn").addEventListener("click", () => { if (!current) return; $("deleteYes").hidden = false; setTimeout(() => { $("deleteYes").hidden = true; }, 4000); });
     $("deleteYes").addEventListener("click", () => { $("deleteYes").hidden = true; if (current) deleteEntries([current]); });
     $("catSearch").addEventListener("input", () => { filter.q = $("catSearch").value.trim().toLowerCase(); renderCatalog(); });
@@ -1874,9 +1875,68 @@ window.OTI = (() => {
     $("selAll").addEventListener("click", () => { const shown = catalog.filter(entryMatches); if (shown.every(e => picked.has(e))) picked = new Set(); else shown.forEach(e => picked.add(e)); renderCatalog(); });
     $("selDelete").addEventListener("click", () => { if (!picked.size) return; const b = $("selDelete"); if (b.dataset.sure) { delete b.dataset.sure; deleteEntries([...picked]); if (!catalog.length) setPicking(false); } else { b.dataset.sure = "1"; b.textContent = `Really delete ${picked.size}?`; setTimeout(() => { delete b.dataset.sure; if (picking) renderCatalog(); }, 4000); } });
     document.querySelectorAll("#catViews button").forEach(b => b.addEventListener("click", () => { filter.view = b.dataset.view; document.querySelectorAll("#catViews button").forEach(x => x.classList.toggle("on", x === b)); renderCatalog(); }));
-    $("exportCat").addEventListener("click", () => download("outfit-catalog.json", JSON.stringify(catalog, null, 2)));
-    $("importCat").addEventListener("change", async (e) => { const f = e.target.files[0]; if (!f) return; try { const arr = JSON.parse(await f.text()); if (!Array.isArray(arr)) throw 0; const ids = new Set(catalog.map(x => x.id)); let n = 0; arr.forEach(x => { if (x && x.result && !ids.has(x.id)) { catalog.push(x); n++; } }); saveCatalog(); catalog = loadCatalog(); renderCatalog(); setStatus(`Imported ${n} outfit${n === 1 ? "" : "s"}.`, "ok"); } catch { setStatus("That file is not a catalog export.", "bad"); } e.target.value = ""; });
+    $("exportCat").addEventListener("click", exportCatalog);
+    $("importCat").addEventListener("change", async (e) => { const f = e.target.files[0]; e.target.value = ""; if (f) await importCatalog(f); });
   }
+  // ---- moving the catalog between computers ----
+  // Each change stamps the outfit, deletions are remembered, and an export carries both (plus the kept pictures),
+  // so importing only brings in what is new: outfits you do not have, newer edits of ones you do, and deletions.
+  const touch = (e) => { e.updated = Date.now(); };
+  const changedAt = (e) => e.updated || e.ts || 0;
+  function deletedList() { try { const d = JSON.parse(ls(LS.deleted) || "[]"); return Array.isArray(d) ? d : []; } catch { return []; } }
+  function rememberDeleted(items) {
+    const by = new Map(deletedList().map(d => [d.id, d]));
+    items.forEach(d => { if (d && d.id && !(by.get(d.id)?.at >= d.at)) by.set(d.id, { id: d.id, key: d.key || "", at: d.at || Date.now() }); });
+    ls(LS.deleted, JSON.stringify([...by.values()].sort((a, b) => b.at - a.at).slice(0, 2000)));
+  }
+  // Two separate reads of the same picture get different ids; the same tags from the same file or page count as one outfit.
+  const outfitKey = (e) => e.result ? C.tagSig(e.result) + "|" + (e.sourceUrl || e.sourceName || e.name) : "";
+  const sameOutfit = (a, b) => !!a.result && outfitKey(a) === outfitKey(b);
+  // A deletion covers the outfit by id, and by what it is, so a copy read separately on the other computer goes too.
+  const deletedBy = (list) => { const ids = new Map(), keys = new Map(); list.forEach(d => { if (!d || !d.id) return; ids.set(d.id, Math.max(ids.get(d.id) || 0, d.at || 0)); if (d.key) keys.set(d.key, Math.max(keys.get(d.key) || 0, d.at || 0)); }); return (e) => Math.max(ids.get(e.id) || 0, keys.get(outfitKey(e)) || 0); };
+  async function exportCatalog() {
+    const withPics = $("exportPics").checked, pictures = {};
+    if (withPics) { setStatus("Collecting pictures…"); for (const e of catalog) { const p = await previews().get(e.id).catch(() => null); if (p) pictures[e.id] = p; } }
+    const data = { app: "outfit-tags", version: 2, exported: new Date().toISOString(), outfits: catalog, deleted: deletedList(), pictures };
+    const day = new Date().toISOString().slice(0, 10);
+    await download(`outfit-catalog-${day}.json`, JSON.stringify(data));
+  }
+  async function importCatalog(file) {
+    let data; try { data = JSON.parse(await file.text()); } catch { setStatus("That file is not a catalog export.", "bad"); return; }
+    const incoming = Array.isArray(data) ? data : data && Array.isArray(data.outfits) ? data.outfits : null;   // older exports are a bare list
+    if (!incoming) { setStatus("That file is not a catalog export.", "bad"); return; }
+    const theirDeleted = Array.isArray(data.deleted) ? data.deleted : [], pictures = (data && data.pictures) || {};
+    const myGoneAt = deletedBy(deletedList());
+    const n = { added: 0, updated: 0, same: 0, dup: 0, skipped: 0, removed: 0, pics: 0 };
+    // deletions made on the other computer, unless the outfit was changed here after that
+    const theirGoneAt = deletedBy(theirDeleted);
+    const removed = catalog.filter(e => { const at = theirGoneAt(e); return at && changedAt(e) <= at; });
+    if (removed.length) { removed.forEach(e => previews().delete(e.id)); catalog = catalog.filter(e => !removed.includes(e)); n.removed = removed.length; if (current && removed.includes(current)) { current = null; headerFor = undefined; } }
+    const byId = new Map(catalog.map(e => [e.id, e]));
+    for (const x of incoming) {
+      if (!x || !x.result || !x.id) continue;
+      const mineAt = myGoneAt(x), theirsAt = theirGoneAt(x);
+      if (mineAt && changedAt(x) <= mineAt) { n.skipped++; continue; }   // you deleted it here
+      if (theirsAt && changedAt(x) <= theirsAt) continue;
+      const mine = byId.get(x.id);
+      if (mine) {
+        if (changedAt(x) > changedAt(mine)) { Object.assign(mine, x); n.updated++; } else n.same++;
+      } else if (catalog.some(e => sameOutfit(e, x))) { n.dup++; continue; }
+      else { const e = Object.assign({}, x); catalog.push(e); byId.set(e.id, e); n.added++; }
+      if (pictures[x.id] && !(await previews().get(x.id).catch(() => null))) { await previews().put(x.id, pictures[x.id]); n.pics++; }
+    }
+    rememberDeleted(theirDeleted);
+    saveCatalog(); catalog = loadCatalog(); if (current) current = catalog.find(e => e.id === current.id) || null;
+    renderCatalog(); if (!current && !selected) { result = null; showPending(null); } else if (current) render();
+    const parts = [`${n.added} new outfit${n.added === 1 ? "" : "s"} added`];
+    if (n.updated) parts.push(`${n.updated} updated with newer changes`);
+    if (n.removed) parts.push(`${n.removed} removed that you deleted on the other computer`);
+    if (n.same) parts.push(`${n.same} already here`);
+    if (n.dup) parts.push(`${n.dup} skipped as the same outfit read twice`);
+    if (n.skipped) parts.push(`${n.skipped} skipped that you deleted here`);
+    setStatus(parts.join(", ") + ".", "ok");
+  }
+
   // Where an entry's picture came from: a link to the page, else the file name.
   function sourceHtml(e, sep = "") {
     if (e.sourceUrl) { let host = e.sourceUrl; try { host = new URL(e.sourceUrl).hostname.replace(/^www\./, ""); } catch {} return `${sep}from <a href="${esc(e.sourceUrl)}" target="_blank" rel="noopener" title="${esc(e.sourceUrl)}">${esc(host)}</a>`; }
@@ -1893,6 +1953,7 @@ window.OTI = (() => {
   function deleteEntries(list) {
     const gone = new Set(list); if (!gone.size) return;
     gone.forEach(e => previews().delete(e.id));
+    rememberDeleted([...gone].map(e => ({ id: e.id, key: outfitKey(e), at: Date.now() })));   // so an import from the other computer does not bring them back
     catalog = catalog.filter(e => !gone.has(e)); saveCatalog();
     picked = new Set([...picked].filter(e => !gone.has(e)));
     if (current && gone.has(current)) { current = null; headerFor = undefined; render(); } else renderCatalog();
@@ -2005,7 +2066,7 @@ const HANDOFF={name:'pt-handoff',
   // Its content script answers on this page; then the catalog, pictures and a few choices live in the
   // extension's storage, shared with the right-click panel and the extension's own copy of the tool.
   let bridge = null;
-  const KEYS = ["oti.history", "oti.fmt", "oti.minConf", "oti.preset", "oti.presetOverrides", "oti.settings"];
+  const KEYS = ["oti.history", "oti.deleted", "oti.fmt", "oti.minConf", "oti.preset", "oti.presetOverrides", "oti.settings"];
   function connectBridge() {
     if (inClaude || !document.documentElement.dataset.otiBridge) return Promise.resolve(null);
     return new Promise((resolve) => {
